@@ -3,36 +3,36 @@ import * as vscode from 'vscode';
 
 export enum CurlyBraceFormat {
     SameLine,
-    NewLine,
-    NewLineCtorDtor
+    NewLineCtorDtor,
+    NewLine
 }
 
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
-const defaultCurlyBraceFormat = CurlyBraceFormat.NewLineCtorDtor;
+const defaultCurlyBraceFormat = CurlyBraceFormat.NewLine;
 
 
 export function headerExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('Cmantic').get<string[]>('HeaderFileExtensions');
+    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('HeaderFileExtensions');
     return extensions ? extensions : defaultHeaderExtensions;
 }
 
 export function sourceExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('Cmantic').get<string[]>('SourceFileExtensions');
+    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('SourceFileExtensions');
     return extensions ? extensions : defaultSourceExtensions;
 }
 
 export function curlyBraceFormat(): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('Cmantic').get<string>('CurlyBraceFormat');
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('CurlyBraceFormat');
     switch (format) {
     case 'Same line':
         return CurlyBraceFormat.SameLine;
-    case 'New line':
-        return CurlyBraceFormat.NewLine;
     case 'New line for constructors and destructors':
+        return CurlyBraceFormat.NewLineCtorDtor;
+    case 'New line':
     default:
         return defaultCurlyBraceFormat;
     }

@@ -83,7 +83,7 @@
         {
           "command": "cmantic.switchHeaderSourceInWorkspace",
           "group": "navigation@100",
-          "when": "resourceLangId =~ /^c|cpp$/"
+          "when": "resourceLangId =~ /^c|cpp$/ && config.C_mantic.ContextSwitchHeaderSource"
         },
         {
           "command": "editor.action.refactor",
@@ -115,7 +115,7 @@
         "title": "C-mantic",
         "type": "object",
         "properties": {
-          "Cmantic.HeaderFileExtensions": {
+          "C_mantic.HeaderFileExtensions": {
             "type": "array",
             "default": [
               "h",
@@ -125,7 +125,7 @@
             ],
             "description": "File extensions to associate header files."
           },
-          "Cmantic.SourceFileExtensions": {
+          "C_mantic.SourceFileExtensions": {
             "type": "array",
             "default": [
               "c",
@@ -135,15 +135,20 @@
             ],
             "description": "File extensions to associate source files."
           },
-          "Cmantic.CurlyBraceFormat": {
+          "C_mantic.CurlyBraceFormat": {
             "type": "string",
             "enum": [
               "Same line",
-              "New line",
-              "New line for constructors and destructors"
+              "New line for constructors and destructors",
+              "New line"
             ],
-            "default": "New line for constructors and destructors",
+            "default": "New line",
             "description": "Controls how to format the opening curly brace when adding a new function definition."
+          },
+          "C_mantic.ContextSwitchHeaderSource": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show \"Switch Header/Source in Workspace\" in the editor context menu."
           }
         }
       }

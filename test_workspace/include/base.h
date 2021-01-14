@@ -7,6 +7,7 @@
 class Base
 {
 public:
+    explicit Base();
     explicit Base(const std::string &name);
     ~Base();
 
