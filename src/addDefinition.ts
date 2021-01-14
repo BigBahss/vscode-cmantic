@@ -10,8 +10,9 @@ export const failReason = {
     notHeaderFile: 'This file is not a header file.',
     notFunctionDeclaration: 'No function declaration detected.',
     noMatchingSourceFile: 'No matching source file was found.',
-    isConstexpr: 'Constexpr symbols must be defined in the file that they are declared.',
-    definitionExists: 'A definition for this symbol already exists.'
+    isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
+    isInline: 'Inline functions must be defined in the file that they are declared.',
+    definitionExists: 'A definition for this function already exists.'
 };
 
 
@@ -47,6 +48,9 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     } else if (symbol.isConstexpr()) {
         vscode.window.showErrorMessage(failReason.isConstexpr);
+        return;
+    } else if (symbol.isInline()) {
+        vscode.window.showErrorMessage(failReason.isInline);
         return;
     }
 

@@ -29,6 +29,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         if (symbol?.isConstexpr()) {
             sourceDisabled = { reason: failReason.isConstexpr };
         }
+        if (symbol?.isInline()) {
+            sourceDisabled = { reason: failReason.isInline };
+        }
         if (!symbol?.isFunctionDeclaration()) {
             sourceDisabled = { reason: failReason.notFunctionDeclaration };
             currentDisabled = sourceDisabled;

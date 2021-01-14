@@ -92,6 +92,15 @@ export class Symbol extends vscode.DocumentSymbol
         return false;
     }
 
+    isInline(): boolean
+    {
+        const leadingRange = new vscode.Range(this.range.start, this.selectionRange.start);
+        if (this.document.getText(leadingRange).match(/\binline\b/)) {
+            return true;
+        }
+        return false;
+    }
+
     // Formats this function declaration for use as a definition (without curly braces).
     async newFunctionDefinition(target: SourceFile, position?: vscode.Position): Promise<string>
     {
