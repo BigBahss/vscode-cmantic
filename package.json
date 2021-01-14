@@ -1,7 +1,7 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "A C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
+  "description": "C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.3.0"
