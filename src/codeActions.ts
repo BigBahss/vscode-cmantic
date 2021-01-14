@@ -26,11 +26,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let currentDisabled: { readonly reason: string } | undefined;
         let newSourceDisabled: { readonly reason: string } | undefined;
 
-        if (symbol?.isConstexpr()) {
-            sourceDisabled = { reason: failReason.isConstexpr };
-        }
         if (symbol?.isInline()) {
             sourceDisabled = { reason: failReason.isInline };
+        }
+        if (symbol?.isConstexpr()) {
+            sourceDisabled = { reason: failReason.isConstexpr };
         }
         if (!symbol?.isFunctionDeclaration()) {
             sourceDisabled = { reason: failReason.notFunctionDeclaration };

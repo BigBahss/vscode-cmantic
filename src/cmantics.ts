@@ -128,6 +128,7 @@ export class Symbol extends vscode.DocumentSymbol
         const parameters = stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
+        // FIXME: Smart alignment sometimes works incorrectly.
         let leadingText = declaration.substring(0, declaration.indexOf(funcName));
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;

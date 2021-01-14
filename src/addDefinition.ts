@@ -24,12 +24,6 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    const symbolPosition = editor.document.getWordRangeAtPosition(editor.selection.start)?.start;
-    if (!symbolPosition) {
-        vscode.window.showErrorMessage(failReason.noDocumentSymbol);
-        return;
-    }
-
     const sourceFile = new c.SourceFile(editor.document);
     if (!sourceFile.isHeader()) {
         vscode.window.showErrorMessage(failReason.notHeaderFile);
@@ -38,7 +32,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
 
     const [matchingUri, symbol] = await Promise.all([
         sourceFile.findMatchingSourceFile(),
-        sourceFile.getSymbol(symbolPosition)
+        sourceFile.getSymbol(editor.selection.start)
     ]);
     if (!symbol?.isFunctionDeclaration()) {
         vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
@@ -65,15 +59,9 @@ export async function addDefinitionInCurrentFile(): Promise<void>
         return;
     }
 
-    const symbolPosition = editor.document.getWordRangeAtPosition(editor.selection.start)?.start;
-    if (!symbolPosition) {
-        vscode.window.showErrorMessage(failReason.noDocumentSymbol);
-        return;
-    }
-
     const sourceFile = new c.SourceFile(editor.document);
 
-    const symbol = await sourceFile.getSymbol(symbolPosition);
+    const symbol = await sourceFile.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
         vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
         return;
