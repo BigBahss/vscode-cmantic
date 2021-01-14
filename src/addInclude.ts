@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
 import * as util from './utility';
 import * as c from './cmantics';
 
