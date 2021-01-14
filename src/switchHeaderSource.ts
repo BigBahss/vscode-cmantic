@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as c from './cmantics';
 
 
-export async function switchHeaderSource(): Promise<void>
+export async function switchHeaderSourceInWorkspace(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {

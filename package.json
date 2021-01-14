@@ -31,7 +31,7 @@
     "include"
   ],
   "activationEvents": [
-    "onCommand:cmantic.switchHeaderSource",
+    "onCommand:cmantic.switchHeaderSourceInWorkspace",
     "onCommand:cmantic.addDefinition",
     "onCommand:cmantic.addDefinitionInSourceFile",
     "onCommand:cmantic.addDefinitionInCurrentFile",
@@ -46,8 +46,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "cmantic.switchHeaderSource",
-        "title": "Switch Header/Source"
+        "command": "cmantic.switchHeaderSourceInWorkspace",
+        "title": "Switch Header/Source in Workspace"
       },
       {
         "command": "cmantic.addDefinition",
@@ -81,8 +81,8 @@
     "menus": {
       "editor/context": [
         {
-          "command": "cmantic.switchHeaderSource",
-          "group": "navigation@1",
+          "command": "cmantic.switchHeaderSourceInWorkspace",
+          "group": "navigation@100",
           "when": "resourceLangId =~ /^c|cpp$/"
         },
         {
