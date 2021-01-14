@@ -1,0 +1,164 @@
+{
+  "name": "cmantic",
+  "displayName": "C-mantic",
+  "description": "A C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.3.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "c",
+    "c++",
+    "cpp",
+    "switch",
+    "header",
+    "source",
+    "definition",
+    "refactor",
+    "action",
+    "include"
+  ],
+  "activationEvents": [
+    "onCommand:cmantic.switchHeaderSource",
+    "onCommand:cmantic.addDefinition",
+    "onCommand:cmantic.addDefinitionInSourceFile",
+    "onCommand:cmantic.addDefinitionInCurrentFile",
+    "onCommand:cmantic.createMatchingSourceFile",
+    "onCommand:cmantic.addInclude",
+    "onCommand:editor.action.refactor",
+    "onCommand:editor.action.sourceAction",
+    "onLanguage:cpp",
+    "onLanguage:c"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cmantic.switchHeaderSource",
+        "title": "Switch Header/Source"
+      },
+      {
+        "command": "cmantic.addDefinition",
+        "title": "C-mantic: Add Definition"
+      },
+      {
+        "command": "cmantic.addDefinitionInSourceFile",
+        "title": "C-mantic: Add Definition in matching source file"
+      },
+      {
+        "command": "cmantic.addDefinitionInCurrentFile",
+        "title": "C-mantic: Add Definition in this file"
+      },
+      {
+        "command": "cmantic.createMatchingSourceFile",
+        "title": "C-mantic: Create Matching Source File"
+      },
+      {
+        "command": "cmantic.addInclude",
+        "title": "C-mantic: Add Include"
+      },
+      {
+        "command": "editor.action.refactor",
+        "title": "Refactor..."
+      },
+      {
+        "command": "editor.action.sourceAction",
+        "title": "Source Action..."
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "cmantic.switchHeaderSource",
+          "group": "navigation@1",
+          "when": "resourceLangId =~ /^c|cpp$/"
+        },
+        {
+          "command": "editor.action.refactor",
+          "group": "1_modification@2",
+          "when": "resourceLangId =~ /^c|cpp$/"
+        },
+        {
+          "command": "editor.action.sourceAction",
+          "group": "1_modification@2",
+          "when": "resourceLangId =~ /^c|cpp$/"
+        }
+      ]
+    },
+    "codeActions": [
+      {
+        "actions": {
+          "title": "%codeActions.refactor.title%",
+          "description": "%codeActions.refactor.description%",
+          "kind": "refactor"
+        },
+        "languages": [
+          "c",
+          "cpp"
+        ]
+      }
+    ],
+    "configuration": [
+      {
+        "title": "C-mantic",
+        "type": "object",
+        "properties": {
+          "Cmantic.HeaderFileExtensions": {
+            "type": "array",
+            "default": [
+              "h",
+              "hpp",
+              "hh",
+              "hxx"
+            ],
+            "description": "File extensions to associate header files."
+          },
+          "Cmantic.SourceFileExtensions": {
+            "type": "array",
+            "default": [
+              "c",
+              "cpp",
+              "cc",
+              "cxx"
+            ],
+            "description": "File extensions to associate source files."
+          },
+          "Cmantic.CurlyBraceFormat": {
+            "type": "string",
+            "enum": [
+              "Same line",
+              "New line",
+              "New line for constructors and destructors"
+            ],
+            "default": "New line for constructors and destructors",
+            "description": "Controls how to format the opening curly brace when adding a new function definition."
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.9.3",
+    "@types/vscode": "^1.3.0",
+    "chai": "^4.2.0",
+    "glob": "^7.1.6",
+    "mocha": "^7.1.1",
+    "tslint": "^6.1.3",
+    "typescript": "^3.8.3",
+    "vscode-test": "^1.3.0"
+  },
+  "dependencies": {}
+}
