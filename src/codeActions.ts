@@ -74,6 +74,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             disabled: currentDisabled
         },
         {
+            title: 'Add Header Guard',
+            kind: vscode.CodeActionKind.Source,
+            command: {
+                title: 'Add Header Guard',
+                command: 'cmantic.addHeaderGuard'
+            }
+        },
+        {
             title: 'Add Include',
             kind: vscode.CodeActionKind.Source,
             command: {
