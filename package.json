@@ -70,6 +70,10 @@
         "title": "C-mantic: Add Include"
       },
       {
+        "command": "cmantic.addHeaderGuard",
+        "title": "C-mantic: Add Header Guard"
+      },
+      {
         "command": "editor.action.refactor",
         "title": "Refactor..."
       },

@@ -440,6 +440,25 @@ export class SourceFile
 
         return { system: new vscode.Position(0, 0), project: new vscode.Position(0, 0) };
     }
+
+    // Finds a position for a header guard by skipping over any comments that appear at the top of the file.
+    findPositionForNewHeaderGuard(): ProposedPosition
+    {
+        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
+                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
+        let match = maskedText.match(/\S/);
+        if (typeof match?.index === 'number') {
+            return {
+                value: this.document.positionAt(match.index),
+                before: true
+            };
+        }
+
+        return {
+            value: this.document.positionAt(this.text().trimEnd().length),
+            after: true
+        };
+    }
 }
 
 
@@ -449,7 +468,6 @@ export interface ProposedPosition
     before?: boolean;
     after?: boolean;
 }
-
 
 export interface NewIncludePosition
 {

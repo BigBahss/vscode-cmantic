@@ -7,9 +7,17 @@ export enum CurlyBraceFormat {
     NewLine
 }
 
+export enum HeaderGuardStyle {
+    Define,
+    PragmaOnce,
+    Both
+}
+
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultCurlyBraceFormat = CurlyBraceFormat.NewLine;
+const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
+const defaultHeaderGuardDefineFormat = '${FILENAME_EXT}';
 
 
 export function headerExtensions(): string[]
@@ -36,6 +44,26 @@ export function curlyBraceFormat(): CurlyBraceFormat
     default:
         return defaultCurlyBraceFormat;
     }
+}
+
+export function headerGuardStyle(): HeaderGuardStyle
+{
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('HeaderGuardStyle');
+    switch (format) {
+    case 'Add both':
+        return HeaderGuardStyle.Both;
+    case 'Add #pragma once':
+        return HeaderGuardStyle.PragmaOnce;
+    case 'Add #define':
+    default:
+        return defaultHeaderGuardStyle;
+    }
+}
+
+export function headerGuardDefineFormat(): string
+{
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('HeaderGuardDefineFormat');
+    return format ? format : defaultHeaderGuardDefineFormat;
 }
 
 export function indentation(options?: vscode.TextEditorOptions)
