@@ -42,7 +42,7 @@ export class Symbol extends vscode.DocumentSymbol
         return scopes.reverse();
     }
 
-    // Finds the most likely definition of this symbol in the case that multiple are found.
+    // Finds the most likely definition of this Symbol in the case that multiple are found.
     async findDefinition(): Promise<vscode.Location | undefined>
     {
         return await findDefinitionOfDocumentSymbol(this.selectionRange.start, this.document.uri);
@@ -313,6 +313,8 @@ export class SourceFile
         return bestMatch;
     }
 
+    // Returns the best position to place the definition for declaration.
+    // If target is undefined the position will be for this SourceFile.
     async findPositionForNewDefinition(declaration: Symbol, target?: SourceFile): Promise<ProposedPosition>
     {
         if (declaration.document !== this.document || (!declaration.parent && this.symbols.length === 0)) {
@@ -374,6 +376,7 @@ export class SourceFile
         };
     }
 
+    // Returns the best positions to place new includes (system and project includes).
     async findPositionForNewInclude(): Promise<NewIncludePosition>
     {
         // TODO: Clean up this mess.
