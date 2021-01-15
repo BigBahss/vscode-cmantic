@@ -38,6 +38,7 @@
     "onCommand:cmantic.addDefinitionInCurrentFile",
     "onCommand:cmantic.createMatchingSourceFile",
     "onCommand:cmantic.addInclude",
+    "onCommand:cmantic.addHeaderGuard",
     "onCommand:editor.action.refactor",
     "onCommand:editor.action.sourceAction",
     "onLanguage:cpp",
