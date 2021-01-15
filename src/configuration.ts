@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as util from './utility';
 
 
 export enum CurlyBraceFormat {
@@ -64,6 +65,13 @@ export function headerGuardDefineFormat(): string
 {
     const format = vscode.workspace.getConfiguration('C_mantic').get<string>('HeaderGuardDefineFormat');
     return format ? format : defaultHeaderGuardDefineFormat;
+}
+
+export function headerGuardDefine(fileName: string): string
+{
+    const FILENAME_EXT = fileName.replace('.', '_').toUpperCase();
+    const FILENAME = util.fileNameBase(fileName).toUpperCase();
+    return headerGuardDefineFormat().replace('${FILENAME_EXT}', FILENAME_EXT).replace('${FILENAME}', FILENAME);
 }
 
 export function indentation(options?: vscode.TextEditorOptions)

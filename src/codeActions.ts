@@ -25,6 +25,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let sourceDisabled: { readonly reason: string } | undefined;
         let currentDisabled: { readonly reason: string } | undefined;
         let newSourceDisabled: { readonly reason: string } | undefined;
+        let headerGuardDisabled: { readonly reason: string } | undefined;
 
         if (symbol?.isInline()) {
             sourceDisabled = { reason: failReason.isInline };
@@ -43,14 +44,18 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         if (!sourceFile.isHeader()) {
             sourceDisabled = { reason: failReason.notHeaderFile };
             newSourceDisabled = sourceDisabled;
+            headerGuardDisabled = sourceDisabled;
             sourceTitle += ' in matching source file';
         } else if (matchingUri) {
-            newSourceDisabled = { reason: 'A matching source file already exists' };
+            newSourceDisabled = { reason: 'A matching source file already exists.' };
             // TODO: Elide the path if it is very long.
             sourceTitle += ' in "' + util.workspaceRelativePath(matchingUri.path) + '"';
         } else {
             sourceDisabled = { reason: failReason.noMatchingSourceFile };
             sourceTitle += ' in matching source file';
+        }
+        if (await sourceFile.hasHeaderGuard()) {
+            headerGuardDisabled = { reason: 'A header guard already exists.'};
         }
 
         return [{
@@ -79,7 +84,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: 'Add Header Guard',
                 command: 'cmantic.addHeaderGuard'
-            }
+            },
+            disabled: headerGuardDisabled
         },
         {
             title: 'Add Include',

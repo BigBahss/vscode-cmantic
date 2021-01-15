@@ -30,12 +30,7 @@ export function addHeaderGuard(): void
     }
 
     if (headerGuardKind === cfg.HeaderGuardStyle.Define || headerGuardKind === cfg.HeaderGuardStyle.Both) {
-        const FILENAME_EXT = fileName.replace('.', '_').toUpperCase();
-        const FILENAME = util.fileNameBase(fileName).toUpperCase();
-
-        const headerGuardDefine = cfg.headerGuardDefineFormat()
-                .replace('${FILENAME_EXT}', FILENAME_EXT).replace('${FILENAME}', FILENAME);
-
+        const headerGuardDefine = cfg.headerGuardDefine(fileName);
         header += '#ifndef ' + headerGuardDefine + eol + '#define ' + headerGuardDefine + eol;
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }

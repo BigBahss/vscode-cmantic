@@ -238,11 +238,6 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async contains(target: vscode.DocumentSymbol): Promise<boolean>
-    {
-        return await this.findMatchingSymbol(target) !== undefined;
-    }
-
     async findDefinition(position: vscode.Position): Promise<vscode.Location | undefined>
     {
         return await findDefinitionOfDocumentSymbol(position, this.uri);
@@ -256,6 +251,25 @@ export class SourceFile
     static isHeader(fileName: string): boolean
     {
         return cfg.headerExtensions().includes(util.fileExtension(fileName));
+    }
+
+    async hasHeaderGuard(): Promise<boolean>
+    {
+        if (this.text().match(/^\s*#pragma\s+once\b/)) {
+            return true;
+        }
+
+        if (this.symbols.length === 0) {
+            await this.updateSymbols();
+        }
+
+        for (const symbol of this.symbols) {
+            if (symbol.name === cfg.headerGuardDefine(util.fileName(this.uri.path))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     async findMatchingSourceFile(): Promise<vscode.Uri | undefined>
