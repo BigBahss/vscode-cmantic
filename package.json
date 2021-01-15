@@ -138,9 +138,9 @@
           "C_mantic.CurlyBraceFormat": {
             "type": "string",
             "enum": [
-              "Same line",
+              "New line",
               "New line for constructors and destructors",
-              "New line"
+              "Same line"
             ],
             "default": "New line",
             "description": "Controls how to format the opening curly brace when adding a new function definition."
@@ -148,8 +148,23 @@
           "C_mantic.ContextSwitchHeaderSource": {
             "type": "boolean",
             "default": true,
-            "description": "Show \"Switch Header/Source in Workspace\" in the editor context menu."
-          }
+            "description": "Show 'Switch Header/Source in Workspace' in the editor context menu."
+          },
+          "C_mantic.HeaderGuardStyle": {
+            "type": "string",
+            "enum": [
+              "Add #define",
+              "Add #pragma once",
+              "Add both"
+            ],
+            "default": "Add #define",
+            "description": "Controls what kind of header guard to add."
+          },
+					"C_mantic.HeaderGuardDefineFormat": {
+						"type": "string",
+						"default": "${FILENAME_EXT}",
+						"description": "Controls how new header guard defines are generated. The variable '${FILENAME_EXT}' is replaced with the file name in uppercase, with any file extension dots replaced with underscores. The variable '${FILENAME}' is replaced with the file name in upppercase, not including any file extensions. For example, a file named 'some_header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
+					}
         }
       }
     ]
