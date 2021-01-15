@@ -40,17 +40,23 @@ export function addHeaderGuard(): void
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
+    const footerPosition = new vscode.Position(sourceFile.document.lineCount - 1, 0);
+
     if (headerGuardPosition.after) {
         header = eol + eol + header;
     } else if (headerGuardPosition.before) {
         header += eol;
-    } else if (sourceFile.document.lineCount - 1 === headerGuardPosition.value.line) {
-        footer += eol;
+    }
+    if (sourceFile.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
+        header += eol;
+    }
+    if (footerPosition.line === headerGuardPosition.value.line) {
+        footer = eol + footer;
     }
 
     activeEditor.insertSnippet(
             new vscode.SnippetString(footer),
-            new vscode.Position(sourceFile.document.lineCount - 1, 0),
+            footerPosition,
             { undoStopBefore: true, undoStopAfter: false });
     activeEditor.insertSnippet(
             new vscode.SnippetString(header),

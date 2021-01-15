@@ -454,9 +454,10 @@ export class SourceFile
             };
         }
 
+        const endTrimmedTextLength = this.text().trimEnd().length;
         return {
-            value: this.document.positionAt(this.text().trimEnd().length),
-            after: true
+            value: this.document.positionAt(endTrimmedTextLength),
+            after: endTrimmedTextLength !== 0
         };
     }
 }
