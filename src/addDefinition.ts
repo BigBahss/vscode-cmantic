@@ -111,9 +111,10 @@ export async function addDefinition(
     }
     const snippet = new vscode.SnippetString(functionSkeleton);
 
-    // Insert the snippet, trim trailing whitespace, and reveal it in the editor.
     await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
     if (position.before || position.after) {
+        /* When inserting a indented snippet that contains an empty line, the empty line with be indented,
+         * thus leaving trailing whitespace. So we need to clean up that whitespace. */
         editor.edit(editBuilder => {
             const trailingWSPosition = position.value.translate(position.after ? 1 : util.lines(snippet.value));
             const l = targetFile.document.lineAt(trailingWSPosition);

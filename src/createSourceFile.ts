@@ -22,11 +22,14 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const currentFilePath = vscode.window.activeTextEditor?.document.uri.path;
-    if (!currentFilePath) {
+    const currentDocument = vscode.window.activeTextEditor?.document;
+    if (!currentDocument) {
         vscode.window.showErrorMessage('You must have a text editor open.');
         return;
-    } else if (!c.SourceFile.isHeader(currentFilePath)) {
+    }
+
+    const currentFilePath = currentDocument.uri.path;
+    if (!c.SourceFile.isHeader(currentFilePath)) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
     }
@@ -35,26 +38,27 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const folder = await vscode.window.showQuickPick(
             await findSourceFolders(workspaceFolder.uri),
-            { placeHolder: 'Select/Type the name of the folder where the new source file will go' }
-    );
+            { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
     if (!folder) {
         return;
     }
 
     const extension = await vscode.window.showQuickPick(
             cfg.sourceExtensions(),
-            { placeHolder: 'Select an extension for the new source file' }
-    );
+            { placeHolder: 'Select an extension for the new source file' });
     if (!extension) {
         return;
     }
 
     const newFilePath = folder.path + '/' + fileNameBase + '.' + extension;
     const newFileUri = vscode.Uri.parse(newFilePath);
+    const includeStatement = '#include "' + util.fileName(currentFilePath) + '"$0' + util.endOfLine(currentDocument);
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
-        vscode.window.showTextDocument(newFileUri);
+        vscode.window.showTextDocument(newFileUri).then(editor => {
+            editor.insertSnippet(new vscode.SnippetString(includeStatement), new vscode.Position(0, 0));
+        });
         return newFileUri;
     }
 }
