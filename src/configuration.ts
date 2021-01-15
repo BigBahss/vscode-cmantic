@@ -23,19 +23,19 @@ const defaultHeaderGuardDefineFormat = '${FILENAME_EXT}';
 
 export function headerExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('HeaderFileExtensions');
+    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('extensions.headerFiles');
     return extensions ? extensions : defaultHeaderExtensions;
 }
 
 export function sourceExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('SourceFileExtensions');
+    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('extensions.sourceFiles');
     return extensions ? extensions : defaultSourceExtensions;
 }
 
 export function curlyBraceFormat(): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('CurlyBraceFormat');
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('curlyBraceFormat');
     switch (format) {
     case 'Same line':
         return CurlyBraceFormat.SameLine;
@@ -49,7 +49,7 @@ export function curlyBraceFormat(): CurlyBraceFormat
 
 export function headerGuardStyle(): HeaderGuardStyle
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('HeaderGuardStyle');
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.style');
     switch (format) {
     case 'Add both':
         return HeaderGuardStyle.Both;
@@ -63,7 +63,7 @@ export function headerGuardStyle(): HeaderGuardStyle
 
 export function headerGuardDefineFormat(): string
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('HeaderGuardDefineFormat');
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.defineFormat');
     return format ? format : defaultHeaderGuardDefineFormat;
 }
 

@@ -28,7 +28,8 @@
     "definition",
     "refactor",
     "action",
-    "include"
+    "include",
+    "guard"
   ],
   "activationEvents": [
     "onCommand:cmantic.switchHeaderSourceInWorkspace",
@@ -87,7 +88,7 @@
         {
           "command": "cmantic.switchHeaderSourceInWorkspace",
           "group": "navigation@100",
-          "when": "resourceLangId =~ /^c|cpp$/ && config.C_mantic.ContextSwitchHeaderSource"
+          "when": "resourceLangId =~ /^c|cpp$/ && config.C_mantic.contextMenu.switchHeaderSource"
         },
         {
           "command": "editor.action.refactor",
@@ -119,7 +120,7 @@
         "title": "C-mantic",
         "type": "object",
         "properties": {
-          "C_mantic.HeaderFileExtensions": {
+          "C_mantic.extensions.headerFiles": {
             "type": "array",
             "default": [
               "h",
@@ -129,7 +130,7 @@
             ],
             "description": "File extensions to associate header files."
           },
-          "C_mantic.SourceFileExtensions": {
+          "C_mantic.extensions.sourceFiles": {
             "type": "array",
             "default": [
               "c",
@@ -139,7 +140,7 @@
             ],
             "description": "File extensions to associate source files."
           },
-          "C_mantic.CurlyBraceFormat": {
+          "C_mantic.curlyBraceFormat": {
             "type": "string",
             "enum": [
               "New line",
@@ -149,12 +150,12 @@
             "default": "New line",
             "description": "Controls how to format the opening curly brace when adding a new function definition."
           },
-          "C_mantic.ContextSwitchHeaderSource": {
+          "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,
             "description": "Show 'Switch Header/Source in Workspace' in the editor context menu."
           },
-          "C_mantic.HeaderGuardStyle": {
+          "C_mantic.headerGuard.style": {
             "type": "string",
             "enum": [
               "Add #define",
@@ -162,9 +163,9 @@
               "Add both"
             ],
             "default": "Add #define",
-            "description": "Controls what kind of header guard to add."
+            "description": "Controls the style of header guard that is added with the 'Add Header Guard' command."
           },
-					"C_mantic.HeaderGuardDefineFormat": {
+					"C_mantic.headerGuard.defineFormat": {
 						"type": "string",
 						"default": "${FILENAME_EXT}",
 						"description": "Controls how new header guard defines are generated. The variable '${FILENAME_EXT}' is replaced with the file name in uppercase, with any file extension dots replaced with underscores. The variable '${FILENAME}' is replaced with the file name in upppercase, not including any file extensions. For example, a file named 'some_header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."

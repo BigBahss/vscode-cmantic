@@ -6,7 +6,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Added
 
-- `cmantic.switchHeaderSource` command
+- `cmantic.switchHeaderSourceInWorkspace` command
 - `cmantic.addDefinitionInSourceFile` command/code-action
 - `cmantic.addDefinitionInCurrentFile` command/code-action
 - `Refactor...` editor context menu for C/C++
