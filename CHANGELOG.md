@@ -13,3 +13,4 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - `Source Action...` editor context menu for C/C++
 - `cmantic.createMatchingSourceFile` command/code-action
 - `cmantic.addInclude` command/code-action
+- `cmantic.addHeaderGuard` command/code-action
