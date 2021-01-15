@@ -166,11 +166,11 @@
             "default": "Add #define",
             "description": "Controls the style of header guard that is added with the 'Add Header Guard' command."
           },
-					"C_mantic.headerGuard.defineFormat": {
-						"type": "string",
-						"default": "${FILENAME_EXT}",
-						"description": "Controls how new header guard defines are generated. The variable '${FILENAME_EXT}' is replaced with the file name in uppercase, with any file extension dots replaced with underscores. The variable '${FILENAME}' is replaced with the file name in upppercase, not including any file extensions. For example, a file named 'some_header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
-					}
+          "C_mantic.headerGuard.defineFormat": {
+            "type": "string",
+            "default": "${FILENAME_EXT}",
+            "description": "Controls how new header guard defines are generated. The variable '${FILENAME_EXT}' is replaced with the file name in uppercase, with any file extension dots replaced with underscores. The variable '${FILENAME}' is replaced with the file name in upppercase, not including any file extensions. For example, a file named 'some_header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
+          }
         }
       }
     ]

@@ -108,6 +108,8 @@ export class Symbol extends vscode.DocumentSymbol
             return '';
         }
 
+        // Build scope string to prepend to function name.
+        // Check if position exists inside of namespace block. If so, omit that scope.id().
         let scopeString = '';
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
@@ -123,25 +125,19 @@ export class Symbol extends vscode.DocumentSymbol
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(funcName) + funcName.length) + 1;
         const lastParen = maskedDeclaration.lastIndexOf(')');
         const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
-        const paramEnd = trailingReturnOperator === -1 ?
-                         lastParen : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
+        const paramEnd = (trailingReturnOperator === -1) ?
+                lastParen : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
         const parameters = stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        // FIXME: Smart alignment sometimes works incorrectly.
         let leadingText = declaration.substring(0, declaration.indexOf(funcName));
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const re_newLineAlignment = new RegExp(
-                util.endOfLine(this.document) + ' '.repeat(leadingIndent + leadingText.length) + '\s*', 'g');
+        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
         let definition = funcName + '(' + parameters + ')'
                 + declaration.substring(paramEnd + 1, declaration.length - 1);
-        let match: RegExpExecArray | null;
-        while (match = re_newLineAlignment.exec(definition)) {
-            definition = definition.replace(
-                    match[0], util.endOfLine(target.document) + ' '.repeat(leadingText.length + scopeString.length));
-        }
+        definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
 
         definition = leadingText + scopeString + definition;
         definition = definition.replace(/\s*\b(override|final)\b/g, '');
