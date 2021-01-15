@@ -60,13 +60,19 @@ export function lines(text: string): number
     return text.split('\n').length;
 }
 
-export function workspaceRelativePath(absolutePath: string): string
+export function workspaceRelativePath(absolutePath: string, includeWorkspaceName: boolean = false): string
 {
     if (!vscode.workspace.workspaceFolders) {
         return absolutePath;
     }
     for (const folder of vscode.workspace.workspaceFolders) {
-        if (absolutePath.indexOf(folder.uri.path) === 0) {
+        if (absolutePath.indexOf(folder.uri.path) !== 0) {
+            continue;
+        }
+
+        if (includeWorkspaceName) {
+            absolutePath = absolutePath.replace(directory(folder.uri.path), '').substring(1);
+        } else {
             absolutePath = absolutePath.replace(folder.uri.path, '').substring(1);
         }
     }
