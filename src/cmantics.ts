@@ -45,7 +45,7 @@ export class CSymbol extends vscode.DocumentSymbol
     // Finds the most likely definition of this Symbol in the case that multiple are found.
     async findDefinition(): Promise<vscode.Location | undefined>
     {
-        return await findDefinitionOfDocumentSymbol(this.selectionRange.start, this.document.uri);
+        return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
     }
 
     isFunctionDeclaration(): boolean
@@ -234,7 +234,7 @@ export class SourceFile
 
     async findDefinition(position: vscode.Position): Promise<vscode.Location | undefined>
     {
-        return await findDefinitionOfDocumentSymbol(position, this.uri);
+        return await findDefinitionInWorkspace(position, this.uri);
     }
 
     isHeader(): boolean
@@ -347,7 +347,7 @@ export class SourceFile
 
         // Find the closest relative definition to place the new definition next to.
         for (const symbol of before.reverse()) {
-            const definitionLocation = await findDefinitionOfDocumentSymbol(symbol.selectionRange.start, this.uri);
+            const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
             if (!definitionLocation) {
                 continue;
             }
@@ -357,7 +357,7 @@ export class SourceFile
             }
         }
         for (const symbol of after) {
-            const definitionLocation = await findDefinitionOfDocumentSymbol(symbol.selectionRange.start, this.uri);
+            const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
             if (!definitionLocation) {
                 continue;
             }
@@ -539,7 +539,7 @@ function stripDefaultValues(parameters: string): string
     return strippedParameters.substring(0, strippedParameters.length - 1);
 }
 
-async function findDefinitionOfDocumentSymbol(
+async function findDefinitionInWorkspace(
     position: vscode.Position,
     uri: vscode.Uri
 ): Promise<vscode.Location | undefined> {
@@ -554,8 +554,14 @@ async function findDefinitionOfDocumentSymbol(
         const location = result instanceof vscode.Location ?
                 result : new vscode.Location(result.targetUri, result.targetRange);
 
-        if (location.uri !== uri && !location.range.contains(position)) {
+        if (location.uri.path === uri.path && !location.range.contains(position)) {
             return location;
+        } else if (location.uri.path !== uri.path && vscode.workspace.workspaceFolders) {
+            for (const folder of vscode.workspace.workspaceFolders) {
+                if (location.uri.path.includes(folder.uri.path)) {
+                    return location;
+                }
+            }
         }
     }
 }
