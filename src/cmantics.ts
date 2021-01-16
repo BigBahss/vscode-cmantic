@@ -12,7 +12,7 @@ export class CSymbol extends vscode.DocumentSymbol
     constructor(docSymbol: vscode.DocumentSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
-        this.children = docSymbol.children;
+        this.children = sortSymbolTree(docSymbol.children);
         this.document = document;
         this.parent = parent;
     }
@@ -172,17 +172,6 @@ export class SourceFile
         if (!newSymbols) {
             return [];
         }
-
-        const sortSymbolTree = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
-            symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-                return a.range.start.isAfter(b.range.start) ? 1 : -1;
-            });
-
-            for (const symbol of symbols) {
-                symbol.children = sortSymbolTree(symbol.children);
-            }
-            return symbols;
-        };
 
         return sortSymbolTree(newSymbols);
     }
@@ -564,4 +553,17 @@ async function findDefinitionInWorkspace(
             }
         }
     }
+}
+
+function sortSymbolTree(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[]
+{
+    symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
+        return a.range.start.isAfter(b.range.start) ? 1 : -1;
+    });
+
+    for (const symbol of symbols) {
+        symbol.children = sortSymbolTree(symbol.children);
+    }
+
+    return symbols;
 }
