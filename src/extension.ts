@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
+import { generateGetterSetterFor, generateGetterSetter } from './generateGetterSetter';
 import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
@@ -13,6 +14,8 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinition", addDefinition));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInSourceFile", addDefinitionInSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInCurrentFile", addDefinitionInCurrentFile));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetterFor", generateGetterSetterFor));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetter", generateGetterSetter));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.createMatchingSourceFile", createMatchingSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));

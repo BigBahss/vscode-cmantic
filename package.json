@@ -38,6 +38,8 @@
     "onCommand:cmantic.addDefinition",
     "onCommand:cmantic.addDefinitionInSourceFile",
     "onCommand:cmantic.addDefinitionInCurrentFile",
+    "onCommand:cmantic.generateGetterSetterFor",
+    "onCommand:cmantic.generateGetterSetter",
     "onCommand:cmantic.createMatchingSourceFile",
     "onCommand:cmantic.addInclude",
     "onCommand:cmantic.addHeaderGuard",
@@ -68,6 +70,14 @@
       {
         "command": "cmantic.createMatchingSourceFile",
         "title": "C-mantic: Create Matching Source File"
+      },
+      {
+        "command": "cmantic.generateGetterSetterFor",
+        "title": "C-mantic: Generate 'get' and 'set' methods for"
+      },
+      {
+        "command": "cmantic.generateGetterSetter",
+        "title": "C-mantic: Generate 'get' and 'set' methods"
       },
       {
         "command": "cmantic.addInclude",

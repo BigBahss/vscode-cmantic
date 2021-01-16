@@ -23,6 +23,10 @@ export class CSymbol extends vscode.DocumentSymbol
     // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
     id(): string { return this.document.getText(this.selectionRange); }
 
+    isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
+
+    isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
+
     // Returns the text contained in this symbol that comes before this.id().
     leading(): string
     {
@@ -46,6 +50,64 @@ export class CSymbol extends vscode.DocumentSymbol
     async findDefinition(): Promise<vscode.Location | undefined>
     {
         return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
+    }
+
+    // Finds a position for a new (public) method declaration within this class or struct.
+    findPositionForNewMethod(): ProposedPosition | undefined
+    {
+        const lastChildPositionOrUndefined = () => {
+            if (this.children.length === 0) {
+                return undefined;
+            }
+            return { value: this.children[this.children.length - 1].range.end, after: true };
+        };
+
+        if (this.kind === vscode.SymbolKind.Class) {
+            const text = this.text();
+            const startOffset = this.document.offsetAt(this.range.start);
+            let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
+
+            if (!publicSpecifierOffset) {
+                return lastChildPositionOrUndefined();
+            }
+            publicSpecifierOffset += startOffset;
+
+            let nextAccessSpecifierOffset: number | undefined;
+            for (const match of text.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
+                if (!match.index) {
+                    continue;
+                }
+                if (match.index > publicSpecifierOffset) {
+                    nextAccessSpecifierOffset = match.index;
+                    break;
+                }
+            }
+
+            if (!nextAccessSpecifierOffset) {
+                return lastChildPositionOrUndefined();
+            }
+            nextAccessSpecifierOffset += startOffset;
+
+            for (let i = this.children.length - 1; i >= 0; --i) {
+                const symbol = new CSymbol(this.children[i], this.document, this);
+                if (symbol.isFunctionDeclaration() && symbol.isBefore(nextAccessSpecifierOffset)) {
+                    return { value: this.children[i].range.end, after: true };
+                }
+            }
+        }
+
+        return lastChildPositionOrUndefined();
+    }
+
+    isMemberVariable(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Field:
+        case vscode.SymbolKind.Property:
+            return true;
+        default:
+            return false;
+        }
     }
 
     isFunctionDeclaration(): boolean

@@ -26,6 +26,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let currentDisabled: { readonly reason: string } | undefined;
         let newSourceDisabled: { readonly reason: string } | undefined;
         let headerGuardDisabled: { readonly reason: string } | undefined;
+        let getterSetterDisabled: { readonly reason: string } | undefined;
 
         if (symbol?.isInline()) {
             sourceDisabled = { reason: failReason.isInline };
@@ -57,6 +58,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         if (await sourceFile.hasHeaderGuard()) {
             headerGuardDisabled = { reason: 'A header guard already exists.'};
         }
+        if (!symbol?.isMemberVariable()) {
+            getterSetterDisabled = { reason: 'Symbol is not a member variable.' };
+        }
 
         return [{
             title: sourceTitle,
@@ -77,6 +81,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceFile, sourceFile.uri]
             },
             disabled: currentDisabled
+        },
+        {
+            title: 'Generate \'get\' and \'set\' methods',
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: 'Generate \'get\' and \'set\' methods',
+                command: 'cmantic.generateGetterSetterFor',
+                arguments: [symbol]
+            },
+            disabled: getterSetterDisabled
         },
         {
             title: 'Add Header Guard',
