@@ -152,28 +152,27 @@ export class SourceFile
 {
     readonly document: vscode.TextDocument;
     readonly uri: vscode.Uri;
-    symbols: vscode.DocumentSymbol[];
+    symbols?: vscode.DocumentSymbol[];
 
     constructor(document: vscode.TextDocument)
     {
         this.document = document;
         this.uri = document.uri;
-        this.symbols = [];
+        // this.symbols = [];
     }
 
     text(): string { return this.document.getText(); }
 
-    // Queries and sorts document symbols to set the symbols property.
-    // Methods that use the symbols property will call this automatically if it hasn't been called yet.
-    async updateSymbols(): Promise<void>
+    // Queries DocumentSymbols and returns them sorted. Used to set the symbols property.
+    // Methods that use this.symbols will call this automatically when this.symbols is undefined.
+    async getSortedDocumentSymbols(): Promise<vscode.DocumentSymbol[]>
     {
         const newSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-                'vscode.executeDocumentSymbolProvider', this.uri);
+            'vscode.executeDocumentSymbolProvider', this.uri);
 
         if (!newSymbols) {
-            return;
+            return [];
         }
-        this.symbols = newSymbols;
 
         const sortSymbolTree = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
             symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
@@ -186,13 +185,13 @@ export class SourceFile
             return symbols;
         };
 
-        this.symbols = sortSymbolTree(this.symbols);
+        return sortSymbolTree(newSymbols);
     }
 
     async getSymbol(position: vscode.Position): Promise<Symbol | undefined>
     {
-        if (this.symbols.length === 0) {
-            await this.updateSymbols();
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
         }
 
         const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: Symbol): Symbol | undefined => {
@@ -215,8 +214,8 @@ export class SourceFile
 
     async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<Symbol | undefined>
     {
-        if (this.symbols.length === 0) {
-            await this.updateSymbols();
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
         }
 
         const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: Symbol): Symbol | undefined => {
@@ -255,8 +254,8 @@ export class SourceFile
             return true;
         }
 
-        if (this.symbols.length === 0) {
-            await this.updateSymbols();
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
         }
 
         for (const symbol of this.symbols) {
@@ -313,14 +312,18 @@ export class SourceFile
     // If target is undefined the position will be for this SourceFile.
     async findPositionForNewDefinition(declaration: Symbol, target?: SourceFile): Promise<ProposedPosition>
     {
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
+        }
         if (declaration.document !== this.document || (!declaration.parent && this.symbols.length === 0)) {
             return { value: new vscode.Position(0, 0) };
         }
+
         if (!target) {
             target = this;
         }
-        if (target.symbols.length === 0) {
-            await target.updateSymbols();
+        if (!target.symbols) {
+            target.symbols = await this.getSortedDocumentSymbols();
             if (target.symbols.length === 0) {
                 for (let i = target.document.lineCount - 1; i >= 0; --i) {
                     if (!target.document.lineAt(i).isEmptyOrWhitespace) {
@@ -435,15 +438,15 @@ export class SourceFile
         }
 
         let startLineNum = this.document.lineCount - 1;
-        if (this.symbols.length === 0) {
-            await this.updateSymbols();
-            if (this.symbols.length === 0) {
-                startLineNum = this.document.lineCount - 1;
-            }
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
         }
-        if (this.symbols.length !== 0) {
+        if (this.symbols.length === 0) {
+            startLineNum = this.document.lineCount - 1;
+        } else {
             startLineNum = this.symbols[0].range.start.line;
         }
+
         for (let i = startLineNum; i >= 0; --i) {
             const line = this.document.lineAt(i);
             if (!line.isEmptyOrWhitespace) {
