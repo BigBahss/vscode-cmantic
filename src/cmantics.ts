@@ -300,7 +300,7 @@ export class SourceFile
             }
 
             const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
-            if (!smallestDiff || diff < smallestDiff) {
+            if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
                 smallestDiff = diff;
                 bestMatch = uri;
             }
