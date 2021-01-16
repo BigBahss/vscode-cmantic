@@ -71,7 +71,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 }
 
 export async function addDefinition(
-    functionDeclaration: c.Symbol,
+    functionDeclaration: c.CSymbol,
     declarationFile: c.SourceFile,
     targetUri: vscode.Uri
 ): Promise<void> {

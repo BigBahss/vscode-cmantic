@@ -4,12 +4,12 @@ import * as util from './utility';
 
 
 // A DocumentSymbol that understands the semantics of C/C++.
-export class Symbol extends vscode.DocumentSymbol
+export class CSymbol extends vscode.DocumentSymbol
 {
     readonly document: vscode.TextDocument;
-    readonly parent?: Symbol;
+    readonly parent?: CSymbol;
 
-    constructor(docSymbol: vscode.DocumentSymbol, document: vscode.TextDocument, parent?: Symbol)
+    constructor(docSymbol: vscode.DocumentSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
         this.children = docSymbol.children;
@@ -31,10 +31,10 @@ export class Symbol extends vscode.DocumentSymbol
 
     // Returns an array of Symbol's starting with the top-most ancestor and ending with this.parent.
     // Returns an empty array if this is a top-level symbol.
-    scopes(): Symbol[]
+    scopes(): CSymbol[]
     {
-        let scopes: Symbol[] = [];
-        let symbol: Symbol = this;
+        let scopes: CSymbol[] = [];
+        let symbol: CSymbol = this;
         while (symbol.parent) {
             scopes.push(symbol.parent);
             symbol = symbol.parent;
@@ -158,7 +158,6 @@ export class SourceFile
     {
         this.document = document;
         this.uri = document.uri;
-        // this.symbols = [];
     }
 
     text(): string { return this.document.getText(); }
@@ -168,7 +167,7 @@ export class SourceFile
     async getSortedDocumentSymbols(): Promise<vscode.DocumentSymbol[]>
     {
         const newSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
-            'vscode.executeDocumentSymbolProvider', this.uri);
+                'vscode.executeDocumentSymbolProvider', this.uri);
 
         if (!newSymbols) {
             return [];
@@ -188,19 +187,19 @@ export class SourceFile
         return sortSymbolTree(newSymbols);
     }
 
-    async getSymbol(position: vscode.Position): Promise<Symbol | undefined>
+    async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
         if (!this.symbols) {
             this.symbols = await this.getSortedDocumentSymbols();
         }
 
-        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: Symbol): Symbol | undefined => {
+        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: CSymbol): CSymbol | undefined => {
             const docSymbols = symbolResults as vscode.DocumentSymbol[];
             for (const docSymbol of docSymbols) {
                 if (!docSymbol.range.contains(position)) {
                     continue;
                 }
-                const symbol = new Symbol(docSymbol, this.document, parent);
+                const symbol = new CSymbol(docSymbol, this.document, parent);
                 if (symbol.children.length === 0) {
                     return symbol;
                 } else {
@@ -212,16 +211,16 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<Symbol | undefined>
+    async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<CSymbol | undefined>
     {
         if (!this.symbols) {
             this.symbols = await this.getSortedDocumentSymbols();
         }
 
-        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: Symbol): Symbol | undefined => {
+        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[], parent?: CSymbol): CSymbol | undefined => {
             const docSymbols = symbolResults as vscode.DocumentSymbol[];
             for (const docSymbol of docSymbols) {
-                const symbol = new Symbol(docSymbol, this.document, parent);
+                const symbol = new CSymbol(docSymbol, this.document, parent);
                 if (docSymbol.name === target.name) {
                     return symbol;
                 } else {
@@ -310,7 +309,7 @@ export class SourceFile
 
     // Returns the best position to place the definition for declaration.
     // If target is undefined the position will be for this SourceFile.
-    async findPositionForNewDefinition(declaration: Symbol, target?: SourceFile): Promise<ProposedPosition>
+    async findPositionForNewDefinition(declaration: CSymbol, target?: SourceFile): Promise<ProposedPosition>
     {
         if (!this.symbols) {
             this.symbols = await this.getSortedDocumentSymbols();
