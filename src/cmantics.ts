@@ -18,18 +18,18 @@ export class CSymbol extends vscode.DocumentSymbol
     }
 
     // Returns all the text contained in this symbol.
-    text(): string
-    {
-        return this.document.getText(this.range);
-    }
+    text(): string { return this.document.getText(this.range); }
 
     // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
-    id(): string
+    id(): string { return this.document.getText(this.selectionRange); }
+
+    // Returns the text contained in this symbol that comes before this.id().
+    leading(): string
     {
-        return this.document.getText(this.selectionRange);
+        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
     }
 
-    // Returns an array of Symbol's starting with the top-most ancestor and ending with this.parent.
+    // Returns an array of CSymbol's starting with the top-most ancestor and ending with this.parent.
     // Returns an empty array if this is a top-level symbol.
     scopes(): CSymbol[]
     {
@@ -42,7 +42,7 @@ export class CSymbol extends vscode.DocumentSymbol
         return scopes.reverse();
     }
 
-    // Finds the most likely definition of this Symbol in the case that multiple are found.
+    // Finds the most likely definition of this CSymbol in the case that multiple are found.
     async findDefinition(): Promise<vscode.Location | undefined>
     {
         return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
@@ -85,8 +85,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isConstexpr(): boolean
     {
-        const leadingRange = new vscode.Range(this.range.start, this.selectionRange.start);
-        if (this.document.getText(leadingRange).match(/\bconstexpr\b/)) {
+        if (this.leading().match(/\bconstexpr\b/)) {
             return true;
         }
         return false;
@@ -94,8 +93,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isInline(): boolean
     {
-        const leadingRange = new vscode.Range(this.range.start, this.selectionRange.start);
-        if (this.document.getText(leadingRange).match(/\binline\b/)) {
+        if (this.leading().match(/\binline\b/)) {
             return true;
         }
         return false;
@@ -130,7 +128,7 @@ export class CSymbol extends vscode.DocumentSymbol
         const parameters = stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = declaration.substring(0, declaration.indexOf(funcName));
+        let leadingText = this.leading();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
