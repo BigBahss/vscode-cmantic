@@ -34,9 +34,24 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
         return;
     }
 
-    const baseFunctionName = util.firstCharToUpper(symbol.name);
-    const getterName = 'get' + baseFunctionName;
-    const setterName = 'set' + baseFunctionName;
+    // Check for common member variable naming schemes and get the base name from them.
+    let baseMemberName: string | undefined;
+    let match = /^_+[\w_][\w\d_]*_*$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^_+|_*$/g, '');
+    }
+    match = /^_*[\w_][\w\d_]*_+$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^_*|_+$/g, '');
+    }
+    match = /^m_[\w_][\w\d_]*$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^m_/, '');
+    }
+
+    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
+    const getterName = baseMemberName ? baseMemberName : 'get' + util.firstCharToUpper(symbol.name);
+    const setterName = 'set' + util.firstCharToUpper(baseMemberName ? baseMemberName : symbol.name);
     const type = symbol.leading();
 
     const getter = type + getterName + '() const { return ' + symbol.name + '; }';
