@@ -98,10 +98,10 @@ export async function addDefinition(
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + cfg.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + eol + '{' + eol + util.indentation() + '$0' + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + cfg.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + ' {' + eol + util.indentation() + '$0' + eol + '}';
     }
 
     return util.insertSnippetAndTrimWhitespace(functionSkeleton, position, targetFile.document);

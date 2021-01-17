@@ -56,11 +56,6 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (path2_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
-export function lines(text: string): number
-{
-    return text.split('\n').length;
-}
-
 export function workspaceRelativePath(absolutePath: string, includeWorkspaceName: boolean = false): string
 {
     if (!vscode.workspace.workspaceFolders) {
@@ -78,6 +73,26 @@ export function workspaceRelativePath(absolutePath: string, includeWorkspaceName
         }
     }
     return absolutePath;
+}
+
+export function indentation(options?: vscode.TextEditorOptions)
+{
+    if (!options) {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            options = editor.options;
+        }
+    }
+
+    if (options && options.insertSpaces) {
+        return ' '.repeat(<number>(options.tabSize));
+    }
+    return '\t';
+}
+
+export function lines(text: string): number
+{
+    return text.split('\n').length;
 }
 
 export function endOfLine(document: vscode.TextDocument): string
