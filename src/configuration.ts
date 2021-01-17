@@ -67,9 +67,11 @@ export function headerGuardDefineFormat(): string
     return format ? format : defaultHeaderGuardDefineFormat;
 }
 
+const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
+
 export function headerGuardDefine(fileName: string): string
 {
-    const FILENAME_EXT = fileName.replace('.', '_').toUpperCase();
-    const FILENAME = util.fileNameBase(fileName).toUpperCase();
+    const FILENAME_EXT = fileName.replace(re_charactersNotAllowedInIdentifiers, '_').toUpperCase();
+    const FILENAME = util.fileNameBase(fileName).replace(re_charactersNotAllowedInIdentifiers, '_').toUpperCase();
     return headerGuardDefineFormat().replace('${FILENAME_EXT}', FILENAME_EXT).replace('${FILENAME}', FILENAME);
 }

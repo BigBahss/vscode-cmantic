@@ -34,17 +34,6 @@
     "guard"
   ],
   "activationEvents": [
-    "onCommand:cmantic.switchHeaderSourceInWorkspace",
-    "onCommand:cmantic.addDefinition",
-    "onCommand:cmantic.addDefinitionInSourceFile",
-    "onCommand:cmantic.addDefinitionInCurrentFile",
-    "onCommand:cmantic.generateGetterSetterFor",
-    "onCommand:cmantic.generateGetterSetter",
-    "onCommand:cmantic.createMatchingSourceFile",
-    "onCommand:cmantic.addInclude",
-    "onCommand:cmantic.addHeaderGuard",
-    "onCommand:editor.action.refactor",
-    "onCommand:editor.action.sourceAction",
     "onLanguage:cpp",
     "onLanguage:c"
   ],
@@ -54,10 +43,6 @@
       {
         "command": "cmantic.switchHeaderSourceInWorkspace",
         "title": "Switch Header/Source in Workspace"
-      },
-      {
-        "command": "cmantic.addDefinition",
-        "title": "C-mantic: Add Definition"
       },
       {
         "command": "cmantic.addDefinitionInSourceFile",
@@ -112,6 +97,16 @@
           "command": "editor.action.sourceAction",
           "group": "1_modification@2",
           "when": "resourceLangId =~ /^c|cpp$/"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "editor.action.refactor",
+          "when": "false"
+        },
+        {
+          "command": "editor.action.sourceAction",
+          "when": "false"
         }
       ]
     },
@@ -191,7 +186,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node ./out/test/runTest.js"
+    "test": "npm run compile && node ./out/test/runTest.js",
+    "lint": "eslint -c .eslintrc.js --ext .ts ./src"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
@@ -199,10 +195,13 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.3",
     "@types/vscode": "^1.3.0",
+    "@typescript-eslint/eslint-plugin": "^4.13.0",
+    "@typescript-eslint/parser": "^4.13.0",
     "chai": "^4.2.0",
+    "eslint": "^7.18.0",
+    "eslint-config-prettier": "^7.1.0",
     "glob": "^7.1.6",
     "mocha": "^7.1.1",
-    "tslint": "^6.1.3",
     "typescript": "^3.8.3",
     "vscode-test": "^1.3.0"
   },

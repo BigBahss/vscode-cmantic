@@ -408,7 +408,12 @@ export class SourceFile
             if (symbol.range === declaration.range) {
                 hitTarget = true;
             }
-            !hitTarget ? before.push(symbol) : after.push(symbol);
+
+            if (!hitTarget) {
+                before.push(symbol);
+            } else {
+                after.push(symbol);
+            }
         }
 
         // Find the closest relative definition to place the new definition next to.
