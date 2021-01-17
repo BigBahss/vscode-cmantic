@@ -178,7 +178,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node ./out/test/runTest.js"
+    "test": "npm run compile && node ./out/test/runTest.js",
+    "lint": "eslint -c .eslintrc.js --ext .ts ./src"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
@@ -186,10 +187,13 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.3",
     "@types/vscode": "^1.3.0",
+    "@typescript-eslint/eslint-plugin": "^4.13.0",
+    "@typescript-eslint/parser": "^4.13.0",
     "chai": "^4.2.0",
+    "eslint": "^7.18.0",
+    "eslint-config-prettier": "^7.1.0",
     "glob": "^7.1.6",
     "mocha": "^7.1.1",
-    "tslint": "^6.1.3",
     "typescript": "^3.8.3",
     "vscode-test": "^1.3.0"
   },
