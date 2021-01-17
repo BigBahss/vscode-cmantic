@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
+import { SourceFile } from './cmantics';
 import * as util from './utility';
-import * as c from './cmantics';
 
 
 export async function addInclude(): Promise<void>
@@ -13,7 +13,7 @@ export async function addInclude(): Promise<void>
 
     const userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
-    const sourceFile = new c.SourceFile(editor.document);
+    const sourceFile = new SourceFile(editor.document);
     const newIncludePosition = await sourceFile.findPositionForNewInclude();
     const eol = util.endOfLine(sourceFile.document);
 

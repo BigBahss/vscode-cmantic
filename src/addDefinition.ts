@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as c from './cmantics';
+import { CSymbol, SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
 
@@ -24,7 +24,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    const sourceFile = new c.SourceFile(editor.document);
+    const sourceFile = new SourceFile(editor.document);
     if (!sourceFile.isHeader()) {
         vscode.window.showErrorMessage(failReason.notHeaderFile);
         return;
@@ -59,7 +59,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
         return;
     }
 
-    const sourceFile = new c.SourceFile(editor.document);
+    const sourceFile = new SourceFile(editor.document);
 
     const symbol = await sourceFile.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
@@ -71,8 +71,8 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 }
 
 export async function addDefinition(
-    functionDeclaration: c.CSymbol,
-    declarationFile: c.SourceFile,
+    functionDeclaration: CSymbol,
+    declarationFile: SourceFile,
     targetUri: vscode.Uri
 ): Promise<void> {
     // Check for an existing definition. If one exists, reveal it and return.
@@ -86,7 +86,7 @@ export async function addDefinition(
     // Find the position for the new function definition.
     const editor = await vscode.window.showTextDocument(targetUri);
     const targetFile = (targetUri.path === declarationFile.uri.path) ?
-            declarationFile : new c.SourceFile(editor.document);
+            declarationFile : new SourceFile(editor.document);
     const position = await declarationFile.findPositionForNewDefinition(functionDeclaration, targetFile);
 
     // Construct the snippet for the new function definition.

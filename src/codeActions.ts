@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as c from './cmantics';
+import { SourceFile } from './cmantics';
 import * as util from './utility';
 import { failReason } from './addDefinition';
 
@@ -13,7 +13,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
         // TODO: Clean up this mess.
-        const sourceFile = new c.SourceFile(document);
+        const sourceFile = new SourceFile(document);
 
         const [matchingUri, symbol] = await Promise.all([
             sourceFile.findMatchingSourceFile(),

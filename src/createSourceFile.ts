@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
+import { SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
-import * as c from './cmantics';
 
 
 interface FolderItem extends vscode.QuickPickItem
@@ -29,7 +29,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     }
 
     const currentFilePath = currentDocument.uri.path;
-    if (!c.SourceFile.isHeader(currentFilePath)) {
+    if (!SourceFile.isHeader(currentFilePath)) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
     }
