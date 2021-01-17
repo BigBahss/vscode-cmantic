@@ -34,15 +34,6 @@
     "guard"
   ],
   "activationEvents": [
-    "onCommand:cmantic.switchHeaderSourceInWorkspace",
-    "onCommand:cmantic.addDefinition",
-    "onCommand:cmantic.addDefinitionInSourceFile",
-    "onCommand:cmantic.addDefinitionInCurrentFile",
-    "onCommand:cmantic.createMatchingSourceFile",
-    "onCommand:cmantic.addInclude",
-    "onCommand:cmantic.addHeaderGuard",
-    "onCommand:editor.action.refactor",
-    "onCommand:editor.action.sourceAction",
     "onLanguage:cpp",
     "onLanguage:c"
   ],
@@ -52,10 +43,6 @@
       {
         "command": "cmantic.switchHeaderSourceInWorkspace",
         "title": "Switch Header/Source in Workspace"
-      },
-      {
-        "command": "cmantic.addDefinition",
-        "title": "C-mantic: Add Definition"
       },
       {
         "command": "cmantic.addDefinitionInSourceFile",
@@ -102,6 +89,16 @@
           "command": "editor.action.sourceAction",
           "group": "1_modification@2",
           "when": "resourceLangId =~ /^c|cpp$/"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "editor.action.refactor",
+          "when": "false"
+        },
+        {
+          "command": "editor.action.sourceAction",
+          "when": "false"
         }
       ]
     },
