@@ -39,10 +39,14 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
     // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
     const getterName = baseMemberName ? baseMemberName : 'get' + util.firstCharToUpper(symbol.name);
     const setterName = 'set' + util.firstCharToUpper(baseMemberName ? baseMemberName : symbol.name);
-    const type = symbol.leading();
 
-    const getter = type + getterName + '() const { return ' + symbol.name + '; }';
-    const setter = 'void ' + setterName + '(' + type + 'value) { ' + symbol.name + ' = value; }';
+    const leading = symbol.leading();
+    const staticness = leading.match(/\bstatic\b/) ? 'static ' : '';
+    const constness = staticness ? '' : ' const';
+    const type = leading.replace(/\b(static|mutable)\b\s*/g, '');
+
+    const getter = staticness + type + getterName + '()' + constness + ' { return ' + symbol.name + '; }';
+    const setter = staticness + 'void ' + setterName + '(' + type + 'value) { ' + symbol.name + ' = value; }';
     const combinedText = getter + util.endOfLine(symbol.document) + setter;
 
     return util.insertSnippetAndTrimWhitespace(combinedText, position, symbol.document);
