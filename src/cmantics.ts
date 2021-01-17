@@ -322,7 +322,7 @@ export class SourceFile
             target = this;
         }
         if (!target.symbols) {
-            target.symbols = await this.getSortedDocumentSymbols();
+            target.symbols = await target.getSortedDocumentSymbols();
             if (target.symbols.length === 0) {
                 for (let i = target.document.lineCount - 1; i >= 0; --i) {
                     if (!target.document.lineAt(i).isEmptyOrWhitespace) {
