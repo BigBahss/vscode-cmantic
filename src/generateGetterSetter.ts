@@ -23,7 +23,7 @@ export async function generateGetterSetter(): Promise<void>
         return;
     }
 
-    generateGetterSetterFor(symbol);
+    return generateGetterSetterFor(symbol);
 }
 
 export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
@@ -41,31 +41,7 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 
     const getter = type + getterName + '() const { return ' + symbol.name + '; }';
     const setter = 'void ' + setterName + '(' + type + 'value) { ' + symbol.name + ' = value; }';
+    const combinedText = getter + util.endOfLine(symbol.document) + setter;
 
-    const eol = util.endOfLine(symbol.document);
-    let fullText = getter + eol + setter;
-    if (position.after) {
-        fullText = eol + eol + fullText;
-    } else if (position.before) {
-        fullText += eol + eol;
-    } else if (symbol.document.lineCount - 1 === position.value.line) {
-        fullText += eol;
-    }
-    const snippet = new vscode.SnippetString(fullText);
-
-    const editor = await vscode.window.showTextDocument(symbol.document.uri);
-    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
-    if (position.before || position.after) {
-        /* When inserting a indented snippet that contains an empty line, the empty line with be indented,
-         * thus leaving trailing whitespace. So we need to clean up that whitespace. */
-        editor.edit(editBuilder => {
-            const trailingWSPosition = position.value.translate(position.after ? 1 : util.lines(snippet.value));
-            const l = symbol.document.lineAt(trailingWSPosition);
-            if (l.isEmptyOrWhitespace) {
-                editBuilder.delete(l.range);
-            }
-        }, { undoStopBefore: false, undoStopAfter: true });
-    }
-    const revealPosition = position.value.translate(position.after ? 3 : -3);
-    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
+    return util.insertSnippetAndTrimWhitespace(combinedText, position, symbol.document);
 }

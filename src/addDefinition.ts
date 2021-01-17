@@ -48,7 +48,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    addDefinition(symbol, sourceFile, matchingUri);
+    return addDefinition(symbol, sourceFile, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<void>
@@ -67,7 +67,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
         return;
     }
 
-    addDefinition(symbol, sourceFile, sourceFile.uri);
+    return addDefinition(symbol, sourceFile, sourceFile.uri);
 }
 
 export async function addDefinition(
@@ -103,27 +103,6 @@ export async function addDefinition(
         // Opening brace on same line.
         functionSkeleton = definition + ' {' + eol + cfg.indentation() + '$0' + eol + '}';
     }
-    if (position.after) {
-        functionSkeleton = eol + eol + functionSkeleton;
-    } else if (position.before) {
-        functionSkeleton += eol + eol;
-    } else if (targetFile.document.lineCount - 1 === position.value.line) {
-        functionSkeleton += eol;
-    }
-    const snippet = new vscode.SnippetString(functionSkeleton);
 
-    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
-    if (position.before || position.after) {
-        /* When inserting a indented snippet that contains an empty line, the empty line with be indented,
-         * thus leaving trailing whitespace. So we need to clean up that whitespace. */
-        editor.edit(editBuilder => {
-            const trailingWSPosition = position.value.translate(position.after ? 1 : util.lines(snippet.value));
-            const l = targetFile.document.lineAt(trailingWSPosition);
-            if (l.isEmptyOrWhitespace) {
-                editBuilder.delete(l.range);
-            }
-        }, { undoStopBefore: false, undoStopAfter: true });
-    }
-    const revealPosition = position.value.translate(position.after ? 3 : -3);
-    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
+    return util.insertSnippetAndTrimWhitespace(functionSkeleton, position, targetFile.document);
 }

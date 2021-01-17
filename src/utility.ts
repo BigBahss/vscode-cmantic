@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ProposedPosition } from './cmantics';
 
 
 export function fileName(filePath: string): string
@@ -93,4 +94,38 @@ export function endOfLine(document: vscode.TextDocument): string
 export function firstCharToUpper(str: string): string
 {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export async function insertSnippetAndTrimWhitespace(
+    text: string,
+    position: ProposedPosition,
+    document: vscode.TextDocument
+): Promise<void> {
+    const eol = endOfLine(document);
+    if (position.after) {
+        text = eol + eol + text;
+    } else if (position.before) {
+        text += eol + eol;
+    } else if (document.lineCount - 1 === position.value.line) {
+        text += eol;
+    }
+
+    const snippet = new vscode.SnippetString(text);
+    const editor = await vscode.window.showTextDocument(document.uri);
+    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
+
+    if (position.before || position.after) {
+        /* When inserting a indented snippet that contains an empty line, the empty line with be indented,
+         * thus leaving trailing whitespace. So we need to clean up that whitespace. */
+        editor.edit(editBuilder => {
+            const trailingWSPosition = position.value.translate(position.after ? 1 : lines(snippet.value));
+            const l = document.lineAt(trailingWSPosition);
+            if (l.isEmptyOrWhitespace) {
+                editBuilder.delete(l.range);
+            }
+        }, { undoStopBefore: false, undoStopAfter: true });
+    }
+
+    const revealPosition = position.value.translate(position.after ? 3 : -3);
+    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 }
