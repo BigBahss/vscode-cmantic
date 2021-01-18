@@ -3,46 +3,15 @@ import { CSymbol, ProposedPosition, SourceFile } from './cmantics';
 import * as util from './utility';
 
 
-export async function generateGetterSetter(): Promise<void>
-{
-    return getCurrentSymbolAndCall(generateGetterSetterFor, 'Could not find a position for \'get\' and \'set\' methods.');
-}
-
-export async function generateGetter(): Promise<void>
-{
-    return getCurrentSymbolAndCall(generateGetterFor, 'Could not find a position for \'get\' method.');
-}
-
-export async function generateSetter(): Promise<void>
-{
-    return getCurrentSymbolAndCall(generateSetterFor, 'Could not find a position for \'set\' method.');
-}
-
-async function getCurrentSymbolAndCall(
-    callback: (symbol: CSymbol, errorMsg: string) => Promise<void>,
-    errorMsg: string
-): Promise<void> {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-        vscode.window.showErrorMessage('No active text editor detected.');
-        return;
-    }
-
-    const sourceFile = new SourceFile(editor.document);
-    if (!sourceFile.isHeader()) {
-        vscode.window.showErrorMessage('This file is not a header file.');
-        return;
-    }
-
-    const symbol = await sourceFile.getSymbol(editor.selection.start);
-    if (!symbol?.isMemberVariable()) {
-        vscode.window.showErrorMessage('No member variable detected.');
-        return;
-    }
-
-    return callback(symbol, errorMsg);
-}
-
+export const failReason = {
+    noActiveTextEditor: 'No active text editor detected.',
+    notHeaderFile: 'This file is not a header file.',
+    noMemberVariable: 'No member variable detected.',
+    positionNotFound: 'Could not find a position for new accessor method.',
+    getterSetterExists: 'There already exists a \'get\' or \'set\' method.',
+    getterExists: 'There already exists a \'get\' method.',
+    setterExists: 'There already exists a \'set\' method.'
+};
 
 enum AccessorType {
     Getter,
@@ -51,58 +20,95 @@ enum AccessorType {
 }
 
 
-export async function generateGetterSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
+export async function generateGetterSetter(): Promise<void>
 {
-    const position = findPositionForNewAccessor(symbol, AccessorType.Both);
-    if (!position) {
-        vscode.window.showErrorMessage(errorMsg);
+    return getCurrentSymbolAndCall(generateGetterSetterFor);
+}
+
+export async function generateGetter(): Promise<void>
+{
+    return getCurrentSymbolAndCall(generateGetterFor);
+}
+
+export async function generateSetter(): Promise<void>
+{
+    return getCurrentSymbolAndCall(generateSetterFor);
+}
+
+async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<void>): Promise<void>
+{
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
         return;
     }
 
-    const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
-
-    return util.insertSnippetAndReveal(combinedAccessors, position, symbol.document);
-}
-
-export async function generateGetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
-{
-    const position = findPositionForNewAccessor(symbol, AccessorType.Getter);
-    if (!position) {
-        vscode.window.showErrorMessage(errorMsg);
+    const sourceFile = new SourceFile(editor.document);
+    if (!sourceFile.isHeader()) {
+        vscode.window.showErrorMessage(failReason.notHeaderFile);
         return;
     }
 
-    return util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.document);
-}
-
-export async function generateSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
-{
-    const position = findPositionForNewAccessor(symbol, AccessorType.Setter);
-    if (!position) {
-        vscode.window.showErrorMessage(errorMsg);
+    const symbol = await sourceFile.getSymbol(editor.selection.start);
+    if (!symbol?.isMemberVariable()) {
+        vscode.window.showErrorMessage(failReason.noMemberVariable);
         return;
     }
 
-    return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.document);
+    return callback(symbol);
 }
 
-function findPositionForNewAccessor(symbol: CSymbol, type: AccessorType): ProposedPosition | undefined
+export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 {
+    return findPositionAndCall(symbol, AccessorType.Both, position => {
+        const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
+        return util.insertSnippetAndReveal(combinedAccessors, position, symbol.document);
+    });
+}
+
+export async function generateGetterFor(symbol: CSymbol): Promise<void>
+{
+    return findPositionAndCall(symbol, AccessorType.Getter, position => {
+        return util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.document);
+    });
+}
+
+export async function generateSetterFor(symbol: CSymbol): Promise<void>
+{
+    return findPositionAndCall(symbol, AccessorType.Setter, position => {
+        return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.document);
+    });
+}
+
+async function findPositionAndCall(
+    symbol: CSymbol,
+    type: AccessorType,
+    callback: (position: ProposedPosition) => Promise<void>
+): Promise<void> {
     // If the new method is a getter, then we want to place it relative to the setter, and vice-versa.
-    let relativeMethodName: string | undefined;
+    let position: ProposedPosition | undefined;
     switch (type) {
     case AccessorType.Getter:
-        relativeMethodName = symbol.setterName();
+        position = symbol.parent?.findPositionForNewMethod(symbol.setterName(), symbol);
         break;
     case AccessorType.Setter:
-        relativeMethodName = symbol.getterName();
+        position = symbol.parent?.findPositionForNewMethod(symbol.getterName(), symbol);
+        break;
+    case AccessorType.Both:
+        position = symbol.parent?.findPositionForNewMethod();
         break;
     }
 
-    return symbol.parent?.findPositionForNewMethod(relativeMethodName, symbol);
+    if (!position) {
+        vscode.window.showErrorMessage(failReason.positionNotFound);
+        return;
+    }
+
+    return callback(position);
 }
 
-function constructGetter(symbol: CSymbol) {
+function constructGetter(symbol: CSymbol): string
+{
     const leadingText = symbol.leading();
     const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
     const constness = staticness ? '' : ' const';
@@ -111,7 +117,8 @@ function constructGetter(symbol: CSymbol) {
     return staticness + type + symbol.getterName() + '()' + constness + ' { return ' + symbol.name + '; }';
 }
 
-function constructSetter(symbol: CSymbol) {
+function constructSetter(symbol: CSymbol): string
+{
     const leadingText = symbol.leading();
     const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
     const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');

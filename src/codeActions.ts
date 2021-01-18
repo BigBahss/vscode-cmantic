@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { CSymbol, SourceFile } from './cmantics';
 import * as util from './utility';
-import { failReason } from './addDefinition';
+import { failReason as addDefFailReason } from './addDefinition';
+import { failReason as getSetFailReason } from './generateGetterSetter';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -61,23 +62,23 @@ async function getFunctionDeclarationRefactorings(
     let addDefinitionInCurrentFileDisabled: { readonly reason: string } | undefined;
 
     if (symbol?.isInline()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: failReason.isInline };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.isInline };
     }
     if (symbol?.isConstexpr()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: failReason.isConstexpr };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.isConstexpr };
     }
     if (existingDefinition) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: failReason.definitionExists };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.definitionExists };
         addDefinitionInCurrentFileDisabled = addDefinitionInMatchingSourceFileDisabled;
     }
     if (!sourceFile.isHeader()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: failReason.notHeaderFile };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.notHeaderFile };
         addDefinitionInMatchingSourceFileTitle += ' in matching source file';
     } else if (matchingUri) {
         // TODO: Elide the path if it is very long.
         addDefinitionInMatchingSourceFileTitle += ' in "' + util.workspaceRelativePath(matchingUri.path) + '"';
     } else {
-        addDefinitionInMatchingSourceFileDisabled = { reason: failReason.noMatchingSourceFile };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.noMatchingSourceFile };
         addDefinitionInMatchingSourceFileTitle += ' in matching source file';
     }
 
@@ -111,9 +112,9 @@ async function getMemberVariableRefactorings(
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
 
-    const generateGetterSetterDisabled = (getter || setter) ? { reason: 'There already exists a \'get\' or \'set\' method.' } : undefined;
-    const generateGetterDisabled = getter ? { reason: 'There already exists a \'get\' method.' } : undefined;
-    const generateSetterDisabled = setter ? { reason: 'There already exists a \'set\' method.' } : undefined;
+    const generateGetterSetterDisabled = (getter || setter) ? { reason: getSetFailReason.getterSetterExists } : undefined;
+    const generateGetterDisabled = getter ? { reason: getSetFailReason.getterExists } : undefined;
+    const generateSetterDisabled = setter ? { reason: getSetFailReason.setterExists } : undefined;
 
     return [{
         title: 'Generate \'get\' and \'set\' methods',
@@ -155,7 +156,7 @@ async function getSourceActions(
     let addHeaderGuardDisabled: { readonly reason: string } | undefined;
 
     if (!sourceFile.isHeader()) {
-        createMatchingSourceFileDisabled = { reason: failReason.notHeaderFile };
+        createMatchingSourceFileDisabled = { reason: addDefFailReason.notHeaderFile };
         addHeaderGuardDisabled = createMatchingSourceFileDisabled;
     } else if (matchingUri) {
         createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
