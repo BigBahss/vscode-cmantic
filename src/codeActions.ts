@@ -111,9 +111,9 @@ async function getMemberVariableRefactorings(
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
 
-    const generateGetterSetterDisabled = (getter || setter) ? { reason: '\'get\' or \'set\' method already exists.' } : undefined;
-    const generateGetterDisabled = getter ? { reason: '\'get\' method already exists.' } : undefined;
-    const generateSetterDisabled = setter ? { reason: '\'set\' method already exists.' } : undefined;
+    const generateGetterSetterDisabled = (getter || setter) ? { reason: 'There already exists a \'get\' or \'set\' method.' } : undefined;
+    const generateGetterDisabled = getter ? { reason: 'There already exists a \'get\' method.' } : undefined;
+    const generateSetterDisabled = setter ? { reason: 'There already exists a \'set\' method.' } : undefined;
 
     return [{
         title: 'Generate \'get\' and \'set\' methods',
