@@ -55,7 +55,7 @@ export class CSymbol extends vscode.DocumentSymbol
         return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
     }
 
-    // Finds a position for a new (public) method declaration within this class or struct.
+    // Finds a position for a new public method declaration within this class or struct.
     findPositionForNewMethod(): ProposedPosition | undefined
     {
         const lastChildPositionOrUndefined = () => {
@@ -93,7 +93,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
             for (let i = this.children.length - 1; i >= 0; --i) {
                 const symbol = new CSymbol(this.children[i], this.document, this);
-                if (symbol.isFunctionDeclaration() && symbol.isBefore(nextAccessSpecifierOffset)) {
+                if (symbol.isFunction() && symbol.isBefore(nextAccessSpecifierOffset)) {
                     return { value: this.children[i].range.end, after: true };
                 }
             }
@@ -113,16 +113,21 @@ export class CSymbol extends vscode.DocumentSymbol
         }
     }
 
-    isFunctionDeclaration(): boolean
+    isFunction(): boolean
     {
         switch (this.kind) {
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Function:
-            return this.text().endsWith(';');
+            return true;
         default:
             return false;
         }
+    }
+
+    isFunctionDeclaration(): boolean
+    {
+        return this.isFunction() && this.text().endsWith(';');
     }
 
     isConstructor(): boolean
