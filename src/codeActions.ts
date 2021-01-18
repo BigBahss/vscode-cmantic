@@ -6,7 +6,7 @@ import { failReason } from './addDefinition';
 
 export class CodeActionProvider implements vscode.CodeActionProvider
 {
-    public async provideCodeActions(
+    async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
@@ -27,7 +27,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         return [...refactorings, ...sourceActions];
     }
 
-    public resolveCodeAction(
+    resolveCodeAction(
         codeAction: vscode.CodeAction,
         token: vscode.CancellationToken,
     ): vscode.CodeAction {

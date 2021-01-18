@@ -534,7 +534,7 @@ export class SourceFile
     }
 
     // Returns the best positions to place new includes (system and project includes).
-    async findPositionForNewInclude(): Promise<NewIncludePosition>
+    async findPositionForNewInclude(): Promise<{ system: vscode.Position; project: vscode.Position }>
     {
         // TODO: Clean up this mess.
         const largestBlock = (
@@ -642,13 +642,7 @@ export interface ProposedPosition
     value: vscode.Position;
     before?: boolean;
     after?: boolean;
-    nextTo?: boolean;   // nextTo signals not to put a blank line between.
-}
-
-export interface NewIncludePosition
-{
-    system: vscode.Position;
-    project: vscode.Position;
+    nextTo?: boolean;   // Signals not to put a blank line between.
 }
 
 
