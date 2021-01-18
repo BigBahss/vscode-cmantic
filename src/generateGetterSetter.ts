@@ -1,10 +1,27 @@
 import * as vscode from 'vscode';
-import { CSymbol, SourceFile } from './cmantics';
+import { CSymbol, ProposedPosition, SourceFile } from './cmantics';
 import * as util from './utility';
 
 
 export async function generateGetterSetter(): Promise<void>
 {
+    return getCurrentSymbolAndCall(generateGetterSetterFor, 'Could not find a position for \'get\' and \'set\' methods.');
+}
+
+export async function generateGetter(): Promise<void>
+{
+    return getCurrentSymbolAndCall(generateGetterFor, 'Could not find a position for \'get\' method.');
+}
+
+export async function generateSetter(): Promise<void>
+{
+    return getCurrentSymbolAndCall(generateSetterFor, 'Could not find a position for \'set\' method.');
+}
+
+async function getCurrentSymbolAndCall(
+    callback: (symbol: CSymbol, errorMsg: string) => Promise<void>,
+    errorMsg: string
+): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage('No active text editor detected.');
@@ -23,22 +40,20 @@ export async function generateGetterSetter(): Promise<void>
         return;
     }
 
-    return generateGetterSetterFor(symbol);
+    return callback(symbol, errorMsg);
 }
 
-export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
+export async function generateGetterSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
 {
-    const position = symbol.parent?.findPositionForNewMethod();
-    if (!position) {
-        vscode.window.showErrorMessage('Could not find a position for \'get\' and \'set\' methods.');
+    const memberInfo = getMemberInfo(symbol);
+    if (!memberInfo) {
+        vscode.window.showErrorMessage(errorMsg);
         return;
     }
 
-    const baseMemberName = getBaseMemberName(symbol.name);
-
     // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
-    const getterName = baseMemberName ? baseMemberName : 'get' + util.firstCharToUpper(symbol.name);
-    const setterName = 'set' + util.firstCharToUpper(baseMemberName ? baseMemberName : symbol.name);
+    const getterName = memberInfo.baseName ? memberInfo.baseName : 'get' + util.firstCharToUpper(symbol.name);
+    const setterName = 'set' + util.firstCharToUpper(memberInfo?.baseName ? memberInfo?.baseName : symbol.name);
 
     let type = symbol.leading();
     const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
@@ -52,25 +67,83 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
     const setter = staticness + 'void ' + setterName + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
     const combinedText = getter + util.endOfLine(symbol.document) + setter;
 
-    return util.insertSnippetAndTrimWhitespace(combinedText, position, symbol.document);
+    return util.insertSnippetAndTrimWhitespace(combinedText, memberInfo.position, symbol.document);
 }
 
-function getBaseMemberName(symbolName: string): string | undefined
+export async function generateGetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
 {
-    // Check for common member variable naming schemes and get the base name from them.
-    let baseMemberName: string | undefined;
-    let match = /^_+[\w_][\w\d_]*_*$/.exec(symbolName);
-    if (match && !baseMemberName) {
-        baseMemberName = symbolName.replace(/^_+|_*$/g, '');
-    }
-    match = /^_*[\w_][\w\d_]*_+$/.exec(symbolName);
-    if (match && !baseMemberName) {
-        baseMemberName = symbolName.replace(/^_*|_+$/g, '');
-    }
-    match = /^m_[\w_][\w\d_]*$/.exec(symbolName);
-    if (match && !baseMemberName) {
-        baseMemberName = symbolName.replace(/^m_/, '');
+    const memberInfo = getMemberInfo(symbol);
+    if (!memberInfo) {
+        vscode.window.showErrorMessage(errorMsg);
+        return;
     }
 
-    return baseMemberName;
+    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
+    const getterName = memberInfo.baseName ? memberInfo.baseName : 'get' + util.firstCharToUpper(symbol.name);
+
+    let type = symbol.leading();
+    const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
+    const constness = staticness ? '' : ' const';
+    type = type.replace(/\b(static|mutable)\b\s*/g, '');
+
+    const getter = staticness + type + getterName + '()' + constness + ' { return ' + symbol.name + '; }';
+
+    return util.insertSnippetAndTrimWhitespace(getter, memberInfo.position, symbol.document);
+}
+
+export async function generateSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
+{
+    const memberInfo = getMemberInfo(symbol);
+    if (!memberInfo) {
+        vscode.window.showErrorMessage(errorMsg);
+        return;
+    }
+
+    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
+    const setterName = 'set' + util.firstCharToUpper(memberInfo.baseName ? memberInfo.baseName : symbol.name);
+
+    let type = symbol.leading();
+    const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
+    type = type.replace(/\b(static|mutable)\b\s*/g, '');
+
+    // Pass 'set' parameter by const-reference for non-primitive, non-pointer types.
+    const paramType = (!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type;
+
+    const setter = staticness + 'void ' + setterName + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
+
+    return util.insertSnippetAndTrimWhitespace(setter, memberInfo.position, symbol.document);
+}
+
+interface MemberInfo
+{
+    position: ProposedPosition;
+    baseName?: string;
+}
+
+function getMemberInfo(symbol: CSymbol): MemberInfo | undefined
+{
+    const position = symbol.parent?.findPositionForNewMethod();
+    if (!position) {
+        return;
+    }
+
+    // Check for common member variable naming schemes and get the base name from them.
+    let baseMemberName: string | undefined;
+    let match = /^_+[\w_][\w\d_]*_*$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^_+|_*$/g, '');
+    }
+    match = /^_*[\w_][\w\d_]*_+$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^_*|_+$/g, '');
+    }
+    match = /^m_[\w_][\w\d_]*$/.exec(symbol.name);
+    if (match && !baseMemberName) {
+        baseMemberName = symbol.name.replace(/^m_/, '');
+    }
+
+    return {
+        baseName: baseMemberName,
+        position: position
+    };
 }

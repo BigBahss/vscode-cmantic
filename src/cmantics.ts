@@ -37,7 +37,7 @@ export class CSymbol extends vscode.DocumentSymbol
     }
 
     // Returns an array of CSymbol's starting with the top-most ancestor and ending with this.parent.
-    // Returns an empty array if this is a top-level symbol.
+    // Returns an empty array if this is a top-level symbol (parent is undefined).
     scopes(): CSymbol[]
     {
         let scopes: CSymbol[] = [];

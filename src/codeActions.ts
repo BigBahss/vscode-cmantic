@@ -93,6 +93,26 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             disabled: getterSetterDisabled
         },
         {
+            title: 'Generate \'get\' method',
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: 'Generate \'get\' method',
+                command: 'cmantic.generateGetterFor',
+                arguments: [symbol]
+            },
+            disabled: getterSetterDisabled
+        },
+        {
+            title: 'Generate \'set\' method',
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: 'Generate \'set\' method',
+                command: 'cmantic.generateSetterFor',
+                arguments: [symbol]
+            },
+            disabled: getterSetterDisabled
+        },
+        {
             title: 'Add Header Guard',
             kind: vscode.CodeActionKind.Source,
             command: {
