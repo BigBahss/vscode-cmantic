@@ -4,7 +4,12 @@ import * as cfg from './configuration';
 import * as util from './utility';
 
 
-export const failReason = {
+export const title = {
+    currentFile: 'Add Definition in this file',
+    matchingSourceFile: 'Add Definition in matching source file'
+};
+
+export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noDocumentSymbol: 'No document symbol detected.',
     notHeaderFile: 'This file is not a header file.',
@@ -20,13 +25,13 @@ export async function addDefinitionInSourceFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     const sourceFile = new SourceFile(editor.document);
     if (!sourceFile.isHeader()) {
-        vscode.window.showErrorMessage(failReason.notHeaderFile);
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
@@ -35,16 +40,16 @@ export async function addDefinitionInSourceFile(): Promise<void>
         sourceFile.getSymbol(editor.selection.start)
     ]);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
     } else if (!matchingUri) {
-        vscode.window.showErrorMessage(failReason.noMatchingSourceFile);
+        vscode.window.showErrorMessage(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
-        vscode.window.showErrorMessage(failReason.isConstexpr);
+        vscode.window.showErrorMessage(failure.isConstexpr);
         return;
     } else if (symbol.isInline()) {
-        vscode.window.showErrorMessage(failReason.isInline);
+        vscode.window.showErrorMessage(failure.isInline);
         return;
     }
 
@@ -55,7 +60,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
@@ -63,7 +68,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 
     const symbol = await sourceFile.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
     }
 

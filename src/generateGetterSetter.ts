@@ -3,7 +3,13 @@ import { CSymbol, ProposedPosition, SourceFile } from './cmantics';
 import * as util from './utility';
 
 
-export const failReason = {
+export const title = {
+    getterSetter: 'Generate \'get\' and \'set\' methods',
+    getter: 'Generate \'get\' method',
+    setter: 'Generate \'set\' method'
+};
+
+export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
@@ -39,19 +45,19 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     const sourceFile = new SourceFile(editor.document);
     if (!sourceFile.isHeader()) {
-        vscode.window.showErrorMessage(failReason.notHeaderFile);
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
     const symbol = await sourceFile.getSymbol(editor.selection.start);
     if (!symbol?.isMemberVariable()) {
-        vscode.window.showErrorMessage(failReason.noMemberVariable);
+        vscode.window.showErrorMessage(failure.noMemberVariable);
         return;
     }
 
@@ -100,7 +106,7 @@ async function findPositionAndCall(
     }
 
     if (!position) {
-        vscode.window.showErrorMessage(failReason.positionNotFound);
+        vscode.window.showErrorMessage(failure.positionNotFound);
         return;
     }
 

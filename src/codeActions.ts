@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import { CSymbol, SourceFile } from './cmantics';
 import * as util from './utility';
-import { failReason as addDefFailReason } from './addDefinition';
-import { failReason as getSetFailReason } from './generateGetterSetter';
+import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
+import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -57,29 +57,27 @@ async function getFunctionDeclarationRefactorings(
 ): Promise<vscode.CodeAction[]> {
     const existingDefinition = await symbol?.findDefinition();
 
-    let addDefinitionInMatchingSourceFileTitle = 'Add Definition';
+    let addDefinitionInMatchingSourceFileTitle = addDefinitionTitle.matchingSourceFile;
     let addDefinitionInMatchingSourceFileDisabled: { readonly reason: string } | undefined;
     let addDefinitionInCurrentFileDisabled: { readonly reason: string } | undefined;
 
     if (symbol?.isInline()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.isInline };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isInline };
     }
     if (symbol?.isConstexpr()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.isConstexpr };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isConstexpr };
     }
     if (existingDefinition) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.definitionExists };
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.definitionExists };
         addDefinitionInCurrentFileDisabled = addDefinitionInMatchingSourceFileDisabled;
     }
     if (!sourceFile.isHeader()) {
-        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.notHeaderFile };
-        addDefinitionInMatchingSourceFileTitle += ' in matching source file';
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
     } else if (matchingUri) {
         // TODO: Elide the path if it is very long.
-        addDefinitionInMatchingSourceFileTitle += ' in "' + util.workspaceRelativePath(matchingUri.path) + '"';
+        addDefinitionInMatchingSourceFileTitle = 'Add Definition in "' + util.workspaceRelativePath(matchingUri.path) + '"';
     } else {
-        addDefinitionInMatchingSourceFileDisabled = { reason: addDefFailReason.noMatchingSourceFile };
-        addDefinitionInMatchingSourceFileTitle += ' in matching source file';
+        addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.noMatchingSourceFile };
     }
 
     return [{
@@ -93,10 +91,10 @@ async function getFunctionDeclarationRefactorings(
         disabled: addDefinitionInMatchingSourceFileDisabled
     },
     {
-        title: 'Add Definition in this file',
+        title: addDefinitionTitle.currentFile,
         kind: vscode.CodeActionKind.Refactor,
         command: {
-            title: 'Add Definition in this file',
+            title: addDefinitionTitle.currentFile,
             command: 'cmantic.addDefinition',
             arguments: [symbol, sourceFile, sourceFile.uri]
         },
@@ -112,35 +110,35 @@ async function getMemberVariableRefactorings(
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
 
-    const generateGetterSetterDisabled = (getter || setter) ? { reason: getSetFailReason.getterSetterExists } : undefined;
-    const generateGetterDisabled = getter ? { reason: getSetFailReason.getterExists } : undefined;
-    const generateSetterDisabled = setter ? { reason: getSetFailReason.setterExists } : undefined;
+    const generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
+    const generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
+    const generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
 
     return [{
-        title: 'Generate \'get\' and \'set\' methods',
+        title: getterSetterTitle.getterSetter,
         kind: vscode.CodeActionKind.Refactor,
         command: {
-            title: 'Generate \'get\' and \'set\' methods',
+            title: getterSetterTitle.getterSetter,
             command: 'cmantic.generateGetterSetterFor',
             arguments: [symbol]
         },
         disabled: generateGetterSetterDisabled
     },
     {
-        title: 'Generate \'get\' method',
+        title: getterSetterTitle.getter,
         kind: vscode.CodeActionKind.Refactor,
         command: {
-            title: 'Generate \'get\' method',
+            title: getterSetterTitle.getter,
             command: 'cmantic.generateGetterFor',
             arguments: [symbol]
         },
         disabled: generateGetterDisabled
     },
     {
-        title: 'Generate \'set\' method',
+        title: getterSetterTitle.setter,
         kind: vscode.CodeActionKind.Refactor,
         command: {
-            title: 'Generate \'set\' method',
+            title: getterSetterTitle.setter,
             command: 'cmantic.generateSetterFor',
             arguments: [symbol]
         },
@@ -156,7 +154,7 @@ async function getSourceActions(
     let addHeaderGuardDisabled: { readonly reason: string } | undefined;
 
     if (!sourceFile.isHeader()) {
-        createMatchingSourceFileDisabled = { reason: addDefFailReason.notHeaderFile };
+        createMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
         addHeaderGuardDisabled = createMatchingSourceFileDisabled;
     } else if (matchingUri) {
         createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
