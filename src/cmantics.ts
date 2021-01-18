@@ -49,6 +49,10 @@ export class CSymbol extends vscode.DocumentSymbol
 
     getterName(memberBaseName?: string): string
     {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
         memberBaseName = memberBaseName ? memberBaseName : this.baseName();
         if (memberBaseName === this.id()) {
             return 'get' + util.firstCharToUpper(memberBaseName);
@@ -58,6 +62,10 @@ export class CSymbol extends vscode.DocumentSymbol
 
     setterName(memberBaseName?: string): string
     {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
         memberBaseName = memberBaseName ? memberBaseName : this.baseName();
         return 'set' + util.firstCharToUpper(memberBaseName);
     }
