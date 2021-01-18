@@ -108,6 +108,13 @@ async function getMemberVariableRefactorings(
     sourceFile: SourceFile,
     matchingUri?: vscode.Uri
 ): Promise<vscode.CodeAction[]> {
+    const getter = symbol.parent?.findGetterFor(symbol);
+    const setter = symbol.parent?.findSetterFor(symbol);
+
+    const generateGetterSetterDisabled = (getter || setter) ? { reason: '\'get\' or \'set\' method already exists.' } : undefined;
+    const generateGetterDisabled = getter ? { reason: '\'get\' method already exists.' } : undefined;
+    const generateSetterDisabled = setter ? { reason: '\'set\' method already exists.' } : undefined;
+
     return [{
         title: 'Generate \'get\' and \'set\' methods',
         kind: vscode.CodeActionKind.Refactor,
@@ -115,7 +122,8 @@ async function getMemberVariableRefactorings(
             title: 'Generate \'get\' and \'set\' methods',
             command: 'cmantic.generateGetterSetterFor',
             arguments: [symbol]
-        }
+        },
+        disabled: generateGetterSetterDisabled
     },
     {
         title: 'Generate \'get\' method',
@@ -124,7 +132,8 @@ async function getMemberVariableRefactorings(
             title: 'Generate \'get\' method',
             command: 'cmantic.generateGetterFor',
             arguments: [symbol]
-        }
+        },
+        disabled: generateGetterDisabled
     },
     {
         title: 'Generate \'set\' method',
@@ -133,7 +142,8 @@ async function getMemberVariableRefactorings(
             title: 'Generate \'set\' method',
             command: 'cmantic.generateSetterFor',
             arguments: [symbol]
-        }
+        },
+        disabled: generateSetterDisabled
     }];
 }
 

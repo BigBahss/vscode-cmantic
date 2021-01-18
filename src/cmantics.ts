@@ -70,6 +70,38 @@ export class CSymbol extends vscode.DocumentSymbol
         return 'set' + util.firstCharToUpper(memberBaseName);
     }
 
+    findGetterFor(symbol: CSymbol): CSymbol | undefined
+    {
+        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+            return;
+        }
+
+        const getterName = symbol.getterName();
+
+        return this.findChild(child => child.id() === getterName);
+    }
+
+    findSetterFor(symbol: CSymbol): CSymbol | undefined
+    {
+        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+            return;
+        }
+
+        const setterName = symbol.setterName();
+
+        return this.findChild(child => child.id() === setterName);
+    }
+
+    findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
+    {
+        for (const child of this.children) {
+            const symbol = new CSymbol(child, this.document, this);
+            if (compareFn(symbol)) {
+                return symbol;
+            }
+        }
+    }
+
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
