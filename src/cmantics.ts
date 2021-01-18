@@ -203,7 +203,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
         for (let i = fallbackIndex; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id().match(relativeName)) {
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id() === relativeName) {
                 if (isGetter) {
                     return { value: symbol.range.start, before: true, nextTo: true };
                 } else {
