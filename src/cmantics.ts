@@ -257,8 +257,9 @@ export class SourceFile
             this.symbols = await this.getSortedDocumentSymbols();
         }
 
+        const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
         for (const symbol of this.symbols) {
-            if (symbol.name === cfg.headerGuardDefine(util.fileName(this.uri.path))) {
+            if (symbol.name === headerGuardDefine) {
                 return true;
             }
         }
