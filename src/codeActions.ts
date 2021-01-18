@@ -107,12 +107,22 @@ async function getMemberVariableRefactorings(
     sourceFile: SourceFile,
     matchingUri?: vscode.Uri
 ): Promise<vscode.CodeAction[]> {
-    const getter = symbol.parent?.findGetterFor(symbol);
-    const setter = symbol.parent?.findSetterFor(symbol);
+    let generateGetterSetterDisabled: { readonly reason: string } | undefined;
+    let generateGetterDisabled: { readonly reason: string } | undefined;
+    let generateSetterDisabled: { readonly reason: string } | undefined;
 
-    const generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
-    const generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
-    const generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
+    if (sourceFile.document.languageId !== 'cpp') {
+        generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
+        generateGetterDisabled = { reason: getterSetterFailure.notCpp };
+        generateSetterDisabled = { reason: getterSetterFailure.notCpp };
+    } else {
+        const getter = symbol.parent?.findGetterFor(symbol);
+        const setter = symbol.parent?.findSetterFor(symbol);
+
+        generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
+        generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
+        generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
+    }
 
     return [{
         title: getterSetterTitle.getterSetter,

@@ -11,6 +11,7 @@ export const title = {
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
+    notCpp: 'Detected language is not C++, cannot create a member function.',
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
     positionNotFound: 'Could not find a position for new accessor method.',
@@ -46,6 +47,11 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        return;
+    }
+
+    if (editor.document.languageId !== 'cpp') {
+        vscode.window.showErrorMessage(failure.notCpp);
         return;
     }
 
