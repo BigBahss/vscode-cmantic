@@ -3,7 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 
 
-const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
+const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
 
 // A DocumentSymbol that understands the semantics of C/C++.
@@ -172,7 +172,8 @@ export class CSymbol extends vscode.DocumentSymbol
     isPrimitive(): boolean
     {
         // TODO: Resolve typedefs and using-declarations.
-        if (this.leading().match(re_primitiveTypes)) {
+        const leading = this.leading();
+        if (leading.match(re_primitiveType) && !leading.match(/[<>]/g)) {
             return true;
         }
         return false;
@@ -407,6 +408,7 @@ export class SourceFile
         for (const symbol of siblingSymbols) {
             if (symbol.range === declaration.range) {
                 hitTarget = true;
+                continue;
             }
 
             if (!hitTarget) {
