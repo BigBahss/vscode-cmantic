@@ -26,6 +26,27 @@ export class CSymbol extends vscode.DocumentSymbol
     // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
     id(): string { return this.document.getText(this.selectionRange); }
 
+    // Check for common naming schemes of private members and return the base name.
+    baseName(): string
+    {
+        const memberName = this.id();
+        let baseMemberName: string | undefined;
+        let match = /^_+[\w_][\w\d_]*_*$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^_+|_*$/g, '');
+        }
+        match = /^_*[\w_][\w\d_]*_+$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^_*|_+$/g, '');
+        }
+        match = /^m_[\w_][\w\d_]*$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^m_/, '');
+        }
+
+        return baseMemberName ? baseMemberName : memberName;
+    }
+
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }

@@ -122,24 +122,9 @@ interface MemberInfo
 
 function getMemberInfo(symbol: CSymbol): MemberInfo | undefined
 {
-    const position = symbol.parent?.findPositionForNewMethod();
+    const baseMemberName = symbol.baseName();
     if (!position) {
         return;
-    }
-
-    // Check for common member variable naming schemes and get the base name from them.
-    let baseMemberName: string | undefined;
-    let match = /^_+[\w_][\w\d_]*_*$/.exec(symbol.name);
-    if (match && !baseMemberName) {
-        baseMemberName = symbol.name.replace(/^_+|_*$/g, '');
-    }
-    match = /^_*[\w_][\w\d_]*_+$/.exec(symbol.name);
-    if (match && !baseMemberName) {
-        baseMemberName = symbol.name.replace(/^_*|_+$/g, '');
-    }
-    match = /^m_[\w_][\w\d_]*$/.exec(symbol.name);
-    if (match && !baseMemberName) {
-        baseMemberName = symbol.name.replace(/^m_/, '');
     }
 
     return {
