@@ -99,51 +99,88 @@ export class CSymbol extends vscode.DocumentSymbol
         return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
     }
 
-    // Finds a position for a new public method declaration within this class or struct.
-    findPositionForNewMethod(): ProposedPosition | undefined
+    // Finds a position for a new public method within this class or struct.
+    // Optionally provide a relativeName to look for a position next to.
+    // Optionally provide a memberVariable if the new method is an accessor.
+    // Returns undefined if this is not a class or struct, or when this.children.length === 0.
+    findPositionForNewMethod(relativeName?: string, memberVariable?: CSymbol): ProposedPosition | undefined
     {
-        const lastChildPositionOrUndefined = () => {
+        const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
             if (this.children.length === 0) {
                 return undefined;
             }
             return { value: this.children[this.children.length - 1].range.end, after: true };
         };
 
-        if (this.kind === vscode.SymbolKind.Class) {
-            const text = this.text();
-            const startOffset = this.document.offsetAt(this.range.start);
-            let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
-
-            if (!publicSpecifierOffset) {
-                return lastChildPositionOrUndefined();
+        const symbolIsBetween = (symbol: CSymbol, afterOffset: number, beforeOffset: number): boolean => {
+            if (symbol.isFunction() && symbol.isAfter(afterOffset) && symbol.isBefore(beforeOffset)) {
+                return true;
             }
-            publicSpecifierOffset += startOffset;
+            return false;
+        };
 
-            let nextAccessSpecifierOffset: number | undefined;
-            for (const match of text.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
-                if (!match.index) {
-                    continue;
-                }
-                if (match.index > publicSpecifierOffset) {
-                    nextAccessSpecifierOffset = match.index;
-                    break;
-                }
+        if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
+            return lastChildPositionOrUndefined();
+        }
+
+        const text = this.text();
+        const startOffset = this.document.offsetAt(this.range.start);
+        let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
+
+        if (!publicSpecifierOffset) {
+            return lastChildPositionOrUndefined();
+        }
+        publicSpecifierOffset += startOffset;
+
+        let nextAccessSpecifierOffset: number | undefined;
+        for (const match of text.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
+            if (!match.index) {
+                continue;
             }
-
-            if (!nextAccessSpecifierOffset) {
-                return lastChildPositionOrUndefined();
+            if (match.index > publicSpecifierOffset) {
+                nextAccessSpecifierOffset = match.index;
+                break;
             }
-            nextAccessSpecifierOffset += startOffset;
+        }
 
-            for (let i = this.children.length - 1; i >= 0; --i) {
-                const symbol = new CSymbol(this.children[i], this.document, this);
-                if (symbol.isFunction() && symbol.isBefore(nextAccessSpecifierOffset)) {
-                    return { value: this.children[i].range.end, after: true };
+        if (!nextAccessSpecifierOffset) {
+            return lastChildPositionOrUndefined();
+        }
+        nextAccessSpecifierOffset += startOffset;
+
+        let fallbackPosition: ProposedPosition | undefined;
+        let fallbackIndex = 0;
+        for (let i = this.children.length - 1; i >= 0; --i) {
+            const symbol = new CSymbol(this.children[i], this.document, this);
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
+                fallbackPosition = { value: symbol.range.end, after: true };
+                fallbackIndex = i;
+                break;
+            }
+        }
+
+        if (!fallbackPosition || !fallbackIndex) {
+            return lastChildPositionOrUndefined();
+        } else if (!relativeName) {
+            return fallbackPosition;
+        }
+
+        // If relativeName is a setterName, then ProposedPosition should be before, since the new method is a getter.
+        // This is to match the positioning of these methods when both are generated at the same time.
+        const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
+
+        for (let i = fallbackIndex; i >= 0; --i) {
+            const symbol = new CSymbol(this.children[i], this.document, this);
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id().match(relativeName)) {
+                if (isGetter) {
+                    return { value: symbol.range.start, before: true, nextTo: true };
+                } else {
+                    return { value: symbol.range.end, after: true, nextTo: true };
                 }
             }
         }
 
-        return lastChildPositionOrUndefined();
+        return fallbackPosition;
     }
 
     isMemberVariable(): boolean
@@ -605,6 +642,7 @@ export interface ProposedPosition
     value: vscode.Position;
     before?: boolean;
     after?: boolean;
+    nextTo?: boolean;   // nextTo signals not to put a blank line between.
 }
 
 export interface NewIncludePosition

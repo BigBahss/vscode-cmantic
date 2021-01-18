@@ -43,89 +43,81 @@ async function getCurrentSymbolAndCall(
     return callback(symbol, errorMsg);
 }
 
+
+enum AccessorType {
+    Getter,
+    Setter,
+    Both
+}
+
+
 export async function generateGetterSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
 {
-    const memberInfo = getMemberInfo(symbol);
-    if (!memberInfo) {
+    const position = findPositionForNewAccessor(symbol, AccessorType.Both);
+    if (!position) {
         vscode.window.showErrorMessage(errorMsg);
         return;
     }
 
-    const getterName = symbol.getterName(memberInfo.baseName);
-    const setterName = symbol.setterName(memberInfo.baseName);
+    const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
 
-    let type = symbol.leading();
-    const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
-    const constness = staticness ? '' : ' const';
-    type = type.replace(/\b(static|mutable)\b\s*/g, '');
-
-    // Pass 'set' parameter by const-reference for non-primitive, non-pointer types.
-    const paramType = (!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type;
-
-    const getter = staticness + type + getterName + '()' + constness + ' { return ' + symbol.name + '; }';
-    const setter = staticness + 'void ' + setterName + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
-    const combinedText = getter + util.endOfLine(symbol.document) + setter;
-
-    return util.insertSnippetAndTrimWhitespace(combinedText, memberInfo.position, symbol.document);
+    return util.insertSnippetAndReveal(combinedAccessors, position, symbol.document);
 }
 
 export async function generateGetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
 {
-    const memberInfo = getMemberInfo(symbol);
-    if (!memberInfo) {
+    const position = findPositionForNewAccessor(symbol, AccessorType.Getter);
+    if (!position) {
         vscode.window.showErrorMessage(errorMsg);
         return;
     }
 
-    const getterName = symbol.getterName(memberInfo.baseName);
-
-    let type = symbol.leading();
-    const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
-    const constness = staticness ? '' : ' const';
-    type = type.replace(/\b(static|mutable)\b\s*/g, '');
-
-    const getter = staticness + type + getterName + '()' + constness + ' { return ' + symbol.name + '; }';
-
-    return util.insertSnippetAndTrimWhitespace(getter, memberInfo.position, symbol.document);
+    return util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.document);
 }
 
 export async function generateSetterFor(symbol: CSymbol, errorMsg: string): Promise<void>
 {
-    const memberInfo = getMemberInfo(symbol);
-    if (!memberInfo) {
+    const position = findPositionForNewAccessor(symbol, AccessorType.Setter);
+    if (!position) {
         vscode.window.showErrorMessage(errorMsg);
         return;
     }
 
-    const setterName = symbol.setterName(memberInfo.baseName);
+    return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.document);
+}
 
-    let type = symbol.leading();
-    const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
-    type = type.replace(/\b(static|mutable)\b\s*/g, '');
+function findPositionForNewAccessor(symbol: CSymbol, type: AccessorType): ProposedPosition | undefined
+{
+    // If the new method is a getter, then we want to place it relative to the setter, and vice-versa.
+    let relativeMethodName: string | undefined;
+    switch (type) {
+    case AccessorType.Getter:
+        relativeMethodName = symbol.setterName();
+        break;
+    case AccessorType.Setter:
+        relativeMethodName = symbol.getterName();
+        break;
+    }
+
+    return symbol.parent?.findPositionForNewMethod(relativeMethodName, symbol);
+}
+
+function constructGetter(symbol: CSymbol) {
+    const leadingText = symbol.leading();
+    const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
+    const constness = staticness ? '' : ' const';
+    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+
+    return staticness + type + symbol.getterName() + '()' + constness + ' { return ' + symbol.name + '; }';
+}
+
+function constructSetter(symbol: CSymbol) {
+    const leadingText = symbol.leading();
+    const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
+    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
 
     // Pass 'set' parameter by const-reference for non-primitive, non-pointer types.
     const paramType = (!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type;
 
-    const setter = staticness + 'void ' + setterName + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
-
-    return util.insertSnippetAndTrimWhitespace(setter, memberInfo.position, symbol.document);
-}
-
-interface MemberInfo
-{
-    position: ProposedPosition;
-    baseName?: string;
-}
-
-function getMemberInfo(symbol: CSymbol): MemberInfo | undefined
-{
-    const baseMemberName = symbol.baseName();
-    if (!position) {
-        return;
-    }
-
-    return {
-        baseName: baseMemberName,
-        position: position
-    };
+    return staticness + 'void ' + symbol.setterName() + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
 }

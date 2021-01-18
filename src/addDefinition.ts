@@ -104,5 +104,5 @@ export async function addDefinition(
         functionSkeleton = definition + ' {' + eol + util.indentation() + '$0' + eol + '}';
     }
 
-    return util.insertSnippetAndTrimWhitespace(functionSkeleton, position, targetFile.document);
+    return util.insertSnippetAndReveal(functionSkeleton, position, targetFile.document);
 }
