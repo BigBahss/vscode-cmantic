@@ -51,9 +51,8 @@ export async function generateGetterSetterFor(symbol: CSymbol, errorMsg: string)
         return;
     }
 
-    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
-    const getterName = memberInfo.baseName ? memberInfo.baseName : 'get' + util.firstCharToUpper(symbol.name);
-    const setterName = 'set' + util.firstCharToUpper(memberInfo?.baseName ? memberInfo?.baseName : symbol.name);
+    const getterName = symbol.getterName(memberInfo.baseName);
+    const setterName = symbol.setterName(memberInfo.baseName);
 
     let type = symbol.leading();
     const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
@@ -78,8 +77,7 @@ export async function generateGetterFor(symbol: CSymbol, errorMsg: string): Prom
         return;
     }
 
-    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
-    const getterName = memberInfo.baseName ? memberInfo.baseName : 'get' + util.firstCharToUpper(symbol.name);
+    const getterName = symbol.getterName(memberInfo.baseName);
 
     let type = symbol.leading();
     const staticness = type.match(/\bstatic\b/) ? 'static ' : '';
@@ -99,8 +97,7 @@ export async function generateSetterFor(symbol: CSymbol, errorMsg: string): Prom
         return;
     }
 
-    // If we extracted a base member name, use that for the getter function name. Otherwise prepend with 'get'.
-    const setterName = 'set' + util.firstCharToUpper(memberInfo.baseName ? memberInfo.baseName : symbol.name);
+    const setterName = symbol.setterName(memberInfo.baseName);
 
     let type = symbol.leading();
     const staticness = type.match(/\bstatic\b/) ? 'static ' : '';

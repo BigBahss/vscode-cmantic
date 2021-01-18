@@ -47,6 +47,21 @@ export class CSymbol extends vscode.DocumentSymbol
         return baseMemberName ? baseMemberName : memberName;
     }
 
+    getterName(memberBaseName?: string): string
+    {
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        if (memberBaseName === this.id()) {
+            return 'get' + util.firstCharToUpper(memberBaseName);
+        }
+        return memberBaseName;
+    }
+
+    setterName(memberBaseName?: string): string
+    {
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        return 'set' + util.firstCharToUpper(memberBaseName);
+    }
+
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
