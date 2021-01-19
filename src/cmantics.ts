@@ -542,9 +542,10 @@ export class SourceFile
         // Find the closest relative definition to place the new definition next to.
         for (const symbol of before.reverse()) {
             const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
-            if (!definitionLocation) {
+            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
+
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
                 return { value: getEndOfStatement(definition.range.end, target.document), after: true };
@@ -552,9 +553,10 @@ export class SourceFile
         }
         for (const symbol of after) {
             const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
-            if (!definitionLocation) {
+            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
+
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
                 return { value: getEndOfStatement(definition.range.start, target.document), before: true };
