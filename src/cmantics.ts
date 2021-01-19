@@ -20,13 +20,15 @@ export class CSymbol extends vscode.DocumentSymbol
         this.parent = parent;
     }
 
+    get uri(): vscode.Uri { return this.document.uri; }
+
     // Returns all the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
 
     // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
     id(): string { return this.document.getText(this.selectionRange); }
 
-    // Check for common naming schemes of private members and return the base name.
+    // Checks for common naming schemes of private members and return the base name.
     baseName(): string
     {
         const memberName = this.id();
@@ -128,7 +130,7 @@ export class CSymbol extends vscode.DocumentSymbol
     // Finds the most likely definition of this CSymbol in the case that multiple are found.
     async findDefinition(): Promise<vscode.Location | undefined>
     {
-        return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
+        return await findDefinitionInWorkspace(this.selectionRange.start, this.uri);
     }
 
     // Finds a position for a new public method within this class or struct.
@@ -350,14 +352,14 @@ export class CSymbol extends vscode.DocumentSymbol
 export class SourceFile
 {
     readonly document: vscode.TextDocument;
-    readonly uri: vscode.Uri;
     symbols?: vscode.DocumentSymbol[];
 
     constructor(document: vscode.TextDocument)
     {
         this.document = document;
-        this.uri = document.uri;
     }
+
+    get uri(): vscode.Uri { return this.document.uri; }
 
     text(): string { return this.document.getText(); }
 
@@ -503,7 +505,7 @@ export class SourceFile
         if (!this.symbols) {
             this.symbols = await this.getSortedDocumentSymbols();
         }
-        if (declaration.document !== this.document || (!declaration.parent && this.symbols.length === 0)) {
+        if (declaration.uri.path !== this.uri.path || (!declaration.parent && this.symbols.length === 0)) {
             return { value: new vscode.Position(0, 0) };
         }
 
