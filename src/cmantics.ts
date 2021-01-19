@@ -229,6 +229,7 @@ export class CSymbol extends vscode.DocumentSymbol
     isFunction(): boolean
     {
         switch (this.kind) {
+        case vscode.SymbolKind.Operator:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Function:
