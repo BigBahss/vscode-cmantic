@@ -217,13 +217,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isMemberVariable(): boolean
     {
-        switch (this.kind) {
-        case vscode.SymbolKind.Field:
-        case vscode.SymbolKind.Property:
-            return true;
-        default:
-            return false;
-        }
+        return this.kind === vscode.SymbolKind.Field;
     }
 
     isFunction(): boolean
@@ -241,7 +235,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isFunctionDeclaration(): boolean
     {
-        return this.isFunction() && this.detail === 'declaration';
+        return this.isFunction() && (this.detail === 'declaration' || !this.text().endsWith('}'));
     }
 
     isConstructor(): boolean
