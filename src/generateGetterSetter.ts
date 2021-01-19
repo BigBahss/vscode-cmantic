@@ -74,7 +74,7 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
 export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 {
     if (symbol.isConst()) {
-        vscode.window.showWarningMessage(failure.isConst + ' Only generating \'get\' method.');
+        vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
         return generateGetterFor(symbol);
     }
 
@@ -135,7 +135,7 @@ function constructGetter(symbol: CSymbol): string
     const leadingText = symbol.leading();
     const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
     const constness = staticness ? '' : ' const';
-    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+    const type = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
 
     return staticness + type + symbol.getterName() + '()' + constness + ' { return ' + symbol.name + '; }';
 }
