@@ -32,8 +32,8 @@ export function directory(filePath: string): string
 // Returns the amount of different directories between directoryPath_a and directoryPath_b.
 export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number
 {
-    const path1_segments = directoryPath_a.split('/').filter(segment => segment.length > 0);
-    const path2_segments = directoryPath_b.split('/').filter(segment => segment.length > 0);
+    const path1_segments = directoryPath_a.split('/');
+    const path2_segments = directoryPath_b.split('/');
     const minSegments = Math.min(path1_segments.length, path2_segments.length);
 
     let commonLeadingDirectories = 0;
