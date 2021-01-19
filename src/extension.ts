@@ -29,7 +29,10 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));
 
-    vscode.languages.registerCodeActionsProvider([{ language: 'c' }, { language: 'cpp' }], new CodeActionProvider());
+    vscode.languages.registerCodeActionsProvider(
+        [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
+        new CodeActionProvider()
+    );
 }
 
 
