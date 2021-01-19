@@ -17,7 +17,8 @@ export const failure = {
     positionNotFound: 'Could not find a position for new accessor method.',
     getterSetterExists: 'There already exists a \'get\' or \'set\' method.',
     getterExists: 'There already exists a \'get\' method.',
-    setterExists: 'There already exists a \'set\' method.'
+    setterExists: 'There already exists a \'set\' method.',
+    isConst: 'Const variables cannot be assigned after initialization.'
 };
 
 enum AccessorType {
@@ -72,6 +73,11 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
 
 export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 {
+    if (symbol.isConst()) {
+        vscode.window.showWarningMessage(failure.isConst + ' Only generating \'get\' method.');
+        return generateGetterFor(symbol);
+    }
+
     return findPositionAndCall(symbol, AccessorType.Both, position => {
         const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
         return util.insertSnippetAndReveal(combinedAccessors, position, symbol.document);
@@ -87,6 +93,11 @@ export async function generateGetterFor(symbol: CSymbol): Promise<void>
 
 export async function generateSetterFor(symbol: CSymbol): Promise<void>
 {
+    if (symbol.isConst()) {
+        vscode.window.showErrorMessage(failure.isConst);
+        return;
+    }
+
     return findPositionAndCall(symbol, AccessorType.Setter, position => {
         return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.document);
     });

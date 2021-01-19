@@ -287,6 +287,14 @@ export class CSymbol extends vscode.DocumentSymbol
         return this.leading().includes('*') ? true : false;
     }
 
+    isConst(): boolean
+    {
+        if (this.leading().match(/\bconst\b/)) {
+            return true;
+        }
+        return false;
+    }
+
     isPrimitive(): boolean
     {
         // TODO: Resolve typedefs and using-declarations.

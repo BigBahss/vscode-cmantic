@@ -122,6 +122,11 @@ async function getMemberVariableRefactorings(
         generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
         generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
         generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
+
+        if (symbol.isConst()) {
+            generateGetterSetterDisabled = { reason: getterSetterFailure.isConst };
+            generateSetterDisabled = { reason: getterSetterFailure.isConst };
+        }
     }
 
     return [{
