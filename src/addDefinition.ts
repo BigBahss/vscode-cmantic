@@ -89,9 +89,9 @@ export async function addDefinition(
     }
 
     // Find the position for the new function definition.
-    const editor = await vscode.window.showTextDocument(targetUri);
+    const document = await vscode.workspace.openTextDocument(targetUri);
     const targetFile = (targetUri.path === declarationFile.uri.path) ?
-            declarationFile : new SourceFile(editor.document);
+            declarationFile : new SourceFile(document);
     const position = await declarationFile.findPositionForNewDefinition(functionDeclaration, targetFile);
 
     // Construct the snippet for the new function definition.

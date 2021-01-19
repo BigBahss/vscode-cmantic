@@ -56,6 +56,7 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (path2_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
+// TODO: Use vscode.workspace.asRelativePath()
 export function workspaceRelativePath(absolutePath: string, includeWorkspaceName: boolean = false): string
 {
     if (!vscode.workspace.workspaceFolders) {
@@ -117,7 +118,7 @@ export async function insertSnippetAndReveal(
     document: vscode.TextDocument
 ): Promise<void> {
     const eol = endOfLine(document);
-    let newLines = position.nextTo ? eol : eol + eol;
+    const newLines = position.nextTo ? eol : eol + eol;
     if (position.after) {
         text = newLines + text;
     } else if (position.before) {
@@ -127,21 +128,22 @@ export async function insertSnippetAndReveal(
     }
 
     const snippet = new vscode.SnippetString(text);
+
     const editor = await vscode.window.showTextDocument(document.uri);
-    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
-
-    if (!position.nextTo && (position.after || position.before)) {
-        /* When inserting an indented snippet that contains an empty line, the empty line with be
-         * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
-        editor.edit(editBuilder => {
-            const trailingWSPosition = position.value.translate(position.after ? 1 : lines(snippet.value));
-            const l = document.lineAt(trailingWSPosition);
-            if (l.isEmptyOrWhitespace) {
-                editBuilder.delete(l.range);
-            }
-        }, { undoStopBefore: false, undoStopAfter: true });
-    }
-
     const revealPosition = position.value.translate(position.after ? 3 : -3);
     editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
+
+    editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false }).then(success => {
+        if (success && !position.nextTo && (position.after || position.before)) {
+            /* When inserting an indented snippet that contains an empty line, the empty line with be
+             * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
+            editor.edit(editBuilder => {
+                const trailingWSPosition = position.value.translate(position.after ? 1 : lines(snippet.value));
+                const l = document.lineAt(trailingWSPosition);
+                if (l.isEmptyOrWhitespace) {
+                    editBuilder.delete(l.range);
+                }
+            }, { undoStopBefore: false, undoStopAfter: true });
+        }
+    });
 }
