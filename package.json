@@ -34,8 +34,8 @@
     "guard"
   ],
   "activationEvents": [
-    "onLanguage:cpp",
-    "onLanguage:c"
+    "onLanguage:c",
+    "onLanguage:cpp"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -152,7 +152,7 @@
             ],
             "description": "File extensions to associate source files."
           },
-          "C_mantic.curlyBraceFormat": {
+          "C_mantic.curlyBraceFormat.c": {
             "type": "string",
             "enum": [
               "New line",
@@ -160,7 +160,17 @@
               "Same line"
             ],
             "default": "New line",
-            "description": "Controls how to format the opening curly brace when adding a new function definition."
+            "description": "Controls how to format the opening curly brace when adding a new function definition in C."
+          },
+          "C_mantic.curlyBraceFormat.cpp": {
+            "type": "string",
+            "enum": [
+              "New line",
+              "New line for constructors and destructors",
+              "Same line"
+            ],
+            "default": "Same line",
+            "description": "Controls how to format the opening curly brace when adding a new function definition in C++."
           },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",

@@ -96,7 +96,7 @@ export async function addDefinition(
 
     // Construct the snippet for the new function definition.
     const definition = await functionDeclaration.newFunctionDefinition(targetFile, position.value);
-    const curlyBraceFormat = cfg.curlyBraceFormat();
+    const curlyBraceFormat = cfg.curlyBraceFormat(document.languageId);
     const eol = util.endOfLine(targetFile.document);
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine

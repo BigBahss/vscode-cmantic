@@ -33,15 +33,16 @@ export function sourceExtensions(): string[]
     return extensions ? extensions : defaultSourceExtensions;
 }
 
-export function curlyBraceFormat(): CurlyBraceFormat
+export function curlyBraceFormat(languageId: string): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('curlyBraceFormat');
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('curlyBraceFormat.' + languageId);
     switch (format) {
     case 'Same line':
         return CurlyBraceFormat.SameLine;
     case 'New line for constructors and destructors':
         return CurlyBraceFormat.NewLineCtorDtor;
     case 'New line':
+        return CurlyBraceFormat.NewLine;
     default:
         return defaultCurlyBraceFormat;
     }
