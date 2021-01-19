@@ -127,12 +127,11 @@ export async function insertSnippetAndReveal(
         text += eol;
     }
 
-    const snippet = new vscode.SnippetString(text);
-
     const editor = await vscode.window.showTextDocument(document.uri);
-    const revealPosition = position.value.translate(position.after ? 3 : -3);
+    const revealPosition = position.value.translate(position.after ? lines(text) : -lines(text));
     editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 
+    const snippet = new vscode.SnippetString(text);
     editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false }).then(success => {
         if (success && !position.nextTo && (position.after || position.before)) {
             /* When inserting an indented snippet that contains an empty line, the empty line with be
