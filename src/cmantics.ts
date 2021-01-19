@@ -240,7 +240,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isFunctionDeclaration(): boolean
     {
-        return this.isFunction() && this.text().endsWith(';');
+        return this.isFunction() && this.detail === 'declaration';
     }
 
     isConstructor(): boolean
