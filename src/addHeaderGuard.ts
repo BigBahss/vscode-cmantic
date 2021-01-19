@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as c from './cmantics';
+import { SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
 
@@ -12,7 +12,7 @@ export function addHeaderGuard(): void
         return;
     }
     const fileName = util.fileName(activeEditor.document.uri.path);
-    const sourceFile = new c.SourceFile(activeEditor.document);
+    const sourceFile = new SourceFile(activeEditor.document);
     if (!sourceFile.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;

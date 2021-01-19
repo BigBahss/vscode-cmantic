@@ -1,10 +1,15 @@
 import * as vscode from 'vscode';
-import * as c from './cmantics';
+import { CSymbol, SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
 
 
-export const failReason = {
+export const title = {
+    currentFile: 'Add Definition in this file',
+    matchingSourceFile: 'Add Definition in matching source file'
+};
+
+export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noDocumentSymbol: 'No document symbol detected.',
     notHeaderFile: 'This file is not a header file.',
@@ -20,13 +25,13 @@ export async function addDefinitionInSourceFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
-    const sourceFile = new c.SourceFile(editor.document);
+    const sourceFile = new SourceFile(editor.document);
     if (!sourceFile.isHeader()) {
-        vscode.window.showErrorMessage(failReason.notHeaderFile);
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
@@ -35,44 +40,44 @@ export async function addDefinitionInSourceFile(): Promise<void>
         sourceFile.getSymbol(editor.selection.start)
     ]);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
     } else if (!matchingUri) {
-        vscode.window.showErrorMessage(failReason.noMatchingSourceFile);
+        vscode.window.showErrorMessage(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
-        vscode.window.showErrorMessage(failReason.isConstexpr);
+        vscode.window.showErrorMessage(failure.isConstexpr);
         return;
     } else if (symbol.isInline()) {
-        vscode.window.showErrorMessage(failReason.isInline);
+        vscode.window.showErrorMessage(failure.isInline);
         return;
     }
 
-    addDefinition(symbol, sourceFile, matchingUri);
+    return addDefinition(symbol, sourceFile, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failReason.noActiveTextEditor);
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
-    const sourceFile = new c.SourceFile(editor.document);
+    const sourceFile = new SourceFile(editor.document);
 
     const symbol = await sourceFile.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failReason.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
     }
 
-    addDefinition(symbol, sourceFile, sourceFile.uri);
+    return addDefinition(symbol, sourceFile, sourceFile.uri);
 }
 
 export async function addDefinition(
-    functionDeclaration: c.CSymbol,
-    declarationFile: c.SourceFile,
+    functionDeclaration: CSymbol,
+    declarationFile: SourceFile,
     targetUri: vscode.Uri
 ): Promise<void> {
     // Check for an existing definition. If one exists, reveal it and return.
@@ -86,7 +91,7 @@ export async function addDefinition(
     // Find the position for the new function definition.
     const editor = await vscode.window.showTextDocument(targetUri);
     const targetFile = (targetUri.path === declarationFile.uri.path) ?
-            declarationFile : new c.SourceFile(editor.document);
+            declarationFile : new SourceFile(editor.document);
     const position = await declarationFile.findPositionForNewDefinition(functionDeclaration, targetFile);
 
     // Construct the snippet for the new function definition.
@@ -98,32 +103,11 @@ export async function addDefinition(
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + cfg.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + eol + '{' + eol + util.indentation() + '$0' + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + cfg.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + ' {' + eol + util.indentation() + '$0' + eol + '}';
     }
-    if (position.after) {
-        functionSkeleton = eol + eol + functionSkeleton;
-    } else if (position.before) {
-        functionSkeleton += eol + eol;
-    } else if (targetFile.document.lineCount - 1 === position.value.line) {
-        functionSkeleton += eol;
-    }
-    const snippet = new vscode.SnippetString(functionSkeleton);
 
-    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
-    if (position.before || position.after) {
-        /* When inserting a indented snippet that contains an empty line, the empty line with be indented,
-         * thus leaving trailing whitespace. So we need to clean up that whitespace. */
-        editor.edit(editBuilder => {
-            const trailingWSPosition = position.value.translate(position.after ? 1 : util.lines(snippet.value));
-            const l = targetFile.document.lineAt(trailingWSPosition);
-            if (l.isEmptyOrWhitespace) {
-                editBuilder.delete(l.range);
-            }
-        }, { undoStopBefore: false, undoStopAfter: true });
-    }
-    const revealPosition = position.value.translate(position.after ? 3 : -3);
-    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
+    return util.insertSnippetAndReveal(functionSkeleton, position, targetFile.document);
 }

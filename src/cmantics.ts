@@ -3,6 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 
 
+const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
+
+
 // A DocumentSymbol that understands the semantics of C/C++.
 export class CSymbol extends vscode.DocumentSymbol
 {
@@ -12,25 +15,105 @@ export class CSymbol extends vscode.DocumentSymbol
     constructor(docSymbol: vscode.DocumentSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
-        this.children = docSymbol.children;
+        this.children = sortSymbolTree(docSymbol.children);
         this.document = document;
         this.parent = parent;
     }
 
     // Returns all the text contained in this symbol.
-    text(): string
-    {
-        return this.document.getText(this.range);
-    }
+    text(): string { return this.document.getText(this.range); }
 
     // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
-    id(): string
+    id(): string { return this.document.getText(this.selectionRange); }
+
+    // Check for common naming schemes of private members and return the base name.
+    baseName(): string
     {
-        return this.document.getText(this.selectionRange);
+        const memberName = this.id();
+        let baseMemberName: string | undefined;
+        let match = /^_+[\w_][\w\d_]*_*$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^_+|_*$/g, '');
+        }
+        match = /^_*[\w_][\w\d_]*_+$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^_*|_+$/g, '');
+        }
+        match = /^m_[\w_][\w\d_]*$/.exec(memberName);
+        if (match && !baseMemberName) {
+            baseMemberName = memberName.replace(/^m_/, '');
+        }
+
+        return baseMemberName ? baseMemberName : memberName;
     }
 
-    // Returns an array of Symbol's starting with the top-most ancestor and ending with this.parent.
-    // Returns an empty array if this is a top-level symbol.
+    getterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        if (memberBaseName === this.id()) {
+            return 'get' + util.firstCharToUpper(memberBaseName);
+        }
+        return memberBaseName;
+    }
+
+    setterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        return 'set' + util.firstCharToUpper(memberBaseName);
+    }
+
+    findGetterFor(symbol: CSymbol): CSymbol | undefined
+    {
+        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+            return;
+        }
+
+        const getterName = symbol.getterName();
+
+        return this.findChild(child => child.id() === getterName);
+    }
+
+    findSetterFor(symbol: CSymbol): CSymbol | undefined
+    {
+        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+            return;
+        }
+
+        const setterName = symbol.setterName();
+
+        return this.findChild(child => child.id() === setterName);
+    }
+
+    findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
+    {
+        for (const child of this.children) {
+            const symbol = new CSymbol(child, this.document, this);
+            if (compareFn(symbol)) {
+                return symbol;
+            }
+        }
+    }
+
+    isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
+
+    isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
+
+    // Returns the text contained in this symbol that comes before this.id().
+    leading(): string
+    {
+        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
+    }
+
+    // Returns an array of CSymbol's starting with the top-most ancestor and ending with this.parent.
+    // Returns an empty array if this is a top-level symbol (parent is undefined).
     scopes(): CSymbol[]
     {
         let scopes: CSymbol[] = [];
@@ -42,22 +125,117 @@ export class CSymbol extends vscode.DocumentSymbol
         return scopes.reverse();
     }
 
-    // Finds the most likely definition of this Symbol in the case that multiple are found.
+    // Finds the most likely definition of this CSymbol in the case that multiple are found.
     async findDefinition(): Promise<vscode.Location | undefined>
     {
         return await findDefinitionInWorkspace(this.selectionRange.start, this.document.uri);
     }
 
-    isFunctionDeclaration(): boolean
+    // Finds a position for a new public method within this class or struct.
+    // Optionally provide a relativeName to look for a position next to.
+    // Optionally provide a memberVariable if the new method is an accessor.
+    // Returns undefined if this is not a class or struct, or when this.children.length === 0.
+    findPositionForNewMethod(relativeName?: string, memberVariable?: CSymbol): ProposedPosition | undefined
+    {
+        const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
+            if (this.children.length === 0) {
+                return undefined;
+            }
+            return { value: this.children[this.children.length - 1].range.end, after: true };
+        };
+
+        const symbolIsBetween = (symbol: CSymbol, afterOffset: number, beforeOffset: number): boolean => {
+            if (symbol.isFunction() && symbol.isAfter(afterOffset) && symbol.isBefore(beforeOffset)) {
+                return true;
+            }
+            return false;
+        };
+
+        if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
+            return lastChildPositionOrUndefined();
+        }
+
+        const text = this.text();
+        const startOffset = this.document.offsetAt(this.range.start);
+        let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
+
+        if (!publicSpecifierOffset) {
+            return lastChildPositionOrUndefined();
+        }
+        publicSpecifierOffset += startOffset;
+
+        let nextAccessSpecifierOffset: number | undefined;
+        for (const match of text.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
+            if (!match.index) {
+                continue;
+            }
+            if (match.index > publicSpecifierOffset) {
+                nextAccessSpecifierOffset = match.index;
+                break;
+            }
+        }
+
+        if (!nextAccessSpecifierOffset) {
+            return lastChildPositionOrUndefined();
+        }
+        nextAccessSpecifierOffset += startOffset;
+
+        let fallbackPosition: ProposedPosition | undefined;
+        let fallbackIndex = 0;
+        for (let i = this.children.length - 1; i >= 0; --i) {
+            const symbol = new CSymbol(this.children[i], this.document, this);
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
+                fallbackPosition = { value: symbol.range.end, after: true };
+                fallbackIndex = i;
+                break;
+            }
+        }
+
+        if (!fallbackPosition || !fallbackIndex) {
+            return lastChildPositionOrUndefined();
+        } else if (!relativeName) {
+            return fallbackPosition;
+        }
+
+        // If relativeName is a setterName, then ProposedPosition should be before, since the new method is a getter.
+        // This is to match the positioning of these methods when both are generated at the same time.
+        const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
+
+        for (let i = fallbackIndex; i >= 0; --i) {
+            const symbol = new CSymbol(this.children[i], this.document, this);
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id() === relativeName) {
+                if (isGetter) {
+                    return { value: symbol.range.start, before: true, nextTo: true };
+                } else {
+                    return { value: symbol.range.end, after: true, nextTo: true };
+                }
+            }
+        }
+
+        return fallbackPosition;
+    }
+
+    isMemberVariable(): boolean
+    {
+        return this.kind === vscode.SymbolKind.Field;
+    }
+
+    isFunction(): boolean
     {
         switch (this.kind) {
+        case vscode.SymbolKind.Operator:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Function:
-            return this.text().endsWith(';');
+            return true;
         default:
             return false;
         }
+    }
+
+    isFunctionDeclaration(): boolean
+    {
+        return this.isFunction() && (this.detail === 'declaration' || !this.text().endsWith('}'));
     }
 
     isConstructor(): boolean
@@ -85,8 +263,7 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isConstexpr(): boolean
     {
-        const leadingRange = new vscode.Range(this.range.start, this.selectionRange.start);
-        if (this.document.getText(leadingRange).match(/\bconstexpr\b/)) {
+        if (this.leading().match(/\bconstexpr\b/)) {
             return true;
         }
         return false;
@@ -94,8 +271,30 @@ export class CSymbol extends vscode.DocumentSymbol
 
     isInline(): boolean
     {
-        const leadingRange = new vscode.Range(this.range.start, this.selectionRange.start);
-        if (this.document.getText(leadingRange).match(/\binline\b/)) {
+        if (this.leading().match(/\binline\b/)) {
+            return true;
+        }
+        return false;
+    }
+
+    isPointer(): boolean
+    {
+        return this.leading().includes('*') ? true : false;
+    }
+
+    isConst(): boolean
+    {
+        if (this.leading().match(/\bconst\b/)) {
+            return true;
+        }
+        return false;
+    }
+
+    isPrimitive(): boolean
+    {
+        // TODO: Resolve typedefs and using-declarations.
+        const leading = this.leading();
+        if (leading.match(re_primitiveType) && !leading.match(/[<>]/g)) {
             return true;
         }
         return false;
@@ -130,7 +329,7 @@ export class CSymbol extends vscode.DocumentSymbol
         const parameters = stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = declaration.substring(0, declaration.indexOf(funcName));
+        let leadingText = this.leading();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
@@ -172,17 +371,6 @@ export class SourceFile
         if (!newSymbols) {
             return [];
         }
-
-        const sortSymbolTree = (symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[] => {
-            symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-                return a.range.start.isAfter(b.range.start) ? 1 : -1;
-            });
-
-            for (const symbol of symbols) {
-                symbol.children = sortSymbolTree(symbol.children);
-            }
-            return symbols;
-        };
 
         return sortSymbolTree(newSymbols);
     }
@@ -342,6 +530,7 @@ export class SourceFile
         for (const symbol of siblingSymbols) {
             if (symbol.range === declaration.range) {
                 hitTarget = true;
+                continue;
             }
 
             if (!hitTarget) {
@@ -354,9 +543,10 @@ export class SourceFile
         // Find the closest relative definition to place the new definition next to.
         for (const symbol of before.reverse()) {
             const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
-            if (!definitionLocation) {
+            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
+
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
                 return { value: getEndOfStatement(definition.range.end, target.document), after: true };
@@ -364,9 +554,10 @@ export class SourceFile
         }
         for (const symbol of after) {
             const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
-            if (!definitionLocation) {
+            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
+
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
                 return { value: getEndOfStatement(definition.range.start, target.document), before: true };
@@ -381,7 +572,7 @@ export class SourceFile
     }
 
     // Returns the best positions to place new includes (system and project includes).
-    async findPositionForNewInclude(): Promise<NewIncludePosition>
+    async findPositionForNewInclude(): Promise<{ system: vscode.Position; project: vscode.Position }>
     {
         // TODO: Clean up this mess.
         const largestBlock = (
@@ -489,12 +680,7 @@ export interface ProposedPosition
     value: vscode.Position;
     before?: boolean;
     after?: boolean;
-}
-
-export interface NewIncludePosition
-{
-    system: vscode.Position;
-    project: vscode.Position;
+    nextTo?: boolean;   // Signals not to put a blank line between.
 }
 
 
@@ -570,4 +756,17 @@ async function findDefinitionInWorkspace(
             }
         }
     }
+}
+
+function sortSymbolTree(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[]
+{
+    symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
+        return a.range.start.isAfter(b.range.start) ? 1 : -1;
+    });
+
+    for (const symbol of symbols) {
+        symbol.children = sortSymbolTree(symbol.children);
+    }
+
+    return symbols;
 }

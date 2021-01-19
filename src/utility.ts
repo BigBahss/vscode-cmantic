@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { ProposedPosition } from './cmantics';
 
 
 export function fileName(filePath: string): string
@@ -55,11 +56,6 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (path2_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
-export function lines(text: string): number
-{
-    return text.split('\n').length;
-}
-
 export function workspaceRelativePath(absolutePath: string, includeWorkspaceName: boolean = false): string
 {
     if (!vscode.workspace.workspaceFolders) {
@@ -79,6 +75,26 @@ export function workspaceRelativePath(absolutePath: string, includeWorkspaceName
     return absolutePath;
 }
 
+export function indentation(options?: vscode.TextEditorOptions)
+{
+    if (!options) {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            options = editor.options;
+        }
+    }
+
+    if (options && options.insertSpaces) {
+        return ' '.repeat(<number>(options.tabSize));
+    }
+    return '\t';
+}
+
+export function lines(text: string): number
+{
+    return text.split('\n').length;
+}
+
 export function endOfLine(document: vscode.TextDocument): string
 {
     switch (document.eol) {
@@ -88,4 +104,44 @@ export function endOfLine(document: vscode.TextDocument): string
     default:
         return '\n';
     }
+}
+
+export function firstCharToUpper(str: string): string
+{
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export async function insertSnippetAndReveal(
+    text: string,
+    position: ProposedPosition,
+    document: vscode.TextDocument
+): Promise<void> {
+    const eol = endOfLine(document);
+    let newLines = position.nextTo ? eol : eol + eol;
+    if (position.after) {
+        text = newLines + text;
+    } else if (position.before) {
+        text += newLines;
+    } else if (document.lineCount - 1 === position.value.line) {
+        text += eol;
+    }
+
+    const snippet = new vscode.SnippetString(text);
+    const editor = await vscode.window.showTextDocument(document.uri);
+    await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
+
+    if (!position.nextTo && (position.after || position.before)) {
+        /* When inserting an indented snippet that contains an empty line, the empty line with be
+         * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
+        editor.edit(editBuilder => {
+            const trailingWSPosition = position.value.translate(position.after ? 1 : lines(snippet.value));
+            const l = document.lineAt(trailingWSPosition);
+            if (l.isEmptyOrWhitespace) {
+                editBuilder.delete(l.range);
+            }
+        }, { undoStopBefore: false, undoStopAfter: true });
+    }
+
+    const revealPosition = position.value.translate(position.after ? 3 : -3);
+    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 }

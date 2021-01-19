@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as c from './cmantics';
+import { SourceFile } from './cmantics';
 
 
 export async function switchHeaderSourceInWorkspace(): Promise<void>
@@ -10,7 +10,7 @@ export async function switchHeaderSourceInWorkspace(): Promise<void>
         return;
     }
 
-    const uri = await c.SourceFile.findMatchingSourceFile(editor.document.fileName);
+    const uri = await SourceFile.findMatchingSourceFile(editor.document.fileName);
     if (!uri) {
         vscode.window.showErrorMessage('No matching header/source file was found.');
         return;

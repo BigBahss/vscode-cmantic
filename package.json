@@ -57,6 +57,18 @@
         "title": "C-mantic: Create Matching Source File"
       },
       {
+        "command": "cmantic.generateGetterSetter",
+        "title": "C-mantic: Generate 'get' and 'set' methods"
+      },
+      {
+        "command": "cmantic.generateGetter",
+        "title": "C-mantic: Generate 'get' method"
+      },
+      {
+        "command": "cmantic.generateSetter",
+        "title": "C-mantic: Generate 'set' method"
+      },
+      {
         "command": "cmantic.addInclude",
         "title": "C-mantic: Add Include"
       },

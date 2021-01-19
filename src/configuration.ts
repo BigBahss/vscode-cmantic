@@ -75,18 +75,3 @@ export function headerGuardDefine(fileName: string): string
     const FILENAME = util.fileNameBase(fileName).replace(re_charactersNotAllowedInIdentifiers, '_').toUpperCase();
     return headerGuardDefineFormat().replace('${FILENAME_EXT}', FILENAME_EXT).replace('${FILENAME}', FILENAME);
 }
-
-export function indentation(options?: vscode.TextEditorOptions)
-{
-    if (!options) {
-        const editor = vscode.window.activeTextEditor;
-        if (editor) {
-            options = editor.options;
-        }
-    }
-
-    if (options && options.insertSpaces) {
-        return ' '.repeat(<number>(options.tabSize));
-    }
-    return '\t';
-}
