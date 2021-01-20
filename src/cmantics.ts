@@ -178,9 +178,10 @@ export class CSymbol extends vscode.DocumentSymbol
         }
 
         if (!nextAccessSpecifierOffset) {
-            return lastChildPositionOrUndefined();
+            nextAccessSpecifierOffset = this.document.offsetAt(this.range.end);
+        } else {
+            nextAccessSpecifierOffset += startOffset;
         }
-        nextAccessSpecifierOffset += startOffset;
 
         let fallbackPosition: ProposedPosition | undefined;
         let fallbackIndex = 0;
