@@ -5,22 +5,54 @@ import * as util from './utility';
 
 const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
+// Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
+export class SourceSymbol extends vscode.DocumentSymbol
+{
+    readonly uri: vscode.Uri;
+    parent?: SourceSymbol;
+    children: SourceSymbol[];
 
-// A DocumentSymbol that understands the semantics of C/C++.
-export class CSymbol extends vscode.DocumentSymbol
+    get location(): vscode.Location { return new vscode.Location(this.uri, this.range); }
+
+    constructor(docSymbol: vscode.DocumentSymbol, uri: vscode.Uri, parent?: SourceSymbol)
+    {
+        super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
+        this.uri = uri;
+        this.parent = parent;
+        this.children = this.sortChildren(docSymbol.children, this);
+    }
+
+    // Sorts child symbols recursively based on their relative position to eachother.
+    private sortChildren(symbols: vscode.DocumentSymbol[], parent?: SourceSymbol): SourceSymbol[]
+    {
+        symbols.sort((a: vscode.DocumentSymbol | SourceSymbol, b: vscode.DocumentSymbol | SourceSymbol) => {
+            return a.range.start.isAfter(b.range.start) ? 1 : -1;
+        });
+
+        let newChildren: SourceSymbol[] = [];
+
+        symbols.forEach(symbol => {
+            const sourceSymbol = new SourceSymbol(symbol, this.uri, parent);
+            sourceSymbol.children = this.sortChildren(sourceSymbol.children, sourceSymbol);
+            newChildren.push(sourceSymbol);
+        });
+
+        return newChildren;
+    }
+}
+
+// A DocumentSymbol/SourceSymbol that understands the semantics of C/C++.
+export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
     readonly parent?: CSymbol;
 
-    constructor(docSymbol: vscode.DocumentSymbol, document: vscode.TextDocument, parent?: CSymbol)
+    constructor(docSymbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
-        super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
-        this.children = sortSymbolTree(docSymbol.children);
+        super(docSymbol, document.uri, parent);
         this.document = document;
         this.parent = parent;
     }
-
-    get uri(): vscode.Uri { return this.document.uri; }
 
     // Returns all the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
