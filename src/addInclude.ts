@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SourceFile } from './cmantics';
+import { SourceDocument } from './cmantics';
 import * as util from './utility';
 
 
@@ -13,9 +13,9 @@ export async function addInclude(): Promise<void>
 
     const userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
-    const sourceFile = new SourceFile(editor.document);
-    const newIncludePosition = await sourceFile.findPositionForNewInclude();
-    const eol = util.endOfLine(sourceFile.document);
+    const sourceDoc = new SourceDocument(editor.document);
+    const newIncludePosition = await sourceDoc.findPositionForNewInclude();
+    const eol = util.endOfLine(sourceDoc.document);
 
     userInput.then(value => {
         if (value?.trim().match(/^#include\s*<.+>/)) {

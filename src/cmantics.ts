@@ -352,17 +352,13 @@ export class CSymbol extends vscode.DocumentSymbol
 // Represents a C/C++ source file.
 export class SourceFile
 {
-    readonly document: vscode.TextDocument;
+    readonly uri: vscode.Uri;
     symbols?: vscode.DocumentSymbol[];
 
-    constructor(document: vscode.TextDocument)
+    constructor(uri: vscode.Uri)
     {
-        this.document = document;
+        this.uri = uri;
     }
-
-    get uri(): vscode.Uri { return this.document.uri; }
-
-    text(): string { return this.document.getText(); }
 
     // Queries DocumentSymbols and returns them sorted. Used to set the symbols property.
     // Methods that use this.symbols will call this automatically when this.symbols is undefined.
@@ -377,6 +373,120 @@ export class SourceFile
 
         return sortSymbolTree(newSymbols);
     }
+
+    async getSymbol(position: vscode.Position): Promise<vscode.DocumentSymbol | undefined>
+    {
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
+        }
+
+        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[]): vscode.DocumentSymbol | undefined => {
+            const docSymbols = symbolResults as vscode.DocumentSymbol[];
+            for (const docSymbol of docSymbols) {
+                if (!docSymbol.range.contains(position)) {
+                    continue;
+                }
+
+                if (docSymbol.children.length === 0) {
+                    return docSymbol;
+                } else {
+                    return searchSymbolTree(docSymbol.children);
+                }
+            }
+        };
+
+        return searchSymbolTree(this.symbols);
+    }
+
+    async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<vscode.DocumentSymbol | undefined>
+    {
+        if (!this.symbols) {
+            this.symbols = await this.getSortedDocumentSymbols();
+        }
+
+        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[]): vscode.DocumentSymbol | undefined => {
+            const docSymbols = symbolResults as vscode.DocumentSymbol[];
+            for (const docSymbol of docSymbols) {
+                if (docSymbol.name === target.name) {
+                    return docSymbol;
+                } else {
+                    return searchSymbolTree(docSymbol.children);
+                }
+            }
+        };
+
+        return searchSymbolTree(this.symbols);
+    }
+
+    async findDefinition(position: vscode.Position): Promise<vscode.Location | undefined>
+    {
+        return await findDefinitionInWorkspace(position, this.uri);
+    }
+
+    isHeader(): boolean
+    {
+        return SourceFile.isHeader(this.uri.path);
+    }
+
+    static isHeader(fileName: string): boolean
+    {
+        return cfg.headerExtensions().includes(util.fileExtension(fileName));
+    }
+
+    async findMatchingSourceFile(): Promise<vscode.Uri | undefined>
+    {
+        return SourceFile.findMatchingSourceFile(this.uri.path);
+    }
+
+    static async findMatchingSourceFile(fileName: string): Promise<vscode.Uri | undefined>
+    {
+        const extension = util.fileExtension(fileName);
+        const baseName = util.fileNameBase(fileName);
+        const directory = util.directory(fileName);
+        const headerExtensions = cfg.headerExtensions();
+        const sourceExtensions = cfg.sourceExtensions();
+
+        let globPattern: string;
+        if (headerExtensions.indexOf(extension) !== -1) {
+            globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
+        } else if (sourceExtensions.indexOf(extension) !== -1) {
+            globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
+        } else {
+            return;
+        }
+
+        const uris = await vscode.workspace.findFiles(globPattern);
+        let bestMatch: vscode.Uri | undefined;
+        let smallestDiff: number | undefined;
+
+        for (const uri of uris) {
+            if (uri.scheme !== 'file') {
+                continue;
+            }
+
+            const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
+            if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
+                smallestDiff = diff;
+                bestMatch = uri;
+            }
+        }
+
+        return bestMatch;
+    }
+}
+
+
+export class SourceDocument extends SourceFile
+{
+    readonly document: vscode.TextDocument;
+
+    constructor(document: vscode.TextDocument)
+    {
+        super(document.uri);
+        this.document = document;
+    }
+
+    text(): string { return this.document.getText(); }
 
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
@@ -423,21 +533,6 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async findDefinition(position: vscode.Position): Promise<vscode.Location | undefined>
-    {
-        return await findDefinitionInWorkspace(position, this.uri);
-    }
-
-    isHeader(): boolean
-    {
-        return SourceFile.isHeader(this.document.fileName);
-    }
-
-    static isHeader(fileName: string): boolean
-    {
-        return cfg.headerExtensions().includes(util.fileExtension(fileName));
-    }
-
     async hasHeaderGuard(): Promise<boolean>
     {
         if (this.text().match(/^\s*#pragma\s+once\b/)) {
@@ -458,50 +553,9 @@ export class SourceFile
         return false;
     }
 
-    async findMatchingSourceFile(): Promise<vscode.Uri | undefined>
-    {
-        return SourceFile.findMatchingSourceFile(this.document.fileName);
-    }
-
-    static async findMatchingSourceFile(fileName: string): Promise<vscode.Uri | undefined>
-    {
-        const extension = util.fileExtension(fileName);
-        const baseName = util.fileNameBase(fileName);
-        const directory = util.directory(fileName);
-        const headerExtensions = cfg.headerExtensions();
-        const sourceExtensions = cfg.sourceExtensions();
-
-        let globPattern: string;
-        if (headerExtensions.indexOf(extension) !== -1) {
-            globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
-        } else if (sourceExtensions.indexOf(extension) !== -1) {
-            globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
-        } else {
-            return;
-        }
-
-        const uris = await vscode.workspace.findFiles(globPattern);
-        let bestMatch: vscode.Uri | undefined;
-        let smallestDiff: number | undefined;
-
-        for (const uri of uris) {
-            if (uri.scheme !== 'file') {
-                continue;
-            }
-
-            const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
-            if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
-                smallestDiff = diff;
-                bestMatch = uri;
-            }
-        }
-
-        return bestMatch;
-    }
-
     // Returns the best position to place the definition for declaration.
     // If target is undefined the position will be for this SourceFile.
-    async findPositionForNewDefinition(declaration: CSymbol, target?: SourceFile): Promise<ProposedPosition>
+    async findPositionForNewDefinition(declaration: CSymbol, target?: SourceDocument): Promise<ProposedPosition>
     {
         if (!this.symbols) {
             this.symbols = await this.getSortedDocumentSymbols();

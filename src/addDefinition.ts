@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CSymbol, SourceFile } from './cmantics';
+import { CSymbol, SourceDocument, SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
 
@@ -29,15 +29,15 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    const sourceFile = new SourceFile(editor.document);
-    if (!sourceFile.isHeader()) {
+    const sourceDoc = new SourceDocument(editor.document);
+    if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
     const [matchingUri, symbol] = await Promise.all([
-        sourceFile.findMatchingSourceFile(),
-        sourceFile.getSymbol(editor.selection.start)
+        sourceDoc.findMatchingSourceFile(),
+        sourceDoc.getSymbol(editor.selection.start)
     ]);
     if (!symbol?.isFunctionDeclaration()) {
         vscode.window.showErrorMessage(failure.notFunctionDeclaration);
@@ -53,7 +53,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    return addDefinition(symbol, sourceFile, matchingUri);
+    return addDefinition(symbol, sourceDoc, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<void>
@@ -64,20 +64,20 @@ export async function addDefinitionInCurrentFile(): Promise<void>
         return;
     }
 
-    const sourceFile = new SourceFile(editor.document);
+    const sourceDoc = new SourceDocument(editor.document);
 
-    const symbol = await sourceFile.getSymbol(editor.selection.start);
+    const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
         vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
     }
 
-    return addDefinition(symbol, sourceFile, sourceFile.uri);
+    return addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
 export async function addDefinition(
     functionDeclaration: CSymbol,
-    declarationFile: SourceFile,
+    declarationDoc: SourceDocument,
     targetUri: vscode.Uri
 ): Promise<void> {
     // Check for an existing definition. If one exists, reveal it and return.
@@ -90,9 +90,9 @@ export async function addDefinition(
 
     // Find the position for the new function definition.
     const document = await vscode.workspace.openTextDocument(targetUri);
-    const targetFile = (targetUri.path === declarationFile.uri.path) ?
-            declarationFile : new SourceFile(document);
-    const position = await declarationFile.findPositionForNewDefinition(functionDeclaration, targetFile);
+    const targetFile = (targetUri.path === declarationDoc.uri.path) ?
+            declarationDoc : new SourceDocument(document);
+    const position = await declarationDoc.findPositionForNewDefinition(functionDeclaration, targetFile);
 
     // Construct the snippet for the new function definition.
     const definition = await functionDeclaration.newFunctionDefinition(targetFile, position.value);

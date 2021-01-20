@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CSymbol, SourceFile } from './cmantics';
+import { CSymbol, SourceFile, SourceDocument } from './cmantics';
 import * as util from './utility';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
@@ -13,16 +13,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
-        const sourceFile = new SourceFile(document);
+        const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
-            sourceFile.findMatchingSourceFile(),
-            sourceFile.getSymbol(rangeOrSelection.start)
+            sourceDoc.findMatchingSourceFile(),
+            sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, sourceFile, matchingUri),
-            this.getSourceActions(sourceFile, matchingUri)
+            this.getRefactorings(symbol, sourceDoc, matchingUri),
+            this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
         return [...refactorings, ...sourceActions];
@@ -37,20 +37,20 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getRefactorings(
         symbol: CSymbol | undefined,
-        sourceFile: SourceFile,
+        sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         if (symbol?.isFunctionDeclaration()) {
-            return await this.getFunctionDeclarationRefactorings(symbol, sourceFile, matchingUri);
+            return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
-            return await this.getMemberVariableRefactorings(symbol, sourceFile, matchingUri);
+            return await this.getMemberVariableRefactorings(symbol, sourceDoc, matchingUri);
         }
         return [];
     }
 
     private async getFunctionDeclarationRefactorings(
         symbol: CSymbol,
-        sourceFile: SourceFile,
+        sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         const existingDefinition = await symbol?.findDefinition();
@@ -69,7 +69,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.definitionExists };
             addDefinitionInCurrentFileDisabled = addDefinitionInMatchingSourceFileDisabled;
         }
-        if (!sourceFile.isHeader()) {
+        if (!sourceDoc.isHeader()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
         } else if (matchingUri) {
             // TODO: Elide the path if it is very long.
@@ -84,7 +84,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: addDefinitionInMatchingSourceFileTitle,
                 command: 'cmantic.addDefinition',
-                arguments: [symbol, sourceFile, matchingUri]
+                arguments: [symbol, sourceDoc, matchingUri]
             },
             disabled: addDefinitionInMatchingSourceFileDisabled
         },
@@ -94,7 +94,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: addDefinitionTitle.currentFile,
                 command: 'cmantic.addDefinition',
-                arguments: [symbol, sourceFile, sourceFile.uri]
+                arguments: [symbol, sourceDoc, sourceDoc.uri]
             },
             disabled: addDefinitionInCurrentFileDisabled
         }];
@@ -102,14 +102,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getMemberVariableRefactorings(
         symbol: CSymbol,
-        sourceFile: SourceFile,
+        sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         let generateGetterSetterDisabled: { readonly reason: string } | undefined;
         let generateGetterDisabled: { readonly reason: string } | undefined;
         let generateSetterDisabled: { readonly reason: string } | undefined;
 
-        if (sourceFile.document.languageId !== 'cpp') {
+        if (sourceDoc.document.languageId !== 'cpp') {
             generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
             generateGetterDisabled = { reason: getterSetterFailure.notCpp };
             generateSetterDisabled = { reason: getterSetterFailure.notCpp };
@@ -160,19 +160,19 @@ export class CodeActionProvider implements vscode.CodeActionProvider
     }
 
     private async getSourceActions(
-        sourceFile: SourceFile,
+        sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         let createMatchingSourceFileDisabled: { readonly reason: string } | undefined;
         let addHeaderGuardDisabled: { readonly reason: string } | undefined;
 
-        if (!sourceFile.isHeader()) {
+        if (!sourceDoc.isHeader()) {
             createMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
             addHeaderGuardDisabled = createMatchingSourceFileDisabled;
         } else if (matchingUri) {
             createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
         }
-        if (await sourceFile.hasHeaderGuard()) {
+        if (await sourceDoc.hasHeaderGuard()) {
             addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
         }
 

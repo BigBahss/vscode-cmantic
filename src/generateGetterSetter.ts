@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CSymbol, ProposedPosition, SourceFile } from './cmantics';
+import { CSymbol, ProposedPosition, SourceDocument } from './cmantics';
 import * as util from './utility';
 
 
@@ -56,13 +56,13 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
         return;
     }
 
-    const sourceFile = new SourceFile(editor.document);
-    if (!sourceFile.isHeader()) {
+    const sourceDoc = new SourceDocument(editor.document);
+    if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
-    const symbol = await sourceFile.getSymbol(editor.selection.start);
+    const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isMemberVariable()) {
         vscode.window.showErrorMessage(failure.noMemberVariable);
         return;

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SourceFile } from './cmantics';
+import { SourceDocument } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
 
@@ -12,14 +12,14 @@ export function addHeaderGuard(): void
         return;
     }
     const fileName = util.fileName(activeEditor.document.uri.path);
-    const sourceFile = new SourceFile(activeEditor.document);
-    if (!sourceFile.isHeader()) {
+    const sourceDoc = new SourceDocument(activeEditor.document);
+    if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
     }
 
-    const headerGuardPosition = sourceFile.findPositionForNewHeaderGuard();
-    const eol = util.endOfLine(sourceFile.document);
+    const headerGuardPosition = sourceDoc.findPositionForNewHeaderGuard();
+    const eol = util.endOfLine(sourceDoc.document);
 
     let header = '';
     let footer = '';
@@ -35,14 +35,14 @@ export function addHeaderGuard(): void
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
-    const footerPosition = new vscode.Position(sourceFile.document.lineCount - 1, 0);
+    const footerPosition = new vscode.Position(sourceDoc.document.lineCount - 1, 0);
 
     if (headerGuardPosition.after) {
         header = eol + eol + header;
     } else if (headerGuardPosition.before) {
         header += eol;
     }
-    if (sourceFile.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
+    if (sourceDoc.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
         header += eol;
     }
     if (footerPosition.line === headerGuardPosition.value.line) {
