@@ -840,16 +840,3 @@ async function findDefinitionInWorkspace(
         }
     }
 }
-
-function sortSymbolTree(symbols: vscode.DocumentSymbol[]): vscode.DocumentSymbol[]
-{
-    symbols = symbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-        return a.range.start.isAfter(b.range.start) ? 1 : -1;
-    });
-
-    for (const symbol of symbols) {
-        symbol.children = sortSymbolTree(symbol.children);
-    }
-
-    return symbols;
-}
