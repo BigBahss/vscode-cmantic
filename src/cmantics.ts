@@ -19,25 +19,19 @@ export class SourceSymbol extends vscode.DocumentSymbol
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
         this.uri = uri;
         this.parent = parent;
-        this.children = this.sortChildren(docSymbol.children, this);
-    }
 
-    // Sorts child symbols recursively based on their relative position to eachother.
-    private sortChildren(symbols: vscode.DocumentSymbol[], parent?: SourceSymbol): SourceSymbol[]
-    {
-        symbols.sort((a: vscode.DocumentSymbol | SourceSymbol, b: vscode.DocumentSymbol | SourceSymbol) => {
+        // Sorts docSymbol.children based on their relative position to eachother.
+        docSymbol.children.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
             return a.range.start.isAfter(b.range.start) ? 1 : -1;
         });
 
-        let newChildren: SourceSymbol[] = [];
-
-        symbols.forEach(symbol => {
-            const sourceSymbol = new SourceSymbol(symbol, this.uri, parent);
-            sourceSymbol.children = this.sortChildren(sourceSymbol.children, sourceSymbol);
-            newChildren.push(sourceSymbol);
+        // Convert docSymbol.children to SourceSymbols to set the children property.
+        let convertedChildren: SourceSymbol[] = [];
+        docSymbol.children.forEach(child => {
+            convertedChildren.push(new SourceSymbol(child, uri, this));
         });
 
-        return newChildren;
+        this.children = convertedChildren;
     }
 }
 
@@ -45,13 +39,30 @@ export class SourceSymbol extends vscode.DocumentSymbol
 export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
-    readonly parent?: CSymbol;
+    parent?: CSymbol;
+    children: CSymbol[];
 
-    constructor(docSymbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
+    // When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
+    constructor(symbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
-        super(docSymbol, document.uri, parent);
+        super(symbol, document.uri, parent);
         this.document = document;
-        this.parent = parent;
+
+        if (symbol instanceof SourceSymbol && symbol.parent && !parent) {
+            this.parent = new CSymbol(symbol.parent, document);
+        } else {
+            this.parent = parent;
+        }
+
+        symbol = (symbol instanceof SourceSymbol) ? symbol : new SourceSymbol(symbol, document.uri, parent);
+
+        // Convert symbol.children to CSymbols to set the children property.
+        let convertedChildren: CSymbol[] = [];
+        symbol.children.forEach(child => {
+            convertedChildren.push(new CSymbol(child, document, this));
+        });
+
+        this.children = convertedChildren;
     }
 
     // Returns all the text contained in this symbol.
