@@ -82,24 +82,14 @@ export class SourceFile
 
     isHeader(): boolean
     {
-        return SourceFile.isHeader(this.uri.path);
-    }
-
-    static isHeader(fileName: string): boolean
-    {
-        return cfg.headerExtensions().includes(util.fileExtension(fileName));
+        return cfg.headerExtensions().includes(util.fileExtension(this.uri.path));
     }
 
     async findMatchingSourceFile(): Promise<vscode.Uri | undefined>
     {
-        return SourceFile.findMatchingSourceFile(this.uri.path);
-    }
-
-    static async findMatchingSourceFile(fileName: string): Promise<vscode.Uri | undefined>
-    {
-        const extension = util.fileExtension(fileName);
-        const baseName = util.fileNameBase(fileName);
-        const directory = util.directory(fileName);
+        const extension = util.fileExtension(this.uri.path);
+        const baseName = util.fileNameBase(this.uri.path);
+        const directory = util.directory(this.uri.path);
         const headerExtensions = cfg.headerExtensions();
         const sourceExtensions = cfg.sourceExtensions();
 

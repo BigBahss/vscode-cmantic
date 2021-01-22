@@ -10,11 +10,12 @@ export async function switchHeaderSourceInWorkspace(): Promise<void>
         return;
     }
 
-    const uri = await SourceFile.findMatchingSourceFile(editor.document.fileName);
-    if (!uri) {
-        vscode.window.showErrorMessage('No matching header/source file was found.');
+    const sourceFile = new SourceFile(editor.document.uri);
+    const matchingUri = await sourceFile.findMatchingSourceFile();
+    if (!matchingUri) {
+        vscode.window.showInformationMessage('No matching header/source file was found.');
         return;
     }
 
-    vscode.window.showTextDocument(uri);
+    vscode.window.showTextDocument(matchingUri);
 }

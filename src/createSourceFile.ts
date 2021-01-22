@@ -28,13 +28,13 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const currentFilePath = currentDocument.uri.path;
-    if (!SourceFile.isHeader(currentFilePath)) {
+    const currentSourceFile = new SourceFile(currentDocument.uri);
+    if (!currentSourceFile.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
     }
 
-    const fileNameBase = util.fileNameBase(currentFilePath);
+    const fileNameBase = util.fileNameBase(currentDocument.uri.path);
 
     const folder = await vscode.window.showQuickPick(
             await findSourceFolders(workspaceFolder.uri),
@@ -52,7 +52,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const newFilePath = folder.path + '/' + fileNameBase + '.' + extension;
     const newFileUri = vscode.Uri.parse(newFilePath);
-    const includeStatement = '#include "' + util.fileName(currentFilePath) + '"$0' + util.endOfLine(currentDocument);
+    const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + util.endOfLine(currentDocument);
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
