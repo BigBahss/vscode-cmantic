@@ -82,14 +82,14 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 
     return findPositionAndCall(symbol, AccessorType.Both, position => {
         const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
-        return util.insertSnippetAndReveal(combinedAccessors, position, symbol.document);
+        return util.insertSnippetAndReveal(combinedAccessors, position, symbol.uri);
     });
 }
 
 export async function generateGetterFor(symbol: CSymbol): Promise<void>
 {
     return findPositionAndCall(symbol, AccessorType.Getter, position => {
-        return util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.document);
+        return util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.uri);
     });
 }
 
@@ -101,7 +101,7 @@ export async function generateSetterFor(symbol: CSymbol): Promise<void>
     }
 
     return findPositionAndCall(symbol, AccessorType.Setter, position => {
-        return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.document);
+        return util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.uri);
     });
 }
 

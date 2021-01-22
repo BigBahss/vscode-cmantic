@@ -58,14 +58,12 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const namespaces = await currentSourceFile.namespaces();
     const indentation = (await currentSourceFile.namespaceBodyIsIndented()) ? util.indentation() : '';
-    const namespacesText = generateNamespaces(namespaces, eol, indentation) + eol;
+    const namespacesText = generateNamespaces(namespaces, eol, indentation);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
-        vscode.window.showTextDocument(newFileUri).then(editor => {
-            editor.insertSnippet(new vscode.SnippetString(includeStatement + eol + namespacesText), new vscode.Position(0, 0));
-        });
+        util.insertSnippetAndReveal(includeStatement + eol + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
         return newFileUri;
     }
 }
@@ -91,7 +89,7 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
     return directories;
 }
 
-function generateNamespaces(namespaces: SourceSymbol[], eol: string, indent: string): string
+function generateNamespaces(namespaces: SourceSymbol[], eol: string, indentation: string): string
 {
     let namespaceText: string = '';
     for (const namespace of namespaces) {
@@ -99,9 +97,9 @@ function generateNamespaces(namespaces: SourceSymbol[], eol: string, indent: str
             namespaceText += eol + eol;
         }
         namespaceText += 'namespace ' + namespace.name + ' {' + eol;
-        const body = generateNamespaces(namespace.children, eol, indent);
+        const body = generateNamespaces(namespace.children, eol, indentation);
         if (body) {
-            namespaceText += body.replace(/^/gm, indent);
+            namespaceText += body.replace(/^/gm, indentation);
         }
         namespaceText += eol + '}';
     }

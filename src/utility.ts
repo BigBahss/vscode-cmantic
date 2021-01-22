@@ -115,20 +115,21 @@ export function firstCharToUpper(str: string): string
 export async function insertSnippetAndReveal(
     text: string,
     position: ProposedPosition,
-    document: vscode.TextDocument
+    uri: vscode.Uri
 ): Promise<void> {
-    const eol = endOfLine(document);
+    const editor = await vscode.window.showTextDocument(uri);
+
+    const eol = endOfLine(editor.document);
     const newLines = position.nextTo ? eol : eol + eol;
     if (position.after) {
         text = newLines + text;
     } else if (position.before) {
         text += newLines;
     }
-    if (document.lineCount - 1 === position.value.line) {
+    if (editor.document.lineCount - 1 === position.value.line && !text.endsWith(eol)) {
         text += eol;
     }
 
-    const editor = await vscode.window.showTextDocument(document.uri);
     const revealPosition = position.value.translate(lineCount(text) - 1);
     editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 
@@ -144,7 +145,7 @@ export async function insertSnippetAndReveal(
                 if (snippetLines[i].endsWith('$0')) {
                     continue;
                 }
-                const documentLine = document.lineAt(i + position.value.line);
+                const documentLine = editor.document.lineAt(i + position.value.line);
                 if (documentLine.isEmptyOrWhitespace) {
                     editBuilder.delete(documentLine.range);
                 }

@@ -115,5 +115,5 @@ export async function addDefinition(
         functionSkeleton = functionSkeleton.replace(/^/gm, indent);
     }
 
-    return util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.document);
+    return util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.uri);
 }

@@ -51,7 +51,7 @@ export class SourceDocument extends SourceFile
 
         const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
         for (const symbol of this.symbols) {
-            if (symbol.name === headerGuardDefine) {
+            if (symbol.kind === vscode.SymbolKind.Constant && symbol.name === headerGuardDefine) {
                 return true;
             }
         }
