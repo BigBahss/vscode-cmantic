@@ -123,7 +123,8 @@ export async function insertSnippetAndReveal(
         text = newLines + text;
     } else if (position.before) {
         text += newLines;
-    } else if (document.lineCount - 1 === position.value.line) {
+    }
+    if (document.lineCount - 1 === position.value.line) {
         text += eol;
     }
 
@@ -132,17 +133,22 @@ export async function insertSnippetAndReveal(
     editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 
     const snippet = new vscode.SnippetString(text);
-    editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false }).then(async success => {
-        if (success && !position.nextTo && (position.after || position.before)) {
-            /* When inserting an indented snippet that contains an empty line, the empty line with be
-             * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
-            await editor.edit(editBuilder => {
-                const trailingWSPosition = position.value.translate(position.after ? 1 : lineCount(snippet.value) - 1);
-                const l = document.lineAt(trailingWSPosition);
-                if (l.isEmptyOrWhitespace) {
-                    editBuilder.delete(l.range);
+    const success = await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
+    if (success) {
+        /* When inserting an indented snippet that contains empty lines, the empty lines will be
+         * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
+        await editor.edit(editBuilder => {
+            const snippetLines = text.split(eol);
+            for (let i = 0; i < snippetLines.length; ++i) {
+                // Don't trim whitespace from the line that contains the new cursor position.
+                if (snippetLines[i].endsWith('$0')) {
+                    continue;
                 }
-            }, { undoStopBefore: false, undoStopAfter: true });
-        }
-    });
+                const documentLine = document.lineAt(i + position.value.line);
+                if (documentLine.isEmptyOrWhitespace) {
+                    editBuilder.delete(documentLine.range);
+                }
+            }
+        }, { undoStopBefore: false, undoStopAfter: true });
+    }
 }
