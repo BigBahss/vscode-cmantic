@@ -43,6 +43,25 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
+    // Finds the most likely definition of this CSymbol in the case that multiple are found.
+    async findDefinition(): Promise<vscode.Location | undefined>
+    {
+        return await findDefinitionInWorkspace(this.selectionRange.start, this.uri);
+    }
+
+    // Returns an array of SourceSymbol's starting with the top-most ancestor and ending with this.parent.
+    // Returns an empty array if this is a top-level symbol (parent is undefined).
+    scopes(): SourceSymbol[]
+    {
+        let scopes: SourceSymbol[] = [];
+        let symbol: SourceSymbol = this;
+        while (symbol.parent) {
+            scopes.push(symbol.parent);
+            symbol = symbol.parent;
+        }
+        return scopes.reverse();
+    }
+
     isMemberVariable(): boolean
     {
         return this.kind === vscode.SymbolKind.Field;
@@ -184,8 +203,7 @@ export class CSymbol extends SourceSymbol
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
     }
 
-    // Returns an array of CSymbol's starting with the top-most ancestor and ending with this.parent.
-    // Returns an empty array if this is a top-level symbol (parent is undefined).
+    // Shadows scopes() in SourceSymbol but returns them as CSymbols.
     scopes(): CSymbol[]
     {
         let scopes: CSymbol[] = [];
