@@ -82,7 +82,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
 }
 
-// A DocumentSymbol/SourceSymbol that understands the semantics of C/C++.
+// Extends SourceSymbol by adding a document property that gives more semantic-awareness vs SourceSymbol.
 export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
@@ -213,12 +213,6 @@ export class CSymbol extends SourceSymbol
             symbol = symbol.parent;
         }
         return scopes.reverse();
-    }
-
-    // Finds the most likely definition of this CSymbol in the case that multiple are found.
-    async findDefinition(): Promise<vscode.Location | undefined>
-    {
-        return await findDefinitionInWorkspace(this.selectionRange.start, this.uri);
     }
 
     // Finds a position for a new public method within this class or struct.
@@ -410,14 +404,14 @@ export class CSymbol extends SourceSymbol
 
         const funcName = this.id();
         const declaration = this.text();
-        const maskedDeclaration = maskUnimportantText(declaration);
+        const maskedDeclaration = this.maskUnimportantText(declaration);
 
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(funcName) + funcName.length) + 1;
         const lastParen = maskedDeclaration.lastIndexOf(')');
         const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
         const paramEnd = (trailingReturnOperator === -1) ?
                 lastParen : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
-        const parameters = stripDefaultValues(declaration.substring(paramStart, paramEnd));
+        const parameters = this.stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
         let leadingText = this.leading();
@@ -433,6 +427,42 @@ export class CSymbol extends SourceSymbol
         definition = definition.replace(/\s*\b(override|final)\b/g, '');
 
         return definition;
+    }
+
+    private maskUnimportantText(source: string, maskChar: string = ' '): string
+    {
+        const replacer = (match: string) => maskChar.repeat(match.length);
+        // Mask comments
+        source = source.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
+        source = source.replace(/(?<=\/\/).*/g, replacer);
+        // Mask quoted characters
+        source = source.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
+        source = source.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+        // Mask template arguments
+        source = source.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, replacer);
+
+        return source;
+    }
+
+    private stripDefaultValues(parameters: string): string
+    {
+        parameters = parameters.replace(/[^\w\s]=/g, '');
+        parameters = parameters.replace(/\b\s*=\s*\b/g, '=');
+        parameters = parameters.replace(/\(\)/g, '');
+
+        let maskedParameters = this.maskUnimportantText(parameters).split(',');
+        let strippedParameters = '';
+        let charPos = 0;
+        for (const maskedParameter of maskedParameters) {
+            if (maskedParameter.includes('=')) {
+                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.indexOf('=')) + ',';
+            } else {
+                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.length) + ',';
+            }
+            charPos += maskedParameter.length + 1;
+        }
+
+        return strippedParameters.substring(0, strippedParameters.length - 1);
     }
 }
 
@@ -494,29 +524,23 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<vscode.DocumentSymbol | undefined>
+    async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined>
     {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        const searchSymbolTree = (symbolResults: vscode.DocumentSymbol[]): vscode.DocumentSymbol | undefined => {
-            const docSymbols = symbolResults as vscode.DocumentSymbol[];
-            for (const docSymbol of docSymbols) {
-                if (docSymbol.name === target.name) {
-                    return docSymbol;
+        const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol | undefined => {
+            for (const sourceSymbol of sourceSymbols) {
+                if (sourceSymbol.name === target.name) {
+                    return sourceSymbol;
                 } else {
-                    return searchSymbolTree(docSymbol.children);
+                    return searchSymbolTree(sourceSymbol.children);
                 }
             }
         };
 
         return searchSymbolTree(this.symbols);
-    }
-
-    async findDefinition(position: vscode.Position): Promise<vscode.Location | undefined>
-    {
-        return await findDefinitionInWorkspace(position, this.uri);
     }
 
     isHeader(): boolean
@@ -594,7 +618,7 @@ export class SourceDocument extends SourceFile
         return new CSymbol(sourceSymbol, this.document);
     }
 
-    async findMatchingSymbol(target: vscode.DocumentSymbol): Promise<CSymbol | undefined>
+    async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined>
     {
         const sourceSymbol = await super.findMatchingSymbol(target);
         if (!sourceSymbol) {
@@ -652,8 +676,8 @@ export class SourceDocument extends SourceFile
 
         // Split sibling symbols into those that come before and after the declaration in this source file.
         const siblingSymbols = declaration.parent ? declaration.parent.children : this.symbols;
-        let before: vscode.DocumentSymbol[] = [];
-        let after: vscode.DocumentSymbol[] = [];
+        let before: SourceSymbol[] = [];
+        let after: SourceSymbol[] = [];
         let hitTarget = false;
         for (const symbol of siblingSymbols) {
             if (symbol.range === declaration.range) {
@@ -670,31 +694,31 @@ export class SourceDocument extends SourceFile
 
         // Find the closest relative definition to place the new definition next to.
         for (const symbol of before.reverse()) {
-            const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
+            const definitionLocation = await symbol.findDefinition();
             if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
 
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: getEndOfStatement(definition.range.end, target.document), after: true };
+                return { value: this.getEndOfStatement(definition.range.end), after: true };
             }
         }
         for (const symbol of after) {
-            const definitionLocation = await findDefinitionInWorkspace(symbol.selectionRange.start, this.uri);
+            const definitionLocation = await symbol.findDefinition();
             if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
                 continue;
             }
 
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: getEndOfStatement(definition.range.start, target.document), before: true };
+                return { value: this.getEndOfStatement(definition.range.start), before: true };
             }
         }
 
         // If a relative definition could not be found then return the range of the last symbol in the target file.
         return {
-            value: getEndOfStatement(target.symbols[target.symbols.length - 1].range.end, target.document),
+            value: this.getEndOfStatement(target.symbols[target.symbols.length - 1].range.end),
             after: true
         };
     }
@@ -800,6 +824,18 @@ export class SourceDocument extends SourceFile
             after: endTrimmedTextLength !== 0
         };
     }
+
+    // DocumentSymbol ranges don't always include the final semi-colon.
+    private getEndOfStatement(position: vscode.Position): vscode.Position
+    {
+        let nextPosition = position.translate(0, 1);
+        while (this.document.getText(new vscode.Range(position, nextPosition)) === ';') {
+            position = nextPosition;
+            nextPosition = position.translate(0, 1);
+        }
+        return position;
+    }
+
 }
 
 
@@ -808,80 +844,5 @@ export interface ProposedPosition
     value: vscode.Position;
     before?: boolean;
     after?: boolean;
-    nextTo?: boolean;   // Signals not to put a blank line between.
-}
-
-
-// DocumentSymbol ranges don't always include the final semi-colon.
-function getEndOfStatement(position: vscode.Position, document: vscode.TextDocument): vscode.Position
-{
-    let nextPosition = position.translate(0, 1);
-    while (document.getText(new vscode.Range(position, nextPosition)) === ';') {
-        position = nextPosition;
-        nextPosition = position.translate(0, 1);
-    }
-    return position;
-}
-
-function maskUnimportantText(source: string, maskChar: string = ' '): string
-{
-    const replacer = (match: string) => maskChar.repeat(match.length);
-    // Mask comments
-    source = source.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
-    source = source.replace(/(?<=\/\/).*/g, replacer);
-    // Mask quoted characters
-    source = source.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
-    source = source.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
-    // Mask template arguments
-    source = source.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, replacer);
-
-    return source;
-}
-
-function stripDefaultValues(parameters: string): string
-{
-    parameters = parameters.replace(/[^\w\s]=/g, '');
-    parameters = parameters.replace(/\b\s*=\s*\b/g, '=');
-    parameters = parameters.replace(/\(\)/g, '');
-
-    let maskedParameters = maskUnimportantText(parameters).split(',');
-    let strippedParameters = '';
-    let charPos = 0;
-    for (const maskedParameter of maskedParameters) {
-        if (maskedParameter.includes('=')) {
-            strippedParameters += parameters.substring(charPos, charPos + maskedParameter.indexOf('=')) + ',';
-        } else {
-            strippedParameters += parameters.substring(charPos, charPos + maskedParameter.length) + ',';
-        }
-        charPos += maskedParameter.length + 1;
-    }
-
-    return strippedParameters.substring(0, strippedParameters.length - 1);
-}
-
-async function findDefinitionInWorkspace(
-    position: vscode.Position,
-    uri: vscode.Uri
-): Promise<vscode.Location | undefined> {
-    const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
-            'vscode.executeDefinitionProvider', uri, position);
-
-    if (!definitionResults) {
-        return;
-    }
-
-    for (const result of definitionResults) {
-        const location = result instanceof vscode.Location ?
-                result : new vscode.Location(result.targetUri, result.targetRange);
-
-        if (location.uri.path === uri.path && !location.range.contains(position)) {
-            return location;
-        } else if (location.uri.path !== uri.path && vscode.workspace.workspaceFolders) {
-            for (const folder of vscode.workspace.workspaceFolders) {
-                if (location.uri.path.includes(folder.uri.path)) {
-                    return location;
-                }
-            }
-        }
-    }
+    nextTo?: boolean;   // Signals to not put a blank line between.
 }
