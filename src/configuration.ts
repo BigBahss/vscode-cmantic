@@ -8,6 +8,12 @@ export enum CurlyBraceFormat {
     NewLine
 }
 
+export enum NamespaceIndentation {
+    Auto,
+    Always,
+    Never
+}
+
 export enum HeaderGuardStyle {
     Define,
     PragmaOnce,
@@ -16,7 +22,9 @@ export enum HeaderGuardStyle {
 
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
-const defaultCurlyBraceFormat = CurlyBraceFormat.NewLine;
+const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
+const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.SameLine;
+const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILENAME_EXT}';
 
@@ -33,18 +41,46 @@ export function sourceExtensions(): string[]
     return extensions ? extensions : defaultSourceExtensions;
 }
 
-export function curlyBraceFormat(languageId: string): CurlyBraceFormat
+export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('curlyBraceFormat.' + languageId);
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>(languageId + '.curlyBraceFormat.function');
     switch (format) {
-    case 'Same line':
-        return CurlyBraceFormat.SameLine;
-    case 'New line for constructors and destructors':
-        return CurlyBraceFormat.NewLineCtorDtor;
     case 'New line':
         return CurlyBraceFormat.NewLine;
+    case 'New line for constructors and destructors':
+        return CurlyBraceFormat.NewLineCtorDtor;
+    case 'Same line':
+        return CurlyBraceFormat.SameLine;
     default:
-        return defaultCurlyBraceFormat;
+        return defaultFunctionCurlyBraceFormat;
+    }
+}
+
+export function namespaceCurlyBraceFormat(): CurlyBraceFormat
+{
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.curlyBraceFormat.namespace');
+    switch (format) {
+    case 'New line':
+        return CurlyBraceFormat.NewLine;
+    case 'Same line':
+        return CurlyBraceFormat.SameLine;
+    default:
+        return defaultNamespaceCurlyBraceFormat;
+    }
+}
+
+export function indentNamespaceBody(): NamespaceIndentation
+{
+    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.indentation.namespace');
+    switch (format) {
+    case 'Auto':
+        return NamespaceIndentation.Auto;
+    case 'Always':
+        return NamespaceIndentation.Always;
+    case 'Never':
+        return NamespaceIndentation.Never;
+    default:
+        return defaultNamespaceIndentation;
     }
 }
 

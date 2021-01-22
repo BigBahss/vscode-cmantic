@@ -152,25 +152,43 @@
             ],
             "description": "File extensions to associate source files."
           },
-          "C_mantic.curlyBraceFormat.c": {
+          "C_mantic.c.curlyBraceFormat.function": {
             "type": "string",
             "enum": [
               "New line",
-              "New line for constructors and destructors",
               "Same line"
             ],
             "default": "New line",
             "description": "Controls how to format the opening curly brace when adding a new function definition in C."
           },
-          "C_mantic.curlyBraceFormat.cpp": {
+          "C_mantic.cpp.curlyBraceFormat.function": {
             "type": "string",
             "enum": [
               "New line",
               "New line for constructors and destructors",
               "Same line"
             ],
-            "default": "Same line",
+            "default": "New line for constructors and destructors",
             "description": "Controls how to format the opening curly brace when adding a new function definition in C++."
+          },
+          "C_mantic.cpp.curlyBraceFormat.namespace": {
+            "type": "string",
+            "enum": [
+              "New line",
+              "Same line"
+            ],
+            "default": "Same line",
+            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++."
+          },
+          "C_mantic.cpp.indentation.namespace": {
+            "type": "string",
+            "enum": [
+              "Auto",
+              "Always",
+              "Never"
+            ],
+            "default": "Auto",
+            "description": "Controls whether to indent the body when generating namespaces from a header in C++. 'Auto' will detect namespace indentation from the header file."
           },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
@@ -185,7 +203,7 @@
               "Add both"
             ],
             "default": "Add #define",
-            "description": "Controls the style of header guard that is added with the 'Add Header Guard' command."
+            "description": "Controls what style of header guard that is added with the 'Add Header Guard' command."
           },
           "C_mantic.headerGuard.defineFormat": {
             "type": "string",
