@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SourceFile } from './cmantics';
+import { SourceFile } from "./SourceFile";
 
 
 export async function switchHeaderSourceInWorkspace(): Promise<void>

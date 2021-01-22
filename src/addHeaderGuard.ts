@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { SourceDocument } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
+import { SourceDocument } from "./SourceDocument";
 
 
 export function addHeaderGuard(): void

@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { CSymbol, SourceFile, SourceDocument } from './cmantics';
 import * as util from './utility';
+import { SourceDocument } from "./SourceDocument";
+import { SourceFile } from "./SourceFile";
+import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 

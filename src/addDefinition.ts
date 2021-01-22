@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { CSymbol, SourceDocument, SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
+import { SourceDocument } from "./SourceDocument";
+import { CSymbol } from "./CSymbol";
 
 
 export const title = {

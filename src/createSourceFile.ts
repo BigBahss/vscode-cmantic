@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { SourceFile } from './cmantics';
 import * as cfg from './configuration';
 import * as util from './utility';
+import { SourceFile } from "./SourceFile";
 
 
 interface FolderItem extends vscode.QuickPickItem

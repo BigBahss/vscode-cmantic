@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProposedPosition } from './cmantics';
+import { ProposedPosition } from "./ProposedPosition";
 
 
 export function fileName(filePath: string): string

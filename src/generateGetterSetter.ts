@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
-import { CSymbol, ProposedPosition, SourceDocument } from './cmantics';
 import * as util from './utility';
+import { ProposedPosition } from "./ProposedPosition";
+import { SourceDocument } from "./SourceDocument";
+import { CSymbol } from "./CSymbol";
 
 
 export const title = {
