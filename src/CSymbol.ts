@@ -305,10 +305,10 @@ export class CSymbol extends SourceSymbol
         }
 
         // Build scope string to prepend to function name.
-        // Check if position exists inside of namespace block. If so, omit that scope.id().
         let scopeString = '';
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a namespace block. If so, omit that scope.id().
             if (!targetScope || (position && !targetScope.range.contains(position))) {
                 scopeString += scope.id() + '::';
             }
@@ -341,6 +341,7 @@ export class CSymbol extends SourceSymbol
         return definition;
     }
 
+    // Masks comments, strings/chars, and template parameters in order to make parsing easier.
     private maskUnimportantText(source: string, maskChar: string = ' '): string
     {
         const replacer = (match: string) => maskChar.repeat(match.length);

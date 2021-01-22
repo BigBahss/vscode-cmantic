@@ -120,4 +120,43 @@ export class SourceFile
 
         return bestMatch;
     }
+
+    // Returns a SourceSymbol tree of the namespaces in this SourceFile.
+    async namespaces(): Promise<SourceSymbol[]>
+    {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+
+        const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol[] => {
+            let namespaces: SourceSymbol[] = [];
+            for (const sourceSymbol of sourceSymbols) {
+                if (sourceSymbol.kind === vscode.SymbolKind.Namespace) {
+                    const namespace = new SourceSymbol(sourceSymbol, this.uri, sourceSymbol.parent);
+                    namespace.children = searchSymbolTree(sourceSymbol.children);
+                    namespaces.push(namespace);
+                }
+            }
+            return namespaces;
+        };
+
+        return searchSymbolTree(this.symbols);
+    }
+
+    async namespaceBodyIsIndented(): Promise<boolean>
+    {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+
+        for (const symbol of this.symbols) {
+            if (symbol.kind === vscode.SymbolKind.Namespace) {
+                for (const child of symbol.children) {
+                    return (child.range.start.character > 0) ? true : false;
+                }
+            }
+        }
+
+        return false;
+    }
 }

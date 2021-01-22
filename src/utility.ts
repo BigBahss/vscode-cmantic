@@ -76,7 +76,7 @@ export function workspaceRelativePath(absolutePath: string, includeWorkspaceName
     return absolutePath;
 }
 
-export function indentation(options?: vscode.TextEditorOptions)
+export function indentation(options?: vscode.TextEditorOptions): string
 {
     if (!options) {
         const editor = vscode.window.activeTextEditor;

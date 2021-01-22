@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { SourceFile } from "./SourceFile";
 
 
 // Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
@@ -79,7 +78,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     isMemberVariable(): boolean
     {
-        return this.kind === vscode.SymbolKind.Field;
+        return this.kind === vscode.SymbolKind.Field
+                && (this.parent?.kind === vscode.SymbolKind.Class || this.parent?.kind === vscode.SymbolKind.Struct);
     }
 
     isFunction(): boolean

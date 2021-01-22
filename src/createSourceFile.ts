@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceFile } from "./SourceFile";
+import { SourceSymbol } from './SourceSymbol';
 
 
 interface FolderItem extends vscode.QuickPickItem
@@ -52,12 +53,18 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const newFilePath = folder.path + '/' + fileNameBase + '.' + extension;
     const newFileUri = vscode.Uri.parse(newFilePath);
-    const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + util.endOfLine(currentDocument);
+    const eol = util.endOfLine(currentDocument);
+    const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
+
+    const namespaces = await currentSourceFile.namespaces();
+    const indentation = (await currentSourceFile.namespaceBodyIsIndented()) ? util.indentation() : '';
+    const namespacesText = generateNamespaces(namespaces, eol, indentation) + eol;
+
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
         vscode.window.showTextDocument(newFileUri).then(editor => {
-            editor.insertSnippet(new vscode.SnippetString(includeStatement), new vscode.Position(0, 0));
+            editor.insertSnippet(new vscode.SnippetString(includeStatement + eol + namespacesText), new vscode.Position(0, 0));
         });
         return newFileUri;
     }
@@ -82,4 +89,21 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
         }
     }
     return directories;
+}
+
+function generateNamespaces(namespaces: SourceSymbol[], eol: string, indent: string): string
+{
+    let namespaceText: string = '';
+    for (const namespace of namespaces) {
+        if (namespaceText) {
+            namespaceText += eol + eol;
+        }
+        namespaceText += 'namespace ' + namespace.name + ' {' + eol;
+        const body = generateNamespaces(namespace.children, eol, indent);
+        if (body) {
+            namespaceText += body.replace(/^/gm, indent);
+        }
+        namespaceText += eol + '}';
+    }
+    return namespaceText;
 }
