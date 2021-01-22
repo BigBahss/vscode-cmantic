@@ -225,27 +225,14 @@ export class CSymbol extends SourceSymbol
         return fallbackPosition;
     }
 
-    isMemberVariable(): boolean
-    {
-        return this.kind === vscode.SymbolKind.Field;
-    }
-
-    isFunction(): boolean
-    {
-        switch (this.kind) {
-        case vscode.SymbolKind.Operator:
-        case vscode.SymbolKind.Method:
-        case vscode.SymbolKind.Constructor:
-        case vscode.SymbolKind.Function:
-            return true;
-        default:
-            return false;
-        }
-    }
-
     isFunctionDeclaration(): boolean
     {
         return this.isFunction() && (this.detail === 'declaration' || !this.text().endsWith('}'));
+    }
+
+    isFunctionDefinition(): boolean
+    {
+        return this.isFunction() && !this.isFunctionDeclaration();
     }
 
     isConstructor(): boolean
