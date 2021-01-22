@@ -6,17 +6,38 @@
 #include "derived.h"
 
 
-class SomeObject
-{
-public:
-    SomeObject(int some_int);
-    ~SomeObject();
+namespace these {
+    namespace scopes {
+        namespace are {
+            namespace heavily {
+                long long anIncrediblyLongAndUnnecessarilyDrawnOutFunctionName(long long someLongParameterNameIDontKnowWhoCares);
+            }
 
-    Derived derived() const;
-    void setDerived(const Derived &derived);
+            namespace nested {
+                class SomeObject
+                {
+                public:
+                    SomeObject(int some_int);
+                    ~SomeObject();
 
-private:
-    Derived m_derived;
-};
+                    bool fooBar() const;
+
+                private:
+                    Derived m_derived;
+                };
+            }
+        }
+    }
+
+    namespace foo {
+        namespace bar {
+
+        }
+
+        namespace baz {
+
+        }
+    }
+}
 
 #endif // SOME_HEADER_H

@@ -8,6 +8,7 @@
 class Derived : public Base
 {
 public:
+    explicit Derived();
     explicit Derived(const std::string &name, const std::string &description = std::string());
     ~Derived();
 
