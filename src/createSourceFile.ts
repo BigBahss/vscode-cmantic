@@ -12,6 +12,12 @@ interface FolderItem extends vscode.QuickPickItem
 
 export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined>
 {
+    const currentDocument = vscode.window.activeTextEditor?.document;
+    if (!currentDocument) {
+        vscode.window.showErrorMessage('You must have a text editor open.');
+        return;
+    }
+
     if (!vscode.workspace.workspaceFolders) {
         vscode.window.showErrorMessage('You must have a workspace folder open.');
         return;
@@ -19,12 +25,6 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
             await vscode.window.showWorkspaceFolderPick() : vscode.workspace.workspaceFolders[0];
     if (!workspaceFolder) {
-        return;
-    }
-
-    const currentDocument = vscode.window.activeTextEditor?.document;
-    if (!currentDocument) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
         return;
     }
 
