@@ -33,6 +33,34 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
         this.children = convertedChildren;
     }
+
+    findChild(compareFn: (child: SourceSymbol) => boolean): SourceSymbol | undefined
+    {
+        for (const child of this.children) {
+            if (compareFn(child)) {
+                return child;
+            }
+        }
+    }
+
+    isMemberVariable(): boolean
+    {
+        return this.kind === vscode.SymbolKind.Field;
+    }
+
+    isFunction(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Operator:
+        case vscode.SymbolKind.Method:
+        case vscode.SymbolKind.Constructor:
+        case vscode.SymbolKind.Function:
+            return true;
+        default:
+            return false;
+        }
+    }
+
 }
 
 // A DocumentSymbol/SourceSymbol that understands the semantics of C/C++.
@@ -63,6 +91,15 @@ export class CSymbol extends SourceSymbol
         });
 
         this.children = convertedChildren;
+    }
+
+    findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
+    {
+        for (const child of this.children) {
+            if (compareFn(child)) {
+                return child;
+            }
+        }
     }
 
     // Returns all the text contained in this symbol.
@@ -115,36 +152,26 @@ export class CSymbol extends SourceSymbol
         return 'set' + util.firstCharToUpper(memberBaseName);
     }
 
-    findGetterFor(symbol: CSymbol): CSymbol | undefined
+    findGetterFor(memberVariable: CSymbol): CSymbol | undefined
     {
-        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
             return;
         }
 
-        const getterName = symbol.getterName();
+        const getterName = memberVariable.getterName();
 
         return this.findChild(child => child.id() === getterName);
     }
 
-    findSetterFor(symbol: CSymbol): CSymbol | undefined
+    findSetterFor(memberVariable: CSymbol): CSymbol | undefined
     {
-        if (symbol.parent !== this || !symbol.isMemberVariable()) {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
             return;
         }
 
-        const setterName = symbol.setterName();
+        const setterName = memberVariable.setterName();
 
         return this.findChild(child => child.id() === setterName);
-    }
-
-    findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
-    {
-        for (const child of this.children) {
-            const symbol = new CSymbol(child, this.document, this);
-            if (compareFn(symbol)) {
-                return symbol;
-            }
-        }
     }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
