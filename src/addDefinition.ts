@@ -91,24 +91,29 @@ export async function addDefinition(
 
     // Find the position for the new function definition.
     const document = await vscode.workspace.openTextDocument(targetUri);
-    const targetFile = (targetUri.path === declarationDoc.uri.path) ?
+    const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
             declarationDoc : new SourceDocument(document);
-    const position = await declarationDoc.findPositionForNewDefinition(functionDeclaration, targetFile);
+    const position = await declarationDoc.findPositionForNewDefinition(functionDeclaration, targetDoc);
 
     // Construct the snippet for the new function definition.
-    const definition = await functionDeclaration.newFunctionDefinition(targetFile, position.value);
+    const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position.value);
     const curlyBraceFormat = cfg.curlyBraceFormat(document.languageId);
-    const eol = util.endOfLine(targetFile.document);
+    const eol = util.endOfLine(targetDoc.document);
+    const indent = util.indentation();
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + util.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + eol + '{' + eol + indent + '$0' + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + util.indentation() + '$0' + eol + '}';
+        functionSkeleton = definition + ' {' + eol + indent + '$0' + eol + '}';
     }
 
-    return util.insertSnippetAndReveal(functionSkeleton, position, targetFile.document);
+    if (position.emptyScope && await targetDoc.namespaceBodyIsIndented()) {
+        functionSkeleton = functionSkeleton.replace(/^/gm, indent);
+    }
+
+    return util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.document);
 }

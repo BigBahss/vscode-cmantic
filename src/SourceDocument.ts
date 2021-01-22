@@ -113,7 +113,7 @@ export class SourceDocument extends SourceFile
 
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: this.getEndOfStatement(definition.range.end), after: true };
+                return { value: target.getEndOfStatement(definition.range.end), after: true };
             }
         }
         for (const symbol of after) {
@@ -124,7 +124,7 @@ export class SourceDocument extends SourceFile
 
             const definition = await target.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: this.getEndOfStatement(definition.range.start), before: true };
+                return { value: definition.range.start, before: true };
             }
         }
 
@@ -137,18 +137,12 @@ export class SourceDocument extends SourceFile
                 }
 
                 if (targetNamespace.children.length === 0) {
-                    const l = target.document.lineAt(targetNamespace.range.end.line - 1);
-                    if (l.isEmptyOrWhitespace) {
-                        return { value: l.range.end };
-                    }
-                    return {
-                        value: this.getEndOfStatement(targetNamespace.range.end).translate(0, -1),
-                        before: true,
-                        nextTo: true
-                    };
+                    const bodyStart = target.document.offsetAt(targetNamespace.range.start)
+                            + targetNamespace.text().indexOf('{') + 1;
+                    return { value: target.document.positionAt(bodyStart), after: true, nextTo: true, emptyScope: true };
                 }
                 return {
-                    value: targetNamespace.children[targetNamespace.children.length - 1].range.end,
+                    value: target.getEndOfStatement(targetNamespace.children[targetNamespace.children.length - 1].range.end),
                     after: true
                 };
             }
@@ -156,7 +150,7 @@ export class SourceDocument extends SourceFile
 
         // If all else fails then place the new definition after the last symbol in the document.
         return {
-            value: this.getEndOfStatement(target.symbols[target.symbols.length - 1].range.end),
+            value: target.getEndOfStatement(target.symbols[target.symbols.length - 1].range.end),
             after: true
         };
     }

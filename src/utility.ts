@@ -128,7 +128,7 @@ export async function insertSnippetAndReveal(
     }
 
     const editor = await vscode.window.showTextDocument(document.uri);
-    const revealPosition = position.value.translate(position.after ? lineCount(text) : -lineCount(text));
+    const revealPosition = position.value.translate(lineCount(text) - 1);
     editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
 
     const snippet = new vscode.SnippetString(text);

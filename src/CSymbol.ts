@@ -351,7 +351,7 @@ export class CSymbol extends SourceSymbol
         // Mask quoted characters
         source = source.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
         source = source.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
-        // Mask template arguments
+        // Mask template parameters
         source = source.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, replacer);
 
         return source;
