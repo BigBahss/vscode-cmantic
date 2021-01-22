@@ -76,6 +76,7 @@ export class SourceDocument extends SourceFile
         if (!target.symbols) {
             target.symbols = await target.executeSourceSymbolProvider();
             if (target.symbols.length === 0) {
+                // If the document has no symbols then place the new definiton after the last non-empty line.
                 for (let i = target.document.lineCount - 1; i >= 0; --i) {
                     if (!target.document.lineAt(i).isEmptyOrWhitespace) {
                         return { value: target.document.lineAt(i).range.end, after: true };
@@ -85,7 +86,7 @@ export class SourceDocument extends SourceFile
             }
         }
 
-        // Split sibling symbols into those that come before and after the declaration in this source file.
+        // Split sibling symbols into those that come before and after the declaration in this SourceDocument.
         const siblingSymbols = declaration.parent ? declaration.parent.children : this.symbols;
         let before: SourceSymbol[] = [];
         let after: SourceSymbol[] = [];
@@ -127,7 +128,33 @@ export class SourceDocument extends SourceFile
             }
         }
 
-        // If a relative definition could not be found then return the range of the last symbol in the target file.
+        // If a relative definition couldn't be found then look for a namespace block to place the new definition in.
+        for (const scope of declaration.scopes().reverse()) {
+            if (scope.kind === vscode.SymbolKind.Namespace) {
+                const targetNamespace = await target.findMatchingSymbol(scope);
+                if (!targetNamespace) {
+                    continue;
+                }
+
+                if (targetNamespace.children.length === 0) {
+                    const l = target.document.lineAt(targetNamespace.range.end.line - 1);
+                    if (l.isEmptyOrWhitespace) {
+                        return { value: l.range.end };
+                    }
+                    return {
+                        value: this.getEndOfStatement(targetNamespace.range.end).translate(0, -1),
+                        before: true,
+                        nextTo: true
+                    };
+                }
+                return {
+                    value: targetNamespace.children[targetNamespace.children.length - 1].range.end,
+                    after: true
+                };
+            }
+        }
+
+        // If all else fails then place the new definition after the last symbol in the document.
         return {
             value: this.getEndOfStatement(target.symbols[target.symbols.length - 1].range.end),
             after: true
