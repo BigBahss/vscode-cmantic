@@ -2,12 +2,15 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+Nothing, yet.
+
+## [0.2.0] - January 22, 2021
 ### Added
 - `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions.
 - `cmantic.createMatchingSourceFile` can now generate namespace blocks. Configurations were added to customize this behavior.
 
 ### Changed
-- The `Curly Brace Format` configuration for functions was split into separate configurations for C and C++.
+- `Curly Brace Format` for functions was split into separate configurations for C and C++.
 
 ### Fixed
 - `cmantic.addHeaderGuard` will now replace any illegal symbols found in the file name with an underscore when creating a `#define` name.
@@ -18,7 +21,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed `Add Definition` not placing function into a cooresponding namespace block when that block was empty.
 - Various minor fixes.
 
-## [0.1.0] - January 15, 2020
+## [0.1.0] - January 15, 2021
 ### Added
 - `cmantic.switchHeaderSourceInWorkspace` command
 - `cmantic.addDefinitionInSourceFile` command/code-action
