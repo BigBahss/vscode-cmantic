@@ -57,13 +57,15 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
 
     const namespaces = await currentSourceFile.namespaces();
-    const indentation = (await currentSourceFile.namespaceBodyIsIndented()) ? util.indentation() : '';
-    const namespacesText = generateNamespaces(namespaces, eol, indentation);
+    const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
+    const indentation = await getNamespaceIndentation(currentSourceFile);
+    const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
-        util.insertSnippetAndReveal(includeStatement + eol + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
+        util.insertSnippetAndReveal(
+                includeStatement + eol + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
         return newFileUri;
     }
 }
@@ -89,19 +91,35 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
     return directories;
 }
 
-function generateNamespaces(namespaces: SourceSymbol[], eol: string, indentation: string): string
+async function getNamespaceIndentation(sourceFile: SourceFile): Promise<string>
 {
+    switch (cfg.indentNamespaceBody()) {
+    case cfg.NamespaceIndentation.Always:
+        return util.indentation();
+    case cfg.NamespaceIndentation.Never:
+        return '';
+    case cfg.NamespaceIndentation.Auto:
+        return (await sourceFile.namespaceBodyIsIndented()) ? util.indentation() : '';
+    }
+}
+
+function generateNamespaces(
+    namespaces: SourceSymbol[],
+    eol: string,
+    curlySeparator: string,
+    indentation: string
+): string {
     let namespaceText: string = '';
     for (const namespace of namespaces) {
         if (namespaceText) {
             namespaceText += eol + eol;
         }
-        namespaceText += 'namespace ' + namespace.name + ' {' + eol;
-        const body = generateNamespaces(namespace.children, eol, indentation);
+        namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
+        const body = generateNamespaces(namespace.children, eol, curlySeparator, indentation);
         if (body) {
             namespaceText += body.replace(/^/gm, indentation);
         }
-        namespaceText += eol + '}';
+        namespaceText += eol + '} // namespace ' + namespace.name;
     }
     return namespaceText;
 }
