@@ -15,6 +15,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
+        // TODO: Returning commands from a CodeActionProvider is deprecated.
+        // Refactor to implement CodeAction's and return them instead.
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
@@ -28,13 +30,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         ]);
 
         return [...refactorings, ...sourceActions];
-    }
-
-    resolveCodeAction(
-        codeAction: vscode.CodeAction,
-        token: vscode.CancellationToken,
-    ): vscode.CodeAction {
-        return codeAction;
     }
 
     private async getRefactorings(
