@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceFile } from "./SourceFile";
 import { SourceSymbol } from './SourceSymbol';
+import { SourceDocument } from './SourceDocument';
 
 
 interface FolderItem extends vscode.QuickPickItem
@@ -29,8 +29,8 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const currentSourceFile = new SourceFile(currentDocument.uri);
-    if (!currentSourceFile.isHeader()) {
+    const currentSourceDoc = new SourceDocument(currentDocument);
+    if (!currentSourceDoc.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
     }
@@ -56,16 +56,14 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const eol = util.endOfLine(currentDocument);
     const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
 
-    const namespaces = await currentSourceFile.namespaces();
-    const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
-    const indentation = await getNamespaceIndentation(currentSourceFile);
-    const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
+    const namespacesText = (currentDocument.languageId === 'cpp') ?
+            await getNamespaceText(currentSourceDoc, eol) : '';
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
         util.insertSnippetAndReveal(
-                includeStatement + eol + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
+                includeStatement + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
         return newFileUri;
     }
 }
@@ -91,7 +89,21 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
     return directories;
 }
 
-async function getNamespaceIndentation(sourceFile: SourceFile): Promise<string>
+async function getNamespaceText(sourceFile: SourceDocument, eol: string)
+{
+    if (sourceFile.document.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
+        return '';
+    }
+
+    const namespaces = await sourceFile.namespaces();
+    const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
+    const indentation = await getNamespaceIndentation(sourceFile);
+    const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
+
+    return eol + namespacesText;
+}
+
+async function getNamespaceIndentation(sourceFile: SourceDocument): Promise<string>
 {
     switch (cfg.indentNamespaceBody()) {
     case cfg.NamespaceIndentation.Always:

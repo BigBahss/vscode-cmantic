@@ -190,6 +190,11 @@
             "default": "Auto",
             "description": "Controls whether to indent the body when generating namespaces from a header in C++. 'Auto' will detect namespace indentation from the header file."
           },
+          "C_mantic.cpp.generateNamespaces": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces."
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,

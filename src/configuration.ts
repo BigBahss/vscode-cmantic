@@ -25,6 +25,7 @@ const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
 const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.SameLine;
 const defaultNamespaceIndentation = NamespaceIndentation.Auto;
+const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILENAME_EXT}';
 
@@ -71,8 +72,8 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat
 
 export function indentNamespaceBody(): NamespaceIndentation
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.indentation.namespace');
-    switch (format) {
+    const indent = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.indentation.namespace');
+    switch (indent) {
     case 'Auto':
         return NamespaceIndentation.Auto;
     case 'Always':
@@ -84,10 +85,19 @@ export function indentNamespaceBody(): NamespaceIndentation
     }
 }
 
+export function shouldGenerateNamespaces(): boolean
+{
+    const shouldGenerate = vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.generateNamespaces');
+    if (typeof shouldGenerate === 'undefined') {
+        return defaultGenerateNamespaces;
+    }
+    return shouldGenerate;
+}
+
 export function headerGuardStyle(): HeaderGuardStyle
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.style');
-    switch (format) {
+    const style = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.style');
+    switch (style) {
     case 'Add both':
         return HeaderGuardStyle.Both;
     case 'Add #pragma once':
