@@ -5,6 +5,7 @@ import { SourceFile } from "./SourceFile";
 import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
+import { getMatchingSourceFile } from './extension';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -20,7 +21,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
-            sourceDoc.findMatchingSourceFile(),
+            getMatchingSourceFile(sourceDoc.uri),
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 

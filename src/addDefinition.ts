@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getMatchingSourceFile } from './extension';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
@@ -37,7 +38,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
     }
 
     const [matchingUri, symbol] = await Promise.all([
-        sourceDoc.findMatchingSourceFile(),
+        getMatchingSourceFile(sourceDoc.uri),
         sourceDoc.getSymbol(editor.selection.start)
     ]);
     if (!symbol?.isFunctionDeclaration()) {

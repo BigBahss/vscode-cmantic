@@ -85,42 +85,6 @@ export class SourceFile
         return cfg.headerExtensions().includes(util.fileExtension(this.uri.path));
     }
 
-    async findMatchingSourceFile(): Promise<vscode.Uri | undefined>
-    {
-        const extension = util.fileExtension(this.uri.path);
-        const baseName = util.fileNameBase(this.uri.path);
-        const directory = util.directory(this.uri.path);
-        const headerExtensions = cfg.headerExtensions();
-        const sourceExtensions = cfg.sourceExtensions();
-
-        let globPattern: string;
-        if (headerExtensions.indexOf(extension) !== -1) {
-            globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
-        } else if (sourceExtensions.indexOf(extension) !== -1) {
-            globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
-        } else {
-            return;
-        }
-
-        const uris = await vscode.workspace.findFiles(globPattern);
-        let bestMatch: vscode.Uri | undefined;
-        let smallestDiff: number | undefined;
-
-        for (const uri of uris) {
-            if (uri.scheme !== 'file') {
-                continue;
-            }
-
-            const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
-            if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
-                smallestDiff = diff;
-                bestMatch = uri;
-            }
-        }
-
-        return bestMatch;
-    }
-
     // Returns a SourceSymbol tree of the namespaces in this SourceFile.
     async namespaces(): Promise<SourceSymbol[]>
     {

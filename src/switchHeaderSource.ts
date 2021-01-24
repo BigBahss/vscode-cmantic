@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { getMatchingSourceFile } from './extension';
 import { SourceFile } from './SourceFile';
 
 
@@ -12,20 +13,11 @@ export async function switchHeaderSourceInWorkspace(): Promise<void>
         return;
     }
 
-    const cachedMatchingUri = matchingUriCache.get(editor.document.uri.toString());
-    if (cachedMatchingUri) {
-        await vscode.window.showTextDocument(cachedMatchingUri);
-        return;
-    }
-
-    const sourceFile = new SourceFile(editor.document.uri);
-    const matchingUri = await sourceFile.findMatchingSourceFile();
+    const matchingUri = await getMatchingSourceFile(editor.document.uri);
     if (!matchingUri) {
         vscode.window.showInformationMessage('No matching header/source file was found.');
         return;
     }
 
-    matchingUriCache.set(sourceFile.uri.toString(), matchingUri);
-    matchingUriCache.set(matchingUri.toString(), sourceFile.uri);
     await vscode.window.showTextDocument(matchingUri);
 }
