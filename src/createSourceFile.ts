@@ -3,6 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
+import { addHeaderSourcePairToCache } from './extension';
 
 
 interface FolderItem extends vscode.QuickPickItem
@@ -64,6 +65,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     if (await vscode.workspace.applyEdit(workspaceEdit)) {
         util.insertSnippetAndReveal(
                 includeStatement + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
+        addHeaderSourcePairToCache(currentSourceDoc.uri, newFileUri);
         return newFileUri;
     }
 }

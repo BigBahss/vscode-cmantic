@@ -66,13 +66,13 @@ export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri
 // Stores header/source pairs after they have been requested.
 const headerSourceCache = new Map<string, vscode.Uri>();
 
-function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
+export function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
 {
     headerSourceCache.set(uri_a.toString(), uri_b);
     headerSourceCache.set(uri_b.toString(), uri_a);
 }
 
-function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
+export function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
 {
     if (!uri_b) {
         uri_b = headerSourceCache.get(uri_a.toString());
