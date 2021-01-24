@@ -45,7 +45,7 @@ const matchingUriCache = new Map<string, vscode.Uri>();
 export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined>
 {
     const cachedMatchingUri = matchingUriCache.get(uri.toString());
-    if (cachedMatchingUri && await util.workspaceFileExists(cachedMatchingUri)) {
+    if (cachedMatchingUri) {
         if (await util.workspaceFileExists(cachedMatchingUri)) {
             return cachedMatchingUri;
         } else {
