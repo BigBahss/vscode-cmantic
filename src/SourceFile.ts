@@ -61,6 +61,42 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
+    async findDefintions(position: vscode.Position): Promise<vscode.Location[] | undefined>
+    {
+        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+                'vscode.executeDefinitionProvider', this.uri, position);
+        if (!definitionResults) {
+            return;
+        }
+
+        let locations: vscode.Location[] = [];
+        for (const result of definitionResults) {
+            const location = (result instanceof vscode.Location) ?
+                    result : new vscode.Location(result.targetUri, result.targetRange);
+            locations.push(location);
+        }
+
+        return locations;
+    }
+
+    async findDeclarations(position: vscode.Position): Promise<vscode.Location[] | undefined>
+    {
+        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+                'vscode.executeDeclarationProvider', this.uri, position);
+        if (!definitionResults) {
+            return;
+        }
+
+        let locations: vscode.Location[] = [];
+        for (const result of definitionResults) {
+            const location = (result instanceof vscode.Location) ?
+                    result : new vscode.Location(result.targetUri, result.targetRange);
+            locations.push(location);
+        }
+
+        return locations;
+    }
+
     async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined>
     {
         if (!this.symbols) {
