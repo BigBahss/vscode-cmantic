@@ -76,16 +76,6 @@ export function workspaceRelativePath(absolutePath: string, includeWorkspaceName
     return absolutePath;
 }
 
-export async function workspaceFileExists(uri: vscode.Uri): Promise<boolean>
-{
-    const relativePath = vscode.workspace.asRelativePath(uri);
-    const results = await vscode.workspace.findFiles(relativePath);
-    if (results.length > 0) {
-        return true;
-    }
-    return false;
-}
-
 export function indentation(options?: vscode.TextEditorOptions): string
 {
     if (!options) {

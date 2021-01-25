@@ -39,7 +39,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    // Finds the most likely definition of this CSymbol in the case that multiple are found.
+    // Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
     async findDefinition(): Promise<vscode.Location | undefined> {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, this.selectionRange.start);
@@ -47,19 +47,17 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return;
         }
 
+        const thisFileNameBase = util.fileNameBase(this.uri.path);
         for (const result of definitionResults) {
-            const location = result instanceof vscode.Location ?
+            const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (location.uri.path === this.uri.path && !location.range.contains(this.selectionRange.start)) {
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase) {
                 return location;
-            } else if (location.uri.path !== this.uri.path && vscode.workspace.workspaceFolders) {
-                for (const folder of vscode.workspace.workspaceFolders) {
-                    if (location.uri.path.includes(folder.uri.path)) {
-                        return location;
-                    }
-                }
             }
+        }
+    }
+
         }
     }
 
