@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as util from './utility';
 
 
 // Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
@@ -58,6 +59,22 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
+    // Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
+    async findDeclaration(): Promise<vscode.Location | undefined> {
+        const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+                'vscode.executeDeclarationProvider', this.uri, this.selectionRange.start);
+        if (!declarationResults) {
+            return;
+        }
+
+        const thisFileNameBase = util.fileNameBase(this.uri.path);
+        for (const result of declarationResults) {
+            const location = (result instanceof vscode.Location) ?
+                    result : new vscode.Location(result.targetUri, result.targetRange);
+
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase) {
+                return location;
+            }
         }
     }
 
