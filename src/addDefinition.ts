@@ -55,7 +55,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    return addDefinition(symbol, sourceDoc, matchingUri);
+    await addDefinition(symbol, sourceDoc, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<void>
@@ -74,7 +74,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
         return;
     }
 
-    return addDefinition(symbol, sourceDoc, sourceDoc.uri);
+    await addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
 export async function addDefinition(
@@ -94,7 +94,7 @@ export async function addDefinition(
     const document = await vscode.workspace.openTextDocument(targetUri);
     const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
             declarationDoc : new SourceDocument(document);
-    const position = await declarationDoc.findPositionForNewDefinition(functionDeclaration, targetDoc);
+    const position = await declarationDoc.findSmartPositionForFunction(functionDeclaration, targetDoc);
 
     // Construct the snippet for the new function definition.
     const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position.value);
@@ -116,5 +116,5 @@ export async function addDefinition(
         functionSkeleton = functionSkeleton.replace(/^/gm, indent);
     }
 
-    return util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.uri);
+    await util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.uri);
 }
