@@ -4,6 +4,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [Unreleased]
 ### Changed
 - Improved performance of `cmantic.switchHeaderSourceInWorkspace` by caching header/source pairs after they are found.
+- Improved performance of `Add Definition` commands/code-actions.
 
 ## [0.2.0] - January 22, 2021
 ### Added
