@@ -73,36 +73,16 @@ export class SourceFile
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
-        if (!definitionResults) {
-            return [];
-        }
 
-        let locations: vscode.Location[] = [];
-        for (const result of definitionResults) {
-            const location = (result instanceof vscode.Location) ?
-                    result : new vscode.Location(result.targetUri, result.targetRange);
-            locations.push(location);
-        }
-
-        return locations;
+        return this.makeLocationArray(definitionResults);
     }
 
     async findDeclarations(position: vscode.Position): Promise<vscode.Location[]>
     {
-        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+        const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
-        if (!definitionResults) {
-            return [];
-        }
 
-        let locations: vscode.Location[] = [];
-        for (const result of definitionResults) {
-            const location = (result instanceof vscode.Location) ?
-                    result : new vscode.Location(result.targetUri, result.targetRange);
-            locations.push(location);
-        }
-
-        return locations;
+        return this.makeLocationArray(declarationResults);
     }
 
     async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined>
@@ -166,5 +146,21 @@ export class SourceFile
         }
 
         return false;
+    }
+
+    private makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[]
+    {
+        if (!input) {
+            return [];
+        }
+
+        let locations: vscode.Location[] = [];
+        for (const element of input) {
+            const location = (element instanceof vscode.Location) ?
+                    element : new vscode.Location(element.targetUri, element.targetRange);
+            locations.push(location);
+        }
+
+        return locations;
     }
 }
