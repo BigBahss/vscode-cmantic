@@ -69,12 +69,12 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async findDefintions(position: vscode.Position): Promise<vscode.Location[] | undefined>
+    async findDefintions(position: vscode.Position): Promise<vscode.Location[]>
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
         if (!definitionResults) {
-            return;
+            return [];
         }
 
         let locations: vscode.Location[] = [];
@@ -87,12 +87,12 @@ export class SourceFile
         return locations;
     }
 
-    async findDeclarations(position: vscode.Position): Promise<vscode.Location[] | undefined>
+    async findDeclarations(position: vscode.Position): Promise<vscode.Location[]>
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
         if (!definitionResults) {
-            return;
+            return [];
         }
 
         let locations: vscode.Location[] = [];
