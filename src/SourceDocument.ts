@@ -67,9 +67,10 @@ export class SourceDocument extends SourceFile
     }
 
     // Returns the best position to place the definition for declaration.
-    // If target is undefined the position will be for this SourceFile.
-    async findPositionForNewDefinition(declaration: SourceSymbol, target?: SourceDocument): Promise<ProposedPosition>
-    {
+    // If targetDoc is undefined the position will be for this SourceFile.
+    async findPositionForFunctionDefinition(
+        declaration: SourceSymbol, targetDoc?: SourceDocument
+    ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
@@ -77,87 +78,84 @@ export class SourceDocument extends SourceFile
             return { value: new vscode.Position(0, 0) };
         }
 
-        if (!target) {
-            target = this;
+        if (!targetDoc) {
+            targetDoc = this;
         }
-        if (!target.symbols) {
-            target.symbols = await target.executeSourceSymbolProvider();
-            if (target.symbols.length === 0) {
-                // If the document has no symbols then place the new definiton after the last non-empty line.
-                for (let i = target.document.lineCount - 1; i >= 0; --i) {
-                    if (!target.document.lineAt(i).isEmptyOrWhitespace) {
-                        return { value: target.document.lineAt(i).range.end, after: true };
+        if (!targetDoc.symbols) {
+            targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
+            if (targetDoc.symbols.length === 0) {
+                // If the targetDoc has no symbols then place the new definiton after the last non-empty line.
+                for (let i = targetDoc.document.lineCount - 1; i >= 0; --i) {
+                    if (!targetDoc.document.lineAt(i).isEmptyOrWhitespace) {
+                        return { value: targetDoc.document.lineAt(i).range.end, after: true };
                     }
                 }
                 return { value: new vscode.Position(0, 0) };
             }
         }
 
-        // Split sibling symbols into those that come before and after the declaration in this SourceDocument.
+        // Get the first 5 symbols that come before and after declaration.
+        // We look for definitions of these symbols in targetDoc and return a position relative to the closest one.
         const siblingSymbols = declaration.parent ? declaration.parent.children : this.symbols;
-        let before: SourceSymbol[] = [];
-        let after: SourceSymbol[] = [];
-        let hitTarget = false;
+        let relativeSymbolIndex = 0;
         for (const symbol of siblingSymbols) {
-            if (symbol.range === declaration.range) {
-                hitTarget = true;
-                continue;
+            if (symbol.range.isEqual(declaration.range)) {
+                break;
             }
-
-            if (!hitTarget) {
-                before.push(symbol);
-            } else {
-                after.push(symbol);
-            }
+            ++relativeSymbolIndex;
         }
+        const start = Math.max(relativeSymbolIndex - 5, 0);
+        const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
+        const before = siblingSymbols.slice(start, relativeSymbolIndex);
+        const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
 
-        // Find the closest relative definition to place the new definition next to.
+        // Find a definition of a sibling symbol in targetDoc.
         for (const symbol of before.reverse()) {
             const definitionLocation = await symbol.findDefinition();
-            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
+            if (!definitionLocation || definitionLocation.uri.path !== targetDoc.uri.path) {
                 continue;
             }
 
-            const definition = await target.getSymbol(definitionLocation.range.start);
+            const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: target.getEndOfStatement(definition.range.end), after: true };
+                return { value: targetDoc.getEndOfStatement(definition.range.end), after: true };
             }
         }
         for (const symbol of after) {
             const definitionLocation = await symbol.findDefinition();
-            if (!definitionLocation || definitionLocation.uri.path !== target.uri.path) {
+            if (!definitionLocation || definitionLocation.uri.path !== targetDoc.uri.path) {
                 continue;
             }
 
-            const definition = await target.getSymbol(definitionLocation.range.start);
+            const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
                 return { value: definition.range.start, before: true };
             }
         }
 
-        // If a relative definition couldn't be found then look for a namespace block to place the new definition in.
+        // If a sibling definition couldn't be found in targetDoc, look for a cooresponding namespace block.
         for (const scope of declaration.scopes().reverse()) {
             if (scope.kind === vscode.SymbolKind.Namespace) {
-                const targetNamespace = await target.findMatchingSymbol(scope);
+                const targetNamespace = await targetDoc.findMatchingSymbol(scope);
                 if (!targetNamespace) {
                     continue;
                 }
 
                 if (targetNamespace.children.length === 0) {
-                    const bodyStart = target.document.offsetAt(targetNamespace.range.start)
+                    const bodyStart = targetDoc.document.offsetAt(targetNamespace.range.start)
                             + targetNamespace.text().indexOf('{') + 1;
-                    return { value: target.document.positionAt(bodyStart), after: true, nextTo: true, emptyScope: true };
+                    return { value: targetDoc.document.positionAt(bodyStart), after: true, nextTo: true, emptyScope: true };
                 }
                 return {
-                    value: target.getEndOfStatement(targetNamespace.children[targetNamespace.children.length - 1].range.end),
+                    value: targetDoc.getEndOfStatement(targetNamespace.children[targetNamespace.children.length - 1].range.end),
                     after: true
                 };
             }
         }
 
-        // If all else fails then place the new definition after the last symbol in the document.
+        // If all else fails then return a position after the last symbol in the document.
         return {
-            value: target.getEndOfStatement(target.symbols[target.symbols.length - 1].range.end),
+            value: targetDoc.getEndOfStatement(targetDoc.symbols[targetDoc.symbols.length - 1].range.end),
             after: true
         };
     }

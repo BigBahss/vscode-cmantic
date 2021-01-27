@@ -94,26 +94,26 @@ export async function addDefinition(
     const document = await vscode.workspace.openTextDocument(targetUri);
     const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
             declarationDoc : new SourceDocument(document);
-    const position = await declarationDoc.findSmartPositionForFunction(functionDeclaration, targetDoc);
+    const position = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     // Construct the snippet for the new function definition.
     const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position.value);
     const curlyBraceFormat = cfg.functionCurlyBraceFormat(document.languageId);
     const eol = util.endOfLine(targetDoc.document);
-    const indent = util.indentation();
+    const indentation = util.indentation();
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + indent + '$0' + eol + '}';
+        functionSkeleton = definition + eol + '{' + eol + indentation + '$0' + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + indent + '$0' + eol + '}';
+        functionSkeleton = definition + ' {' + eol + indentation + '$0' + eol + '}';
     }
 
     if (position.emptyScope && cfg.indentNamespaceBody() && await targetDoc.namespaceBodyIsIndented()) {
-        functionSkeleton = functionSkeleton.replace(/^/gm, indent);
+        functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
     await util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.uri);
