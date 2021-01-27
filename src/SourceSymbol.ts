@@ -53,7 +53,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase) {
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !location.range.isEqual(this.selectionRange)) {
                 return location;
             }
         }
@@ -72,7 +72,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !location.range.isEqual(this.range)) {
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !location.range.isEqual(this.selectionRange)) {
                 return location;
             }
         }
