@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
+import { SourceDocument } from './SourceDocument';
 
 
 // Represents a C/C++ source file.
@@ -13,6 +14,13 @@ export class SourceFile
     constructor(uri: vscode.Uri)
     {
         this.uri = uri;
+    }
+
+    // Effectively promotes this SourceFile to a SourceDocument by opening the cooresponding TextDocument.
+    async openDocument(): Promise<SourceDocument>
+    {
+        const document = await vscode.workspace.openTextDocument(this.uri);
+        return new SourceDocument(document, this);
     }
 
     /* Executes the 'vscode.executeDocumentSymbolProvider' command and converts them to

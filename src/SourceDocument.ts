@@ -11,10 +11,17 @@ export class SourceDocument extends SourceFile
 {
     readonly document: vscode.TextDocument;
 
-    constructor(document: vscode.TextDocument)
+    constructor(document: vscode.TextDocument, sourceFile?: SourceFile)
     {
         super(document.uri);
         this.document = document;
+        this.symbols = sourceFile?.symbols;
+    }
+
+    static async open(uri: vscode.Uri): Promise<SourceDocument>
+    {
+        const document = await vscode.workspace.openTextDocument(uri);
+        return new SourceDocument(document);
     }
 
     text(): string { return this.document.getText(); }
