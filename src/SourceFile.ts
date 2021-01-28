@@ -131,7 +131,7 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async namespaceBodyIsIndented(): Promise<boolean>
+    async isNamespaceBodyIndented(): Promise<boolean>
     {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();

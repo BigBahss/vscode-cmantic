@@ -112,7 +112,7 @@ export async function addDefinition(
         functionSkeleton = definition + ' {' + eol + indentation + '$0' + eol + '}';
     }
 
-    if (position.emptyScope && cfg.indentNamespaceBody() && await targetDoc.namespaceBodyIsIndented()) {
+    if (position.emptyScope && cfg.indentNamespaceBody() && await targetDoc.isNamespaceBodyIndented()) {
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
