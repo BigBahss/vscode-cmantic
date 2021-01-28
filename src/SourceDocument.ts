@@ -26,6 +26,8 @@ export class SourceDocument extends SourceFile
 
     text(): string { return this.document.getText(); }
 
+    isCpp(): boolean { return this.document.languageId === 'cpp'; }
+
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
         const sourceSymbol = await super.getSymbol(position);

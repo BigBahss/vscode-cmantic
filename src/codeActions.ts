@@ -4,8 +4,10 @@ import { SourceDocument } from "./SourceDocument";
 import { SourceFile } from "./SourceFile";
 import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
+import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { getMatchingSourceFile } from './extension';
+import { SourceSymbol } from './SourceSymbol';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -16,8 +18,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
-        // TODO: Returning commands from a CodeActionProvider is deprecated.
-        // Refactor to implement CodeAction's and return them instead.
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
@@ -40,6 +40,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
     ): Promise<vscode.CodeAction[]> {
         if (symbol?.isFunctionDeclaration()) {
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
+        } else if (symbol?.isFunctionDefinition()) {
+            return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
             return await this.getMemberVariableRefactorings(symbol, sourceDoc, matchingUri);
         }
@@ -95,6 +97,74 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc, sourceDoc.uri]
             },
             disabled: addDefinitionInCurrentFileDisabled
+        }];
+    }
+
+    private async getFunctionDefinitionRefactorings(
+        symbol: CSymbol,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<vscode.CodeAction[]> {
+        const declarationLocation = await symbol?.findDeclaration();
+
+        let moveDefinitionToMatchingSourceFileTitle = moveDefinitionTitle.matchingSourceFile;
+        let moveDefinitionToMatchingSourceFileDisabled: { readonly reason: string } | undefined;
+        let moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoOrOutOfClassPlaceholder;
+        let moveDefinitionIntoOrOutOfClassDisabled: { readonly reason: string } | undefined;
+
+        let declaration: SourceSymbol | undefined;
+        if (declarationLocation) {
+            let declarationFile = new SourceFile(declarationLocation.uri);
+            declaration = await declarationFile.getSymbol(declarationLocation.range.start);
+            if (symbol.kind === vscode.SymbolKind.Method || declaration?.kind === vscode.SymbolKind.Method) {
+                if (declaration?.location.uri.path === symbol.uri.path
+                        && declaration.selectionRange.isEqual(symbol.selectionRange)) {
+                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+                } else {
+                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass;
+                }
+            } else {
+                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMethod };
+            }
+        } else if (symbol.kind === vscode.SymbolKind.Method) {
+            moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+        }
+        if (!sourceDoc.isCpp()) {
+            moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
+        }
+
+        if (symbol?.isInline()) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
+        }
+        if (symbol?.isConstexpr()) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
+        }
+        if (matchingUri) {
+            // TODO: Elide the path if it is very long.
+            moveDefinitionToMatchingSourceFileTitle = 'Move Definition to "' + util.workspaceRelativePath(matchingUri.path) + '"';
+        } else {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
+        }
+
+        return [{
+            title: moveDefinitionToMatchingSourceFileTitle,
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: moveDefinitionToMatchingSourceFileTitle,
+                command: 'cmantic.moveDefinitionToMatchingSourceFile',
+                arguments: [symbol, matchingUri, declaration]
+            },
+            disabled: moveDefinitionToMatchingSourceFileDisabled
+        },
+        {
+            title: moveDefinitionIntoOrOutOfClassTitle,
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: moveDefinitionIntoOrOutOfClassTitle,
+                command: 'cmantic.moveDefinitionIntoOrOutOfClass',  // Placeholder, for now.
+                arguments: [symbol, sourceDoc.uri]
+            },
+            disabled: moveDefinitionIntoOrOutOfClassDisabled
         }];
     }
 
