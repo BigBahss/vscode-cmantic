@@ -21,7 +21,7 @@ export async function addHeaderGuard(): Promise<void>
         return;
     }
 
-    const headerGuardPosition = sourceDoc.findPositionForNewHeaderGuard();
+    const headerGuardPosition = sourceDoc.positionAfterHeaderComment();
     const eol = util.endOfLine(sourceDoc.document);
 
     let header = '';
