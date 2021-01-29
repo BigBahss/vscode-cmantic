@@ -115,7 +115,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             const getter = symbol.parent?.findGetterFor(symbol);
             const setter = symbol.parent?.findSetterFor(symbol);
 
-            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
+            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterOrSetterExists } : undefined;
             generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
             generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
 
