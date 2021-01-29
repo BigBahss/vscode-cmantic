@@ -170,7 +170,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (matchingUri) {
             createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
         }
-        if (await sourceDoc.hasHeaderGuard()) {
+        if (sourceDoc.hasHeaderGuard()) {
             addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
         }
 

@@ -16,7 +16,7 @@ export async function addHeaderGuard(): Promise<void>
     if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
         return;
-    } else if (await sourceDoc.hasHeaderGuard()) {
+    } else if (sourceDoc.hasHeaderGuard()) {
         vscode.window.showInformationMessage('A header guard already exists.');
         return;
     }

@@ -46,24 +46,33 @@ export class SourceDocument extends SourceFile
         return new CSymbol(sourceSymbol, this.document);
     }
 
-    async hasHeaderGuard(): Promise<boolean>
+    hasHeaderGuard(): boolean
     {
-        if (this.text().match(/^\s*#pragma\s+once\b/)) {
-            return true;
-        }
+        return this.positionAfterHeaderGuard() !== undefined;
+    }
 
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
+    positionAfterHeaderGuard(): vscode.Position | undefined
+    {
+        let offset: number | undefined;
+        let maskedText = util.maskComments(this.text());
+        maskedText = util.maskStringLiterals(maskedText);
+
+        const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
+        if (pragmaOnceMatch) {
+            offset = pragmaOnceMatch.index;
         }
 
         const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
-        for (const symbol of this.symbols) {
-            if (symbol.kind === vscode.SymbolKind.Constant && symbol.name === headerGuardDefine) {
-                return true;
-            }
+        const re_headerGuardDefine = new RegExp('^\\s*#define\\s+' + headerGuardDefine + '\\b', 'm');
+        const defineMatch = maskedText.match(re_headerGuardDefine);
+        if (defineMatch) {
+            offset = defineMatch.index;
         }
 
-        return false;
+        if (offset !== undefined) {
+            const positionOfHeaderGuard = this.document.positionAt(offset);
+            return new vscode.Position(positionOfHeaderGuard.line + 1, 0);
+        }
     }
 
     // Returns the best position to place the definition for declaration.
