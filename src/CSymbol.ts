@@ -49,28 +49,24 @@ export class CSymbol extends SourceSymbol
     // Returns all the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
 
-    // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
-    id(): string { return this.document.getText(this.selectionRange); }
-
     // Checks for common naming schemes of private members and return the base name.
     baseName(): string
     {
-        const memberName = this.id();
         let baseMemberName: string | undefined;
-        let match = /^_+[\w_][\w\d_]*_*$/.exec(memberName);
+        let match = /^_+[\w_][\w\d_]*_*$/.exec(this.name);
         if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^_+|_*$/g, '');
+            baseMemberName = this.name.replace(/^_+|_*$/g, '');
         }
-        match = /^_*[\w_][\w\d_]*_+$/.exec(memberName);
+        match = /^_*[\w_][\w\d_]*_+$/.exec(this.name);
         if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^_*|_+$/g, '');
+            baseMemberName = this.name.replace(/^_*|_+$/g, '');
         }
-        match = /^m_[\w_][\w\d_]*$/.exec(memberName);
+        match = /^m_[\w_][\w\d_]*$/.exec(this.name);
         if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^m_/, '');
+            baseMemberName = this.name.replace(/^m_/, '');
         }
 
-        return baseMemberName ? baseMemberName : memberName;
+        return baseMemberName ? baseMemberName : this.name;
     }
 
     getterName(memberBaseName?: string): string
@@ -80,7 +76,7 @@ export class CSymbol extends SourceSymbol
         }
 
         memberBaseName = memberBaseName ? memberBaseName : this.baseName();
-        if (memberBaseName === this.id()) {
+        if (memberBaseName === this.name) {
             return 'get' + util.firstCharToUpper(memberBaseName);
         }
         return memberBaseName;
@@ -104,7 +100,7 @@ export class CSymbol extends SourceSymbol
 
         const getterName = memberVariable.getterName();
 
-        return this.findChild(child => child.id() === getterName);
+        return this.findChild(child => child.name === getterName);
     }
 
     findSetterFor(memberVariable: CSymbol): CSymbol | undefined
@@ -115,14 +111,14 @@ export class CSymbol extends SourceSymbol
 
         const setterName = memberVariable.setterName();
 
-        return this.findChild(child => child.id() === setterName);
+        return this.findChild(child => child.name === setterName);
     }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
 
-    // Returns the text contained in this symbol that comes before this.id().
+    // Returns the text contained in this symbol that comes before this.name.
     leading(): string
     {
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
@@ -213,7 +209,7 @@ export class CSymbol extends SourceSymbol
 
         for (let i = fallbackIndex; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id() === relativeName) {
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.name === relativeName) {
                 if (isGetter) {
                     return { value: symbol.range.start, before: true, nextTo: true };
                 } else {
@@ -241,7 +237,7 @@ export class CSymbol extends SourceSymbol
         case vscode.SymbolKind.Constructor:
             return true;
         case vscode.SymbolKind.Method:
-            return this.id() === this.parent?.id();
+            return this.name === this.parent?.name;
         default:
             return false;
         }
@@ -252,7 +248,7 @@ export class CSymbol extends SourceSymbol
         switch (this.kind) {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
-            return this.id() === '~' + this.parent?.id();
+            return this.name === '~' + this.parent?.name;
         default:
             return false;
         }
@@ -310,15 +306,14 @@ export class CSymbol extends SourceSymbol
             const targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a namespace block. If so, omit that scope.id().
             if (!targetScope || (position && !targetScope.range.contains(position))) {
-                scopeString += scope.id() + '::';
+                scopeString += scope.name + '::';
             }
         }
 
-        const funcName = this.id();
         const declaration = this.text().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
 
-        const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(funcName) + funcName.length) + 1;
+        const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
         const lastParen = maskedDeclaration.lastIndexOf(')');
         const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
         const paramEnd = (trailingReturnOperator === -1) ?
@@ -331,7 +326,7 @@ export class CSymbol extends SourceSymbol
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
-        let definition = funcName + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
+        let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
         definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
 
         definition = leadingText + scopeString + definition;
