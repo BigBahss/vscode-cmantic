@@ -233,9 +233,9 @@ export class SourceDocument extends SourceFile
         }
 
         for (let i = startLineNum; i >= 0; --i) {
-            const line = this.document.lineAt(i);
-            if (!line.isEmptyOrWhitespace) {
-                return { system: line.range.end, project: line.range.end };
+            if (!this.document.lineAt(i).isEmptyOrWhitespace) {
+                const line = this.document.lineAt(i + 1);
+                return { system: line.range.start, project: line.range.start };
             }
         }
 
