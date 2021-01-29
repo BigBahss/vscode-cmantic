@@ -315,7 +315,7 @@ export class CSymbol extends SourceSymbol
         }
 
         const funcName = this.id();
-        const declaration = this.text();
+        const declaration = this.text().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
 
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(funcName) + funcName.length) + 1;
@@ -331,8 +331,7 @@ export class CSymbol extends SourceSymbol
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
-        let definition = funcName + '(' + parameters + ')'
-                + declaration.substring(paramEnd + 1, declaration.length - 1);
+        let definition = funcName + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
         definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
 
         definition = leadingText + scopeString + definition;
