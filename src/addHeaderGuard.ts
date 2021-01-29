@@ -4,7 +4,7 @@ import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
 
 
-export function addHeaderGuard(): void
+export async function addHeaderGuard(): Promise<void>
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
@@ -15,6 +15,9 @@ export function addHeaderGuard(): void
     const sourceDoc = new SourceDocument(activeEditor.document);
     if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
+        return;
+    } else if (await sourceDoc.hasHeaderGuard()) {
+        vscode.window.showInformationMessage('A header guard already exists.');
         return;
     }
 
