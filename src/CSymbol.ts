@@ -341,19 +341,14 @@ export class CSymbol extends SourceSymbol
     }
 
     // Masks comments, strings/chars, and template parameters in order to make parsing easier.
-    private maskUnimportantText(source: string, maskChar: string = ' '): string
+    private maskUnimportantText(sourceText: string, maskChar: string = ' '): string
     {
-        const replacer = (match: string) => maskChar.repeat(match.length);
-        // Mask comments
-        source = source.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
-        source = source.replace(/(?<=\/\/).*/g, replacer);
-        // Mask quoted characters
-        source = source.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
-        source = source.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+        sourceText = util.maskComments(sourceText, maskChar);
+        sourceText = util.maskStringLiterals(sourceText, maskChar);
         // Mask template parameters
-        source = source.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, replacer);
+        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, (match) => maskChar.repeat(match.length));
 
-        return source;
+        return sourceText;
     }
 
     private stripDefaultValues(parameters: string): string

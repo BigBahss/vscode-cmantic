@@ -112,6 +112,22 @@ export function firstCharToUpper(str: string): string
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+export function maskComments(sourceText: string, maskChar: string = ' '): string
+{
+    const replacer = (match: string) => maskChar.repeat(match.length);
+    sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
+    sourceText = sourceText.replace(/(?<=\/\/).*/g, replacer);
+    return sourceText;
+}
+
+export function maskStringLiterals(sourceText: string, maskChar: string = ' '): string
+{
+    const replacer = (match: string) => maskChar.repeat(match.length);
+    sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
+    sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+    return sourceText;
+}
+
 export async function insertSnippetAndReveal(
     text: string,
     position: ProposedPosition,
