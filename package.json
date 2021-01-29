@@ -1,10 +1,10 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
-  "version": "0.2.0",
+  "description": "Provides various refactorings and commands for C/C++",
+  "version": "0.2.1",
   "icon": "images/cmantic.png",
-  "publisher": "TylerDennis",
+  "publisher": "tdennis4496",
   "author": {
     "name": "Tyler Dennis",
     "url": "https://github.com/BigBahss"
@@ -22,17 +22,11 @@
     "Programming Languages"
   ],
   "keywords": [
-    "c",
     "c++",
-    "cpp",
-    "switch",
-    "header",
-    "source",
-    "definition",
     "refactor",
-    "action",
-    "include",
-    "guard"
+    "code action",
+    "generate definition",
+    "generate accessor"
   ],
   "activationEvents": [
     "onLanguage:c",
@@ -201,6 +195,5 @@
     "mocha": "^7.1.1",
     "typescript": "^3.8.3",
     "vscode-test": "^1.3.0"
-  },
-  "dependencies": {}
+  }
 }

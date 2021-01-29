@@ -21,8 +21,6 @@ C-mantic requires a C/C++ language server extension, such as Microsoft's `C/C++`
 
 ## Features in-depth
 
----
-
 ### Add Definition
 Selecting an undefined function declaration with your cursor will suggest the following code actions in the lightbulb menu.
 
