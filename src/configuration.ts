@@ -27,7 +27,7 @@ const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.SameLine;
 const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
-const defaultHeaderGuardDefineFormat = '${FILENAME_EXT}';
+const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
 
 
 export function headerExtensions(): string[]
@@ -118,7 +118,10 @@ const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
 
 export function headerGuardDefine(fileName: string): string
 {
-    const FILENAME_EXT = fileName.replace(re_charactersNotAllowedInIdentifiers, '_').toUpperCase();
-    const FILENAME = util.fileNameBase(fileName).replace(re_charactersNotAllowedInIdentifiers, '_').toUpperCase();
-    return headerGuardDefineFormat().replace('${FILENAME_EXT}', FILENAME_EXT).replace('${FILENAME}', FILENAME);
+    const FILE_NAME_EXT = fileName.toUpperCase();
+    const FILE_NAME = util.fileNameBase(fileName).toUpperCase();
+    return headerGuardDefineFormat()
+            .replace('${FILE_NAME_EXT}', FILE_NAME_EXT)
+            .replace('${FILE_NAME}', FILE_NAME)
+            .replace(re_charactersNotAllowedInIdentifiers, '_');
 }
