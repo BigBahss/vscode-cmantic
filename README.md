@@ -4,7 +4,7 @@ C/C++ extension for VS Code that provides semantic aware commands and refactorin
 
 ## Dependencies
 
-C-mantic requires a C/C++ language server extension, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). Currently, C-mantic has been tested to work with `C/C++` (ms-vscode.cpptools), and `ccls` (ccls-project.ccls).
+C-mantic requires a C/C++ language server extension, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but has also been tested to work on `ccls` (ccls-project.ccls) and `clangd` (llvm-vs-code-extensions.vscode-clangd).
 
 ## Features
 C-mantic contributes various commands and code actions to VS Code. Relevant code actions will be suggested via the lightbulb menu, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu.
