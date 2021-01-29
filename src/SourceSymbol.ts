@@ -3,6 +3,7 @@ import * as util from './utility';
 
 
 // Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
+// Additionally, some properties are normalized for different language servers.
 export class SourceSymbol extends vscode.DocumentSymbol
 {
     readonly uri: vscode.Uri;
@@ -20,8 +21,17 @@ export class SourceSymbol extends vscode.DocumentSymbol
         this.parent = parent;
 
         // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
-        if (docSymbol.name.indexOf('(') !== -1) {
+        if (docSymbol.name.includes('(')) {
             this.name = docSymbol.name.substring(0, docSymbol.name.indexOf('('));
+        }
+
+        // ccls puts function signatures in the detail property.
+        if (docSymbol.detail.includes(docSymbol.name + '(')) {
+            this.signature = docSymbol.detail;
+            // ccls recognizes static methods as properties, so we set kind to Method.
+            if (docSymbol.kind === vscode.SymbolKind.Property) {
+                this.kind = vscode.SymbolKind.Method;
+            }
         }
 
         // Sort docSymbol.children based on their relative position to eachother.
