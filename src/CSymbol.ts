@@ -49,71 +49,6 @@ export class CSymbol extends SourceSymbol
     // Returns all the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
 
-    // Checks for common naming schemes of private members and return the base name.
-    baseName(): string
-    {
-        let baseMemberName: string | undefined;
-        let match = /^_+[\w_][\w\d_]*_*$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^_+|_*$/g, '');
-        }
-        match = /^_*[\w_][\w\d_]*_+$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^_*|_+$/g, '');
-        }
-        match = /^m_[\w_][\w\d_]*$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^m_/, '');
-        }
-
-        return baseMemberName ? baseMemberName : this.name;
-    }
-
-    getterName(memberBaseName?: string): string
-    {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
-        if (memberBaseName === this.name) {
-            return 'get' + util.firstCharToUpper(memberBaseName);
-        }
-        return memberBaseName;
-    }
-
-    setterName(memberBaseName?: string): string
-    {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
-        return 'set' + util.firstCharToUpper(memberBaseName);
-    }
-
-    findGetterFor(memberVariable: CSymbol): CSymbol | undefined
-    {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const getterName = memberVariable.getterName();
-
-        return this.findChild(child => child.name === getterName);
-    }
-
-    findSetterFor(memberVariable: CSymbol): CSymbol | undefined
-    {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const setterName = memberVariable.setterName();
-
-        return this.findChild(child => child.name === setterName);
-    }
-
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
@@ -122,18 +57,6 @@ export class CSymbol extends SourceSymbol
     leading(): string
     {
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
-    }
-
-    // Shadows scopes() in SourceSymbol but returns them as CSymbols.
-    scopes(): CSymbol[]
-    {
-        let scopes: CSymbol[] = [];
-        let symbol: CSymbol = this;
-        while (symbol.parent) {
-            scopes.push(symbol.parent);
-            symbol = symbol.parent;
-        }
-        return scopes.reverse();
     }
 
     // Finds a position for a new public method within this class or struct.
@@ -229,29 +152,6 @@ export class CSymbol extends SourceSymbol
     isFunctionDefinition(): boolean
     {
         return this.isFunction() && !this.isFunctionDeclaration();
-    }
-
-    isConstructor(): boolean
-    {
-        switch (this.kind) {
-        case vscode.SymbolKind.Constructor:
-            return true;
-        case vscode.SymbolKind.Method:
-            return this.name === this.parent?.name;
-        default:
-            return false;
-        }
-    }
-
-    isDestructor(): boolean
-    {
-        switch (this.kind) {
-        case vscode.SymbolKind.Constructor:
-        case vscode.SymbolKind.Method:
-            return this.name === '~' + this.parent?.name;
-        default:
-            return false;
-        }
     }
 
     isConstexpr(): boolean

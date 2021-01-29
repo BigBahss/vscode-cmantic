@@ -116,4 +116,92 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return false;
         }
     }
+
+    isConstructor(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Constructor:
+            return true;
+        case vscode.SymbolKind.Method:
+            return this.name === this.parent?.name;
+        default:
+            return false;
+        }
+    }
+
+    isDestructor(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Constructor:
+        case vscode.SymbolKind.Method:
+            return this.name === '~' + this.parent?.name;
+        default:
+            return false;
+        }
+    }
+
+    // Checks for common naming schemes of private members and return the base name.
+    baseName(): string
+    {
+        let baseMemberName: string | undefined;
+        let match = /^_+[\w_][\w\d_]*_*$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^_+|_*$/g, '');
+        }
+        match = /^_*[\w_][\w\d_]*_+$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^_*|_+$/g, '');
+        }
+        match = /^m_[\w_][\w\d_]*$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^m_/, '');
+        }
+
+        return baseMemberName ? baseMemberName : this.name;
+    }
+
+    getterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        if (memberBaseName === this.name) {
+            return 'get' + util.firstCharToUpper(memberBaseName);
+        }
+        return memberBaseName;
+    }
+
+    setterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        return 'set' + util.firstCharToUpper(memberBaseName);
+    }
+
+    findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
+    {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const getterName = memberVariable.getterName();
+
+        return this.findChild(child => child.name === getterName);
+    }
+
+    findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
+    {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const setterName = memberVariable.setterName();
+
+        return this.findChild(child => child.name === setterName);
+    }
 }
