@@ -76,14 +76,6 @@
       {
         "command": "cmantic.addHeaderGuard",
         "title": "C-mantic: Add Header Guard"
-      },
-      {
-        "command": "editor.action.refactor",
-        "title": "Refactor..."
-      },
-      {
-        "command": "editor.action.sourceAction",
-        "title": "Source Action..."
       }
     ],
     "menus": {
@@ -92,42 +84,9 @@
           "command": "cmantic.switchHeaderSourceInWorkspace",
           "group": "navigation@100",
           "when": "resourceLangId =~ /^c|cpp$/ && config.C_mantic.contextMenu.switchHeaderSource"
-        },
-        {
-          "command": "editor.action.refactor",
-          "group": "1_modification@2",
-          "when": "resourceLangId =~ /^c|cpp$/"
-        },
-        {
-          "command": "editor.action.sourceAction",
-          "group": "1_modification@2",
-          "when": "resourceLangId =~ /^c|cpp$/"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "editor.action.refactor",
-          "when": "false"
-        },
-        {
-          "command": "editor.action.sourceAction",
-          "when": "false"
         }
       ]
     },
-    "codeActions": [
-      {
-        "actions": {
-          "title": "%codeActions.refactor.title%",
-          "description": "%codeActions.refactor.description%",
-          "kind": "refactor"
-        },
-        "languages": [
-          "c",
-          "cpp"
-        ]
-      }
-    ],
     "configuration": [
       {
         "title": "C-mantic",
