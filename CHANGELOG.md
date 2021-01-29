@@ -2,6 +2,9 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+Nothing, yet.
+
+## [0.2.1] - January 29, 2021
 ### Changed
 - `cmantic.addHeaderGuard` will now validate static text given by the user in the `C_mantic.headerGuard.defineFormat` setting by replacing illegal symbols with underscores.
 - `cmantic.createMatchingSourceFile` will now sort directory suggestions based on their similarity to the header file's directory. This means that the top directory in the list is most likely the directoy the user wants to put the new file in, and can just press enter.
