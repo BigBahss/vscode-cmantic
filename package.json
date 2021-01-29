@@ -3,6 +3,7 @@
   "displayName": "C-mantic",
   "description": "C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
   "version": "0.2.0",
+  "icon": "images/cmantic.png",
   "publisher": "TylerDennis",
   "author": {
     "name": "Tyler Dennis",
