@@ -6,6 +6,7 @@ import * as util from './utility';
 export class SourceSymbol extends vscode.DocumentSymbol
 {
     readonly uri: vscode.Uri;
+    signature: string;
     parent?: SourceSymbol;
     children: SourceSymbol[];
 
@@ -15,11 +16,17 @@ export class SourceSymbol extends vscode.DocumentSymbol
     {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
         this.uri = uri;
+        this.signature = docSymbol.name;
         this.parent = parent;
 
-        // Sorts docSymbol.children based on their relative position to eachother.
+        // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
+        if (docSymbol.name.indexOf('(') !== -1) {
+            this.name = docSymbol.name.substring(0, docSymbol.name.indexOf('('));
+        }
+
+        // Sort docSymbol.children based on their relative position to eachother.
         docSymbol.children.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-            return a.range.start.isAfter(b.range.start) ? 1 : -1;
+            return a.range.end.isAfter(b.range.end) ? 1 : -1;
         });
 
         // Convert docSymbol.children to SourceSymbols to set the children property.
