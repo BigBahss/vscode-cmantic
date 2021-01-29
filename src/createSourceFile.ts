@@ -36,10 +36,18 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const fileNameBase = util.fileNameBase(currentDocument.uri.path);
+    const headerFileNameBase = util.fileNameBase(currentDocument.uri.path);
+    const headerDirectory = util.directory(currentDocument.uri.path);
+
+    const sourceFolders = await findSourceFolders(workspaceFolder.uri);
+    sourceFolders.sort((a: FolderItem, b: FolderItem): number => {
+        const diff_a = util.compareDirectoryPaths(a.path, headerDirectory);
+        const diff_b = util.compareDirectoryPaths(b.path, headerDirectory);
+        return (diff_a < diff_b) ? -1 : 1;
+    });
 
     const folder = await vscode.window.showQuickPick(
-            await findSourceFolders(workspaceFolder.uri),
+            sourceFolders,
             { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
     if (!folder) {
         return;
@@ -52,7 +60,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const newFilePath = folder.path + '/' + fileNameBase + '.' + extension;
+    const newFilePath = folder.path + '/' + headerFileNameBase + '.' + extension;
     const newFileUri = vscode.Uri.parse(newFilePath);
     const eol = util.endOfLine(currentDocument);
     const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
