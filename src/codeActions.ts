@@ -115,7 +115,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             const getter = symbol.parent?.findGetterFor(symbol);
             const setter = symbol.parent?.findSetterFor(symbol);
 
-            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
+            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterOrSetterExists } : undefined;
             generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
             generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
 
@@ -170,7 +170,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (matchingUri) {
             createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
         }
-        if (await sourceDoc.hasHeaderGuard()) {
+        if (sourceDoc.hasHeaderGuard()) {
             addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
         }
 

@@ -17,7 +17,8 @@ export const failure = {
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
     positionNotFound: 'Could not find a position for new accessor method.',
-    getterSetterExists: 'There already exists a \'get\' or \'set\' method.',
+    getterOrSetterExists: 'There already exists a \'get\' or \'set\' method.',
+    getterAndSetterExists: 'There already exists \'get\' and \'set\' methods.',
     getterExists: 'There already exists a \'get\' method.',
     setterExists: 'There already exists a \'set\' method.',
     isConst: 'Const variables cannot be assigned after initialization.'
@@ -32,17 +33,17 @@ enum AccessorType {
 
 export async function generateGetterSetter(): Promise<void>
 {
-    return getCurrentSymbolAndCall(generateGetterSetterFor);
+    await getCurrentSymbolAndCall(generateGetterSetterFor);
 }
 
 export async function generateGetter(): Promise<void>
 {
-    return getCurrentSymbolAndCall(generateGetterFor);
+    await getCurrentSymbolAndCall(generateGetterFor);
 }
 
 export async function generateSetter(): Promise<void>
 {
-    return getCurrentSymbolAndCall(generateSetterFor);
+    await getCurrentSymbolAndCall(generateSetterFor);
 }
 
 async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<void>): Promise<void>
@@ -70,14 +71,33 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
         return;
     }
 
-    return callback(symbol);
+    await callback(symbol);
 }
 
 export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 {
+    const getter = symbol.parent?.findGetterFor(symbol);
+    const setter = symbol.parent?.findSetterFor(symbol);
+
     if (symbol.isConst()) {
+        if (getter) {
+            vscode.window.showErrorMessage(failure.isConst + ' ' + failure.getterExists);
+            return;
+        }
         vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
-        return generateGetterFor(symbol);
+        await generateGetterFor(symbol);
+        return;
+    } else if (getter && !setter) {
+        vscode.window.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
+        await generateSetterFor(symbol);
+        return;
+    } else if (!getter && setter) {
+        vscode.window.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
+        await generateGetterFor(symbol);
+        return;
+    } else if (getter && setter) {
+        vscode.window.showErrorMessage(failure.getterAndSetterExists);
+        return;
     }
 
     await findPositionAndCall(symbol, AccessorType.Both, async (position) => {
@@ -88,6 +108,12 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
 
 export async function generateGetterFor(symbol: CSymbol): Promise<void>
 {
+    const getter = symbol.parent?.findGetterFor(symbol);
+    if (getter) {
+        vscode.window.showInformationMessage(failure.getterExists);
+        return;
+    }
+
     await findPositionAndCall(symbol, AccessorType.Getter, async (position) => {
         await util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.uri);
     });
@@ -97,6 +123,12 @@ export async function generateSetterFor(symbol: CSymbol): Promise<void>
 {
     if (symbol.isConst()) {
         vscode.window.showErrorMessage(failure.isConst);
+        return;
+    }
+
+    const setter = symbol.parent?.findSetterFor(symbol);
+    if (setter) {
+        vscode.window.showInformationMessage(failure.setterExists);
         return;
     }
 
@@ -129,7 +161,7 @@ async function findPositionAndCall(
         return;
     }
 
-    return callback(position);
+    await callback(position);
 }
 
 function constructGetter(symbol: CSymbol): string

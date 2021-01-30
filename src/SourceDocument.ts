@@ -46,24 +46,54 @@ export class SourceDocument extends SourceFile
         return new CSymbol(sourceSymbol, this.document);
     }
 
-    async hasHeaderGuard(): Promise<boolean>
+    hasHeaderGuard(): boolean
     {
-        if (this.text().match(/^\s*#pragma\s+once\b/)) {
-            return true;
-        }
+        return this.positionAfterHeaderGuard() !== undefined;
+    }
 
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
+    positionAfterHeaderGuard(): vscode.Position | undefined
+    {
+        let offset: number | undefined;
+        let maskedText = util.maskComments(this.text());
+        maskedText = util.maskStringLiterals(maskedText);
+
+        const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
+        if (pragmaOnceMatch) {
+            offset = pragmaOnceMatch.index;
         }
 
         const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
-        for (const symbol of this.symbols) {
-            if (symbol.kind === vscode.SymbolKind.Constant && symbol.name === headerGuardDefine) {
-                return true;
-            }
+        const re_headerGuardDefine = new RegExp('^\\s*#define\\s+' + headerGuardDefine + '\\b', 'm');
+        const defineMatch = maskedText.match(re_headerGuardDefine);
+        if (defineMatch) {
+            offset = defineMatch.index;
         }
 
-        return false;
+        if (offset !== undefined) {
+            const positionOfHeaderGuard = this.document.positionAt(offset);
+            return new vscode.Position(positionOfHeaderGuard.line + 1, 0);
+        }
+    }
+
+    positionAfterHeaderComment(): ProposedPosition
+    {
+        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
+                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
+        let match = maskedText.match(/\S/);
+        if (match?.index !== undefined) {
+            // Return position before first non-comment text.
+            return {
+                value: this.document.positionAt(match.index),
+                before: true
+            };
+        }
+
+        // Return position after header comment when there is no non-comment text in the file.
+        const endTrimmedTextLength = this.text().trimEnd().length;
+        return {
+            value: this.document.positionAt(endTrimmedTextLength),
+            after: endTrimmedTextLength !== 0
+        };
     }
 
     // Returns the best position to place the definition for declaration.
@@ -155,7 +185,7 @@ export class SourceDocument extends SourceFile
     }
 
     // Returns the best positions to place new includes (system and project includes).
-    async findPositionForNewInclude(): Promise<{ system: vscode.Position; project: vscode.Position }>
+    findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
     {
         // TODO: Clean up this mess.
         const largestBlock = (
@@ -216,44 +246,12 @@ export class SourceDocument extends SourceFile
             return { system: systemIncludePos, project: projectIncludePos };
         }
 
-        let startLineNum = this.document.lineCount - 1;
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
-        }
-        if (this.symbols.length === 0) {
-            startLineNum = this.document.lineCount - 1;
-        } else {
-            startLineNum = this.symbols[0].range.start.line;
+        let position = this.positionAfterHeaderGuard();
+        if (!position) {
+            position = this.positionAfterHeaderComment().value;
         }
 
-        for (let i = startLineNum; i >= 0; --i) {
-            const line = this.document.lineAt(i);
-            if (!line.isEmptyOrWhitespace) {
-                return { system: line.range.end, project: line.range.end };
-            }
-        }
-
-        return { system: new vscode.Position(0, 0), project: new vscode.Position(0, 0) };
-    }
-
-    // Finds a position for a header guard by skipping over any comments that appear at the top of the file.
-    findPositionForNewHeaderGuard(): ProposedPosition
-    {
-        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
-                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
-        let match = maskedText.match(/\S/);
-        if (typeof match?.index === 'number') {
-            return {
-                value: this.document.positionAt(match.index),
-                before: true
-            };
-        }
-
-        const endTrimmedTextLength = this.text().trimEnd().length;
-        return {
-            value: this.document.positionAt(endTrimmedTextLength),
-            after: endTrimmedTextLength !== 0
-        };
+        return { system: position, project: position };
     }
 
     // Returns a position after the last symbol in this SourceDocument, or the last non-empty line.

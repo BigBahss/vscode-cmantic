@@ -34,7 +34,8 @@ export function activate(context: vscode.ExtensionContext)
 
     vscode.languages.registerCodeActionsProvider(
         [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
-        new CodeActionProvider()
+        new CodeActionProvider(),
+        { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] }
     );
 
     disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));

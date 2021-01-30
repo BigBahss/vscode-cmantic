@@ -49,95 +49,14 @@ export class CSymbol extends SourceSymbol
     // Returns all the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
 
-    // Returns the identifier of this symbol, such as a function name. this.id() != this.name for functions.
-    id(): string { return this.document.getText(this.selectionRange); }
-
-    // Checks for common naming schemes of private members and return the base name.
-    baseName(): string
-    {
-        const memberName = this.id();
-        let baseMemberName: string | undefined;
-        let match = /^_+[\w_][\w\d_]*_*$/.exec(memberName);
-        if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^_+|_*$/g, '');
-        }
-        match = /^_*[\w_][\w\d_]*_+$/.exec(memberName);
-        if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^_*|_+$/g, '');
-        }
-        match = /^m_[\w_][\w\d_]*$/.exec(memberName);
-        if (match && !baseMemberName) {
-            baseMemberName = memberName.replace(/^m_/, '');
-        }
-
-        return baseMemberName ? baseMemberName : memberName;
-    }
-
-    getterName(memberBaseName?: string): string
-    {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
-        if (memberBaseName === this.id()) {
-            return 'get' + util.firstCharToUpper(memberBaseName);
-        }
-        return memberBaseName;
-    }
-
-    setterName(memberBaseName?: string): string
-    {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
-        return 'set' + util.firstCharToUpper(memberBaseName);
-    }
-
-    findGetterFor(memberVariable: CSymbol): CSymbol | undefined
-    {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const getterName = memberVariable.getterName();
-
-        return this.findChild(child => child.id() === getterName);
-    }
-
-    findSetterFor(memberVariable: CSymbol): CSymbol | undefined
-    {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const setterName = memberVariable.setterName();
-
-        return this.findChild(child => child.id() === setterName);
-    }
-
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
 
-    // Returns the text contained in this symbol that comes before this.id().
+    // Returns the text contained in this symbol that comes before this.name.
     leading(): string
     {
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
-    }
-
-    // Shadows scopes() in SourceSymbol but returns them as CSymbols.
-    scopes(): CSymbol[]
-    {
-        let scopes: CSymbol[] = [];
-        let symbol: CSymbol = this;
-        while (symbol.parent) {
-            scopes.push(symbol.parent);
-            symbol = symbol.parent;
-        }
-        return scopes.reverse();
     }
 
     // Finds a position for a new public method within this class or struct.
@@ -213,7 +132,7 @@ export class CSymbol extends SourceSymbol
 
         for (let i = fallbackIndex; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.id() === relativeName) {
+            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.name === relativeName) {
                 if (isGetter) {
                     return { value: symbol.range.start, before: true, nextTo: true };
                 } else {
@@ -233,29 +152,6 @@ export class CSymbol extends SourceSymbol
     isFunctionDefinition(): boolean
     {
         return this.isFunction() && !this.isFunctionDeclaration();
-    }
-
-    isConstructor(): boolean
-    {
-        switch (this.kind) {
-        case vscode.SymbolKind.Constructor:
-            return true;
-        case vscode.SymbolKind.Method:
-            return this.id() === this.parent?.id();
-        default:
-            return false;
-        }
-    }
-
-    isDestructor(): boolean
-    {
-        switch (this.kind) {
-        case vscode.SymbolKind.Constructor:
-        case vscode.SymbolKind.Method:
-            return this.id() === '~' + this.parent?.id();
-        default:
-            return false;
-        }
     }
 
     isConstexpr(): boolean
@@ -310,15 +206,14 @@ export class CSymbol extends SourceSymbol
             const targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a namespace block. If so, omit that scope.id().
             if (!targetScope || (position && !targetScope.range.contains(position))) {
-                scopeString += scope.id() + '::';
+                scopeString += scope.name + '::';
             }
         }
 
-        const funcName = this.id();
-        const declaration = this.text();
+        const declaration = this.text().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
 
-        const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(funcName) + funcName.length) + 1;
+        const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
         const lastParen = maskedDeclaration.lastIndexOf(')');
         const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
         const paramEnd = (trailingReturnOperator === -1) ?
@@ -331,8 +226,7 @@ export class CSymbol extends SourceSymbol
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
-        let definition = funcName + '(' + parameters + ')'
-                + declaration.substring(paramEnd + 1, declaration.length - 1);
+        let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
         definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
 
         definition = leadingText + scopeString + definition;
@@ -342,19 +236,14 @@ export class CSymbol extends SourceSymbol
     }
 
     // Masks comments, strings/chars, and template parameters in order to make parsing easier.
-    private maskUnimportantText(source: string, maskChar: string = ' '): string
+    private maskUnimportantText(sourceText: string, maskChar: string = ' '): string
     {
-        const replacer = (match: string) => maskChar.repeat(match.length);
-        // Mask comments
-        source = source.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
-        source = source.replace(/(?<=\/\/).*/g, replacer);
-        // Mask quoted characters
-        source = source.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
-        source = source.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+        sourceText = util.maskComments(sourceText, maskChar);
+        sourceText = util.maskStringLiterals(sourceText, maskChar);
         // Mask template parameters
-        source = source.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, replacer);
+        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, (match) => maskChar.repeat(match.length));
 
-        return source;
+        return sourceText;
     }
 
     private stripDefaultValues(parameters: string): string
