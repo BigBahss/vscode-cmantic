@@ -46,8 +46,9 @@ export async function generateSetter(): Promise<void>
     await getCurrentSymbolAndCall(generateSetterFor);
 }
 
-async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<void>): Promise<void>
-{
+async function getCurrentSymbolAndCall(
+    callback: (symbol: CSymbol, sourceDoc: SourceDocument) => Promise<void>
+): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage(failure.noActiveTextEditor);
@@ -71,10 +72,10 @@ async function getCurrentSymbolAndCall(callback: (symbol: CSymbol) => Promise<vo
         return;
     }
 
-    await callback(symbol);
+    await callback(symbol, sourceDoc);
 }
 
-export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
+export async function generateGetterSetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
@@ -85,15 +86,15 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
             return;
         }
         vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
-        await generateGetterFor(symbol);
+        await generateGetterFor(symbol, sourceDoc);
         return;
     } else if (getter && !setter) {
         vscode.window.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
-        await generateSetterFor(symbol);
+        await generateSetterFor(symbol, sourceDoc);
         return;
     } else if (!getter && setter) {
         vscode.window.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
-        await generateGetterFor(symbol);
+        await generateGetterFor(symbol, sourceDoc);
         return;
     } else if (getter && setter) {
         vscode.window.showErrorMessage(failure.getterAndSetterExists);
@@ -101,12 +102,18 @@ export async function generateGetterSetterFor(symbol: CSymbol): Promise<void>
     }
 
     await findPositionAndCall(symbol, AccessorType.Both, async (position) => {
-        const combinedAccessors = constructGetter(symbol) + util.endOfLine(symbol.document) + constructSetter(symbol);
+        const newGetter = constructGetter(symbol);
+        const getterDefinition = (newGetter.isStatic ? 'static ' : '') + newGetter.returnType
+                + newGetter.name + '()' + (newGetter.isStatic ? '' : ' const') + ' { ' + newGetter.body + ' }';
+        const newSetter = constructSetter(symbol);
+        const setterDefinition = (newSetter.isStatic ? 'static ' : '') + 'void '
+                + newSetter.name + '(' + newSetter.parameter + ') { ' + newSetter.body + ' }';
+        const combinedAccessors = getterDefinition + util.endOfLine(symbol.document) + setterDefinition;
         await util.insertSnippetAndReveal(combinedAccessors, position, symbol.uri);
     });
 }
 
-export async function generateGetterFor(symbol: CSymbol): Promise<void>
+export async function generateGetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
@@ -115,11 +122,14 @@ export async function generateGetterFor(symbol: CSymbol): Promise<void>
     }
 
     await findPositionAndCall(symbol, AccessorType.Getter, async (position) => {
-        await util.insertSnippetAndReveal(constructGetter(symbol), position, symbol.uri);
+        const newGetter = constructGetter(symbol);
+        const getterDefinition = (newGetter.isStatic ? 'static ' : '') + newGetter.returnType
+                + newGetter.name + '()' + (newGetter.isStatic ? '' : ' const') + ' { ' + newGetter.body + ' }';
+        await util.insertSnippetAndReveal(getterDefinition, position, symbol.uri);
     });
 }
 
-export async function generateSetterFor(symbol: CSymbol): Promise<void>
+export async function generateSetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
 {
     if (symbol.isConst()) {
         vscode.window.showErrorMessage(failure.isConst);
@@ -133,7 +143,10 @@ export async function generateSetterFor(symbol: CSymbol): Promise<void>
     }
 
     await findPositionAndCall(symbol, AccessorType.Setter, async (position) => {
-        await util.insertSnippetAndReveal(constructSetter(symbol), position, symbol.uri);
+        const newSetter = constructSetter(symbol);
+        const setterDefinition = (newSetter.isStatic ? 'static ' : '') + 'void '
+                + newSetter.name + '(' + newSetter.parameter + ') { ' + newSetter.body + ' }';
+        await util.insertSnippetAndReveal(setterDefinition, position, symbol.uri);
     });
 }
 
@@ -164,24 +177,46 @@ async function findPositionAndCall(
     await callback(position);
 }
 
-function constructGetter(symbol: CSymbol): string
-{
-    const leadingText = symbol.leading();
-    const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
-    const constness = staticness ? '' : ' const';
-    const type = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
-
-    return staticness + type + symbol.getterName() + '()' + constness + ' { return ' + symbol.name + '; }';
+interface NewGetter {
+    member: CSymbol;
+    name: string;
+    isStatic: boolean;
+    body: string;
+    returnType: string;
 }
 
-function constructSetter(symbol: CSymbol): string
+function constructGetter(symbol: CSymbol): NewGetter
 {
     const leadingText = symbol.leading();
-    const staticness = leadingText.match(/\bstatic\b/) ? 'static ' : '';
-    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+    return {
+        member: symbol,
+        name: symbol.getterName(),
+        isStatic: leadingText.match(/\bstatic\b/) !== null,
+        body: 'return ' + symbol.name + ';',
+        returnType: leadingText.replace(/\b(static|const|mutable)\b\s*/g, '')
+    };
+}
 
-    // Pass 'set' parameter by const-reference for non-primitive, non-pointer types.
-    const paramType = (!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type;
+interface NewSetter {
+    member: CSymbol;
+    name: string;
+    isStatic: boolean;
+    body: string;
+    parameter: string;
+}
+
+function constructSetter(symbol: CSymbol): NewSetter
+{
+    const leadingText = symbol.leading();
+    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+    return {
+        member: symbol,
+        name: symbol.setterName(),
+        isStatic: leadingText.match(/\bstatic\b/) !== null,
+        body: symbol.name + ' = value;',
+        parameter: ((!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type) + 'value'
+    };
+}
 
     return staticness + 'void ' + symbol.setterName() + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
 }
