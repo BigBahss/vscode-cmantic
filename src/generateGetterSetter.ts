@@ -102,18 +102,22 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
         return;
     }
 
-    await findPositionAndCall(symbol, AccessorType.Both, async (position) => {
-        const setterPosition: ProposedPosition = {
-            value: position.value,
-            after: true,
-            nextTo: true
-        };
+    const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Both);
+    if (!position) {
+        vscode.window.showErrorMessage(failure.positionNotFound);
+        return;
+    }
 
-        const workspaceEdit = new vscode.WorkspaceEdit();
-        await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
-        await addNewAccessorToWorkspaceEdit(new Setter(symbol), setterPosition, classDoc, workspaceEdit);
-        await vscode.workspace.applyEdit(workspaceEdit);
-    });
+    const setterPosition: ProposedPosition = {
+        value: position.value,
+        after: true,
+        nextTo: true
+    };
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(new Setter(symbol), setterPosition, classDoc, workspaceEdit);
+    await vscode.workspace.applyEdit(workspaceEdit);
 }
 
 export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
@@ -124,11 +128,15 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
         return;
     }
 
-    await findPositionAndCall(symbol, AccessorType.Getter, async (position) => {
-        const workspaceEdit = new vscode.WorkspaceEdit();
-        await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
-        await vscode.workspace.applyEdit(workspaceEdit);
-    });
+    const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Getter);
+    if (!position) {
+        vscode.window.showErrorMessage(failure.positionNotFound);
+        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+    await vscode.workspace.applyEdit(workspaceEdit);
 }
 
 export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
@@ -144,38 +152,30 @@ export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocumen
         return;
     }
 
-    await findPositionAndCall(symbol, AccessorType.Setter, async (position) => {
-        const workspaceEdit = new vscode.WorkspaceEdit();
-        await addNewAccessorToWorkspaceEdit(new Setter(symbol), position, classDoc, workspaceEdit);
-        await vscode.workspace.applyEdit(workspaceEdit);
-    });
-}
-
-async function findPositionAndCall(
-    symbol: CSymbol,
-    type: AccessorType,
-    callback: (position: ProposedPosition) => Promise<void>
-): Promise<void> {
-    // If the new method is a getter, then we want to place it relative to the setter, and vice-versa.
-    let position: ProposedPosition | undefined;
-    switch (type) {
-    case AccessorType.Getter:
-        position = symbol.parent?.findPositionForNewMethod(symbol.setterName(), symbol);
-        break;
-    case AccessorType.Setter:
-        position = symbol.parent?.findPositionForNewMethod(symbol.getterName(), symbol);
-        break;
-    case AccessorType.Both:
-        position = symbol.parent?.findPositionForNewMethod();
-        break;
-    }
-
+    const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Setter);
     if (!position) {
         vscode.window.showErrorMessage(failure.positionNotFound);
         return;
     }
 
-    await callback(position);
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    await addNewAccessorToWorkspaceEdit(new Setter(symbol), position, classDoc, workspaceEdit);
+    await vscode.workspace.applyEdit(workspaceEdit);
+}
+
+function getPositionForNewAccessorDeclaration(
+    symbol: CSymbol,
+    type: AccessorType
+): ProposedPosition | undefined {
+    // If the new method is a getter, then we want to place it relative to the setter, and vice-versa.
+    switch (type) {
+    case AccessorType.Getter:
+        return symbol.parent?.findPositionForNewMethod(symbol.setterName(), symbol);
+    case AccessorType.Setter:
+        return symbol.parent?.findPositionForNewMethod(symbol.getterName(), symbol);
+    case AccessorType.Both:
+        return symbol.parent?.findPositionForNewMethod();
+    }
 }
 
 async function addNewAccessorToWorkspaceEdit(
