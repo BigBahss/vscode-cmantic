@@ -102,6 +102,11 @@ export function firstCharToUpper(str: string): string
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+export function is_snake_case(label: string): boolean
+{
+    return label.match(/[\w\d]_[\w\d]/) !== null;
+}
+
 export function maskComments(sourceText: string, maskChar: string = ' '): string
 {
     const replacer = (match: string) => maskChar.repeat(match.length);
