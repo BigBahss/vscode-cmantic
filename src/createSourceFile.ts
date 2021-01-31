@@ -94,7 +94,7 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
                 && cfg.sourceExtensions().includes(util.fileExtension(fileSystemItem[0]))) {
             foundSourceFile = true;
             directories.push({
-                label: '$(folder) ' + util.workspaceRelativePath(uri.path, true),
+                label: '$(folder) ' + vscode.workspace.asRelativePath(uri, true),
                 uri: uri
             });
         }
