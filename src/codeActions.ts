@@ -71,7 +71,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
         } else if (matchingUri) {
             // TODO: Elide the path if it is very long.
-            addDefinitionInMatchingSourceFileTitle = 'Add Definition in "' + util.workspaceRelativePath(matchingUri.path) + '"';
+            addDefinitionInMatchingSourceFileTitle = 'Add Definition in "'
+                    + vscode.workspace.asRelativePath(matchingUri, false) + '"';
         } else {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.noMatchingSourceFile };
         }
