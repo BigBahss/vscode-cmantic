@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
 import { getMatchingSourceFile } from './extension';
-import { SourceFile } from './SourceFile';
 
-
-const matchingUriCache = new Map<string, vscode.Uri>();
 
 export async function switchHeaderSourceInWorkspace(): Promise<void>
 {
