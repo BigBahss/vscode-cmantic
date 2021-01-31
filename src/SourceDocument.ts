@@ -26,6 +26,8 @@ export class SourceDocument extends SourceFile
 
     text(): string { return this.document.getText(); }
 
+    get languageId(): string { return this.document.languageId; }
+
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
         const sourceSymbol = await super.getSymbol(position);
@@ -96,15 +98,17 @@ export class SourceDocument extends SourceFile
         };
     }
 
-    // Returns the best position to place the definition for declaration.
-    // If targetDoc is undefined the position will be for this SourceFile.
+    // Returns the best position to place the definition for a function declaration.
+    // If targetDoc is undefined the position will be for this SourceDocument.
     async findPositionForFunctionDefinition(
-        declaration: SourceSymbol, targetDoc?: SourceDocument
+        declarationOrPosition: SourceSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        if (declaration.uri.path !== this.uri.path || (!declaration.parent && this.symbols.length === 0)) {
+        const declaration = (declarationOrPosition instanceof SourceSymbol) ?
+                declarationOrPosition : await this.getSymbol(declarationOrPosition.value);
+        if (declaration?.uri.path !== this.uri.path || (!declaration?.parent && this.symbols.length === 0)) {
             return { value: new vscode.Position(0, 0) };
         }
 
@@ -132,6 +136,15 @@ export class SourceDocument extends SourceFile
         const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
         const before = siblingSymbols.slice(start, relativeSymbolIndex);
         const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
+        if (!(declarationOrPosition instanceof SourceSymbol)) {
+            if (declarationOrPosition.after) {
+                before.push(declaration);
+                before.shift();
+            } else if (declarationOrPosition.before) {
+                after.unshift(declaration);
+                after.pop();
+            }
+        }
 
         // Find a definition of a sibling symbol in targetDoc.
         for (const symbol of before.reverse()) {
