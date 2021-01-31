@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 import * as util from './utility';
 import { ProposedPosition } from "./ProposedPosition";
 import { SourceDocument } from "./SourceDocument";
-import { CSymbol } from "./CSymbol";
+import { CSymbol, Getter, Setter } from "./CSymbol";
+import { getMatchingSourceFile } from './extension';
 
 
 export const title = {
@@ -102,12 +104,10 @@ export async function generateGetterSetterFor(symbol: CSymbol, sourceDoc: Source
     }
 
     await findPositionAndCall(symbol, AccessorType.Both, async (position) => {
-        const newGetter = constructGetter(symbol);
-        const getterDefinition = (newGetter.isStatic ? 'static ' : '') + newGetter.returnType
-                + newGetter.name + '()' + (newGetter.isStatic ? '' : ' const') + ' { ' + newGetter.body + ' }';
-        const newSetter = constructSetter(symbol);
-        const setterDefinition = (newSetter.isStatic ? 'static ' : '') + 'void '
-                + newSetter.name + '(' + newSetter.parameter + ') { ' + newSetter.body + ' }';
+        const newGetter = new Getter(symbol);
+        const getterDefinition = newGetter.declaration + ' { ' + newGetter.body + ' }';
+        const newSetter = new Setter(symbol);
+        const setterDefinition = newSetter.declaration + ' { ' + newSetter.body + ' }';
         const combinedAccessors = getterDefinition + util.endOfLine(symbol.document) + setterDefinition;
         await util.insertSnippetAndReveal(combinedAccessors, position, symbol.uri);
     });
@@ -122,10 +122,8 @@ export async function generateGetterFor(symbol: CSymbol, sourceDoc: SourceDocume
     }
 
     await findPositionAndCall(symbol, AccessorType.Getter, async (position) => {
-        const newGetter = constructGetter(symbol);
-        const getterDefinition = (newGetter.isStatic ? 'static ' : '') + newGetter.returnType
-                + newGetter.name + '()' + (newGetter.isStatic ? '' : ' const') + ' { ' + newGetter.body + ' }';
-        await util.insertSnippetAndReveal(getterDefinition, position, symbol.uri);
+        const newGetter = new Getter(symbol);
+        await util.insertSnippetAndReveal(newGetter.declaration + ' { ' + newGetter.body + ' }', position, symbol.uri);
     });
 }
 
@@ -143,10 +141,8 @@ export async function generateSetterFor(symbol: CSymbol, sourceDoc: SourceDocume
     }
 
     await findPositionAndCall(symbol, AccessorType.Setter, async (position) => {
-        const newSetter = constructSetter(symbol);
-        const setterDefinition = (newSetter.isStatic ? 'static ' : '') + 'void '
-                + newSetter.name + '(' + newSetter.parameter + ') { ' + newSetter.body + ' }';
-        await util.insertSnippetAndReveal(setterDefinition, position, symbol.uri);
+        const newSetter = new Setter(symbol);
+        await util.insertSnippetAndReveal(newSetter.declaration + ' { ' + newSetter.body + ' }', position, symbol.uri);
     });
 }
 
@@ -218,5 +214,38 @@ function constructSetter(symbol: CSymbol): NewSetter
     };
 }
 
-    return staticness + 'void ' + symbol.setterName() + '(' + paramType + 'value) { ' + symbol.name + ' = value; }';
-}
+// async function getPositionForAccessorDefinition(
+//     type: AccessorType,
+//     declarationPosition: ProposedPosition,
+//     sourceDoc: SourceDocument
+// ): Promise<{ position: ProposedPosition; sourceDoc: SourceDocument }> {
+//     let accessorDefinitionLocation: cfg.AccessorDefinitionLocation;
+
+//     switch (type) {
+//     case AccessorType.Getter:
+//         accessorDefinitionLocation = cfg.getterDefinitionLocation();
+//         break;
+//     case AccessorType.Setter:
+//         accessorDefinitionLocation = cfg.setterDefinitionLocation();
+//         break;
+//     default:
+//         return { position: declarationPosition, sourceDoc: sourceDoc };
+//     }
+
+//     switch (accessorDefinitionLocation) {
+//     case cfg.AccessorDefinitionLocation.Inline:
+//         return { position: declarationPosition, sourceDoc: sourceDoc };
+//     case cfg.AccessorDefinitionLocation.BelowClass:
+//         return {
+//             position: await sourceDoc.findPositionForFunctionDefinition(declarationPosition, sourceDoc),
+//             sourceDoc: sourceDoc
+//         };
+//     case cfg.AccessorDefinitionLocation.SourceFile:
+//         const matchingUri = await getMatchingSourceFile(sourceDoc.uri);
+//         const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : sourceDoc;
+//         return {
+//             position: await sourceDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
+//             sourceDoc: targetDoc
+//         };
+//     }
+// }

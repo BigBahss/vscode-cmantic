@@ -267,3 +267,63 @@ export class CSymbol extends SourceSymbol
         return strippedParameters.substring(0, strippedParameters.length - 1);
     }
 }
+
+export interface Accessor {
+    memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    body: string;
+    declaration: string;
+}
+
+export class Getter implements Accessor
+{
+    memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    body: string;
+    returnType: string;
+
+    constructor(memberVariable: CSymbol)
+    {
+        const leadingText = memberVariable.leading();
+        this.memberVariable = memberVariable;
+        this.name = memberVariable.getterName();
+        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        this.body = 'return ' + memberVariable.name + ';';
+        this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+    }
+
+    get declaration(): string
+    {
+        return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
+    }
+}
+
+export class Setter implements Accessor
+{
+    memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    body: string;
+    parameter: string;
+
+    constructor(memberVariable: CSymbol)
+    {
+        const leadingText = memberVariable.leading();
+        const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+        this.memberVariable = memberVariable;
+        this.name = memberVariable.setterName();
+        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        this.body = memberVariable.name + ' = value;';
+        this.parameter = (!memberVariable.isPrimitive() && !memberVariable.isPointer() ?
+            'const ' + type + '&' :
+            type
+        ) + 'value';
+    }
+
+    get declaration(): string
+    {
+        return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
+    }
+}
