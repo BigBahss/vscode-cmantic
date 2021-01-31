@@ -56,26 +56,6 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (path2_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
-// TODO: Use vscode.workspace.asRelativePath()
-export function workspaceRelativePath(absolutePath: string, includeWorkspaceName: boolean = false): string
-{
-    if (!vscode.workspace.workspaceFolders) {
-        return absolutePath;
-    }
-    for (const folder of vscode.workspace.workspaceFolders) {
-        if (absolutePath.indexOf(folder.uri.path) !== 0) {
-            continue;
-        }
-
-        if (includeWorkspaceName) {
-            absolutePath = absolutePath.replace(directory(folder.uri.path), '').substring(1);
-        } else {
-            absolutePath = absolutePath.replace(folder.uri.path, '').substring(1);
-        }
-    }
-    return absolutePath;
-}
-
 export function indentation(options?: vscode.TextEditorOptions): string
 {
     if (!options) {
@@ -120,6 +100,27 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 export function firstCharToUpper(str: string): string
 {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function is_snake_case(label: string): boolean
+{
+    return label.match(/[\w\d]_[\w\d]/) !== null;
+}
+
+export function maskComments(sourceText: string, maskChar: string = ' '): string
+{
+    const replacer = (match: string) => maskChar.repeat(match.length);
+    sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
+    sourceText = sourceText.replace(/(?<=\/\/).*/g, replacer);
+    return sourceText;
+}
+
+export function maskStringLiterals(sourceText: string, maskChar: string = ' '): string
+{
+    const replacer = (match: string) => maskChar.repeat(match.length);
+    sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
+    sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+    return sourceText;
 }
 
 export async function insertSnippetAndReveal(

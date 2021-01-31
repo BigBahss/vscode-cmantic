@@ -26,7 +26,9 @@ export class SourceDocument extends SourceFile
 
     text(): string { return this.document.getText(); }
 
-    isCpp(): boolean { return this.document.languageId === 'cpp'; }
+    get languageId(): string { return this.document.languageId; }
+
+    isCpp(): boolean { return this.languageId === 'cpp'; }
 
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
@@ -48,35 +50,67 @@ export class SourceDocument extends SourceFile
         return new CSymbol(sourceSymbol, this.document);
     }
 
-    async hasHeaderGuard(): Promise<boolean>
+    hasHeaderGuard(): boolean
     {
-        if (this.text().match(/^\s*#pragma\s+once\b/)) {
-            return true;
-        }
+        return this.positionAfterHeaderGuard() !== undefined;
+    }
 
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
+    positionAfterHeaderGuard(): vscode.Position | undefined
+    {
+        let offset: number | undefined;
+        let maskedText = util.maskComments(this.text());
+        maskedText = util.maskStringLiterals(maskedText);
+
+        const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
+        if (pragmaOnceMatch) {
+            offset = pragmaOnceMatch.index;
         }
 
         const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
-        for (const symbol of this.symbols) {
-            if (symbol.kind === vscode.SymbolKind.Constant && symbol.name === headerGuardDefine) {
-                return true;
-            }
+        const re_headerGuardDefine = new RegExp('^\\s*#define\\s+' + headerGuardDefine + '\\b', 'm');
+        const defineMatch = maskedText.match(re_headerGuardDefine);
+        if (defineMatch) {
+            offset = defineMatch.index;
         }
 
-        return false;
+        if (offset !== undefined) {
+            const positionOfHeaderGuard = this.document.positionAt(offset);
+            return new vscode.Position(positionOfHeaderGuard.line + 1, 0);
+        }
     }
 
-    // Returns the best position to place the definition for declaration.
-    // If targetDoc is undefined the position will be for this SourceFile.
+    positionAfterHeaderComment(): ProposedPosition
+    {
+        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
+                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
+        let match = maskedText.match(/\S/);
+        if (match?.index !== undefined) {
+            // Return position before first non-comment text.
+            return {
+                value: this.document.positionAt(match.index),
+                before: true
+            };
+        }
+
+        // Return position after header comment when there is no non-comment text in the file.
+        const endTrimmedTextLength = this.text().trimEnd().length;
+        return {
+            value: this.document.positionAt(endTrimmedTextLength),
+            after: endTrimmedTextLength !== 0
+        };
+    }
+
+    // Returns the best position to place the definition for a function declaration.
+    // If targetDoc is undefined the position will be for this SourceDocument.
     async findPositionForFunctionDefinition(
-        declaration: SourceSymbol, targetDoc?: SourceDocument
+        declarationOrPosition: SourceSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        if (declaration.uri.path !== this.uri.path || (!declaration.parent && this.symbols.length === 0)) {
+        const declaration = (declarationOrPosition instanceof SourceSymbol) ?
+                declarationOrPosition : await this.getSymbol(declarationOrPosition.value);
+        if (declaration?.uri.path !== this.uri.path || (!declaration?.parent && this.symbols.length === 0)) {
             return { value: new vscode.Position(0, 0) };
         }
 
@@ -104,6 +138,15 @@ export class SourceDocument extends SourceFile
         const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
         const before = siblingSymbols.slice(start, relativeSymbolIndex);
         const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
+        if (!(declarationOrPosition instanceof SourceSymbol)) {
+            if (declarationOrPosition.after) {
+                before.push(declaration);
+                before.shift();
+            } else if (declarationOrPosition.before) {
+                after.unshift(declaration);
+                after.pop();
+            }
+        }
 
         // Find a definition of a sibling symbol in targetDoc.
         for (const symbol of before.reverse()) {
@@ -157,7 +200,7 @@ export class SourceDocument extends SourceFile
     }
 
     // Returns the best positions to place new includes (system and project includes).
-    async findPositionForNewInclude(): Promise<{ system: vscode.Position; project: vscode.Position }>
+    findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
     {
         // TODO: Clean up this mess.
         const largestBlock = (
@@ -218,44 +261,12 @@ export class SourceDocument extends SourceFile
             return { system: systemIncludePos, project: projectIncludePos };
         }
 
-        let startLineNum = this.document.lineCount - 1;
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
-        }
-        if (this.symbols.length === 0) {
-            startLineNum = this.document.lineCount - 1;
-        } else {
-            startLineNum = this.symbols[0].range.start.line;
+        let position = this.positionAfterHeaderGuard();
+        if (!position) {
+            position = this.positionAfterHeaderComment().value;
         }
 
-        for (let i = startLineNum; i >= 0; --i) {
-            const line = this.document.lineAt(i);
-            if (!line.isEmptyOrWhitespace) {
-                return { system: line.range.end, project: line.range.end };
-            }
-        }
-
-        return { system: new vscode.Position(0, 0), project: new vscode.Position(0, 0) };
-    }
-
-    // Finds a position for a header guard by skipping over any comments that appear at the top of the file.
-    findPositionForNewHeaderGuard(): ProposedPosition
-    {
-        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
-                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
-        let match = maskedText.match(/\S/);
-        if (typeof match?.index === 'number') {
-            return {
-                value: this.document.positionAt(match.index),
-                before: true
-            };
-        }
-
-        const endTrimmedTextLength = this.text().trimEnd().length;
-        return {
-            value: this.document.positionAt(endTrimmedTextLength),
-            after: endTrimmedTextLength !== 0
-        };
+        return { system: position, project: position };
     }
 
     // Returns a position after the last symbol in this SourceDocument, or the last non-empty line.

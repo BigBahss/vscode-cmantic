@@ -1,13 +1,12 @@
 import * as vscode from 'vscode';
-import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
-import { SourceFile } from "./SourceFile";
 import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { getMatchingSourceFile } from './extension';
 import { SourceSymbol } from './SourceSymbol';
+import { SourceFile } from './SourceFile';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -73,7 +72,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
         } else if (matchingUri) {
             // TODO: Elide the path if it is very long.
-            addDefinitionInMatchingSourceFileTitle = 'Add Definition in "' + util.workspaceRelativePath(matchingUri.path) + '"';
+            addDefinitionInMatchingSourceFileTitle = 'Add Definition in "'
+                    + vscode.workspace.asRelativePath(matchingUri, false) + '"';
         } else {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.noMatchingSourceFile };
         }
@@ -141,7 +141,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         }
         if (matchingUri) {
             // TODO: Elide the path if it is very long.
-            moveDefinitionToMatchingSourceFileTitle = 'Move Definition to "' + util.workspaceRelativePath(matchingUri.path) + '"';
+            moveDefinitionToMatchingSourceFileTitle = 'Move Definition to "'
+                    + vscode.workspace.asRelativePath(matchingUri.path, false) + '"';
         } else {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
         }
@@ -185,7 +186,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             const getter = symbol.parent?.findGetterFor(symbol);
             const setter = symbol.parent?.findSetterFor(symbol);
 
-            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterSetterExists } : undefined;
+            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterOrSetterExists } : undefined;
             generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
             generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
 
@@ -201,7 +202,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.getterSetter,
                 command: 'cmantic.generateGetterSetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterSetterDisabled
         },
@@ -211,7 +212,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.getter,
                 command: 'cmantic.generateGetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterDisabled
         },
@@ -221,7 +222,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.setter,
                 command: 'cmantic.generateSetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateSetterDisabled
         }];
@@ -240,7 +241,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (matchingUri) {
             createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
         }
-        if (await sourceDoc.hasHeaderGuard()) {
+        if (sourceDoc.hasHeaderGuard()) {
             addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
         }
 

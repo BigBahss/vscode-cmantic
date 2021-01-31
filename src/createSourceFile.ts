@@ -8,7 +8,7 @@ import { addHeaderSourcePairToCache } from './extension';
 
 interface FolderItem extends vscode.QuickPickItem
 {
-    path: string;
+    uri: vscode.Uri;
 }
 
 
@@ -36,23 +36,34 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const fileNameBase = util.fileNameBase(currentDocument.uri.path);
+    const headerFileNameBase = util.fileNameBase(currentDocument.uri.path);
+    const headerDirectory = util.directory(currentDocument.uri.path);
+
+    const sourceFolders = await findSourceFolders(workspaceFolder.uri);
+    sourceFolders.sort((a: FolderItem, b: FolderItem): number => {
+        const diff_a = util.compareDirectoryPaths(a.uri.path, headerDirectory);
+        const diff_b = util.compareDirectoryPaths(b.uri.path, headerDirectory);
+        return (diff_a < diff_b) ? -1 : 1;
+    });
 
     const folder = await vscode.window.showQuickPick(
-            await findSourceFolders(workspaceFolder.uri),
+            sourceFolders,
             { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
     if (!folder) {
         return;
     }
 
-    const extension = await vscode.window.showQuickPick(
-            cfg.sourceExtensions(),
-            { placeHolder: 'Select an extension for the new source file' });
+    let extension = await getSourceFileExtension(folder.uri);
     if (!extension) {
-        return;
+        extension = await vscode.window.showQuickPick(
+                cfg.sourceExtensions(),
+                { placeHolder: 'Select an extension for the new source file' });
+        if (!extension) {
+            return;
+        }
     }
 
-    const newFilePath = folder.path + '/' + fileNameBase + '.' + extension;
+    const newFilePath = folder.uri.path + '/' + headerFileNameBase + '.' + extension;
     const newFileUri = vscode.Uri.parse(newFilePath);
     const eol = util.endOfLine(currentDocument);
     const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
@@ -83,12 +94,33 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
                 && cfg.sourceExtensions().includes(util.fileExtension(fileSystemItem[0]))) {
             foundSourceFile = true;
             directories.push({
-                label: '$(folder) ' + util.workspaceRelativePath(uri.path, true),
-                path: uri.path
+                label: '$(folder) ' + vscode.workspace.asRelativePath(uri, true),
+                uri: uri
             });
         }
     }
     return directories;
+}
+
+// Reads a directory containing source files and returns the extension of those files.
+// Returns undefined if more than one kind of source file extension is found.
+async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined>
+{
+    const sourceExtensions = cfg.sourceExtensions();
+    let sourceExtension: string | undefined;
+    const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
+    for (const fileSystemItem of fileSystemItems) {
+        if (fileSystemItem[1] === vscode.FileType.File) {
+            const extension = util.fileExtension(fileSystemItem[0]);
+            if (sourceExtensions.includes(extension)) {
+                if (sourceExtension !== undefined && sourceExtension !== extension) {
+                    return;
+                }
+                sourceExtension = extension;
+            }
+        }
+    }
+    return sourceExtension;
 }
 
 async function getNamespaceText(sourceFile: SourceDocument, eol: string)

@@ -1,9 +1,10 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "C/C++ extension for VS Code that adds semantic aware commands and refactorings.",
-  "version": "0.2.0",
-  "publisher": "TylerDennis",
+  "description": "Provides various refactorings and commands for C/C++",
+  "version": "0.2.1",
+  "icon": "images/cmantic.png",
+  "publisher": "tdennis4496",
   "author": {
     "name": "Tyler Dennis",
     "url": "https://github.com/BigBahss"
@@ -21,17 +22,11 @@
     "Programming Languages"
   ],
   "keywords": [
-    "c",
     "c++",
-    "cpp",
-    "switch",
-    "header",
-    "source",
-    "definition",
     "refactor",
-    "action",
-    "include",
-    "guard"
+    "code action",
+    "generate definition",
+    "generate accessor"
   ],
   "activationEvents": [
     "onLanguage:c",
@@ -75,14 +70,6 @@
       {
         "command": "cmantic.addHeaderGuard",
         "title": "C-mantic: Add Header Guard"
-      },
-      {
-        "command": "editor.action.refactor",
-        "title": "Refactor..."
-      },
-      {
-        "command": "editor.action.sourceAction",
-        "title": "Source Action..."
       }
     ],
     "menus": {
@@ -91,42 +78,9 @@
           "command": "cmantic.switchHeaderSourceInWorkspace",
           "group": "navigation@100",
           "when": "resourceLangId =~ /^c|cpp$/ && config.C_mantic.contextMenu.switchHeaderSource"
-        },
-        {
-          "command": "editor.action.refactor",
-          "group": "1_modification@2",
-          "when": "resourceLangId =~ /^c|cpp$/"
-        },
-        {
-          "command": "editor.action.sourceAction",
-          "group": "1_modification@2",
-          "when": "resourceLangId =~ /^c|cpp$/"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "editor.action.refactor",
-          "when": "false"
-        },
-        {
-          "command": "editor.action.sourceAction",
-          "when": "false"
         }
       ]
     },
-    "codeActions": [
-      {
-        "actions": {
-          "title": "%codeActions.refactor.title%",
-          "description": "%codeActions.refactor.description%",
-          "kind": "refactor"
-        },
-        "languages": [
-          "c",
-          "cpp"
-        ]
-      }
-    ],
     "configuration": [
       {
         "title": "C-mantic",
@@ -195,6 +149,26 @@
             "default": true,
             "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces."
           },
+          "C_mantic.cpp.accessor.getterDefinitionLocation": {
+            "type": "string",
+            "enum": [
+              "Generate definition inline",
+              "Generate definition below class body",
+              "Generate definition in matching source file"
+            ],
+            "default": "Generate definition inline",
+            "description": "Controls where the definition of new 'get' methods are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+          },
+          "C_mantic.cpp.accessor.setterDefinitionLocation": {
+            "type": "string",
+            "enum": [
+              "Generate definition inline",
+              "Generate definition below class body",
+              "Generate definition in matching source file"
+            ],
+            "default": "Generate definition inline",
+            "description": "Controls where the definition of new 'set' methods are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,
@@ -212,8 +186,8 @@
           },
           "C_mantic.headerGuard.defineFormat": {
             "type": "string",
-            "default": "${FILENAME_EXT}",
-            "description": "Controls how new header guard defines are generated. The variable '${FILENAME_EXT}' is replaced with the file name in uppercase, with all symbols replaced with underscores. The variable '${FILENAME}' is replaced with the file name in uppercase, not including any file extensions, with all symbols replaced with underscores. For example, a file named 'some_header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
+            "default": "${FILE_NAME_EXT}",
+            "description": "Controls how new header guard defines are generated. The variable '${FILE_NAME_EXT}' is replaced with the file name in uppercase, with all symbols replaced with underscores. The variable '${FILE_NAME}' is replaced with the file name in uppercase, not including any file extensions, with all symbols replaced with underscores. For example, a file named 'some-header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
           }
         }
       }
@@ -241,6 +215,5 @@
     "mocha": "^7.1.1",
     "typescript": "^3.8.3",
     "vscode-test": "^1.3.0"
-  },
-  "dependencies": {}
+  }
 }

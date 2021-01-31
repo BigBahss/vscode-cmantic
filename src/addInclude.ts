@@ -14,7 +14,7 @@ export async function addInclude(): Promise<void>
     const userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
     const sourceDoc = new SourceDocument(editor.document);
-    const newIncludePosition = await sourceDoc.findPositionForNewInclude();
+    const newIncludePosition = sourceDoc.findPositionForNewInclude();
     const eol = util.endOfLine(sourceDoc.document);
 
     userInput.then(value => {

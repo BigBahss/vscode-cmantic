@@ -35,7 +35,7 @@ export class SourceFile
         }
 
         documentSymbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-            return a.range.start.isAfter(b.range.start) ? 1 : -1;
+            return a.range.end.isAfter(b.range.end) ? 1 : -1;
         });
 
         this.symbols = [];

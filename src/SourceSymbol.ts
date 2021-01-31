@@ -3,9 +3,11 @@ import * as util from './utility';
 
 
 // Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
+// Additionally, some properties are normalized for different language servers.
 export class SourceSymbol extends vscode.DocumentSymbol
 {
     readonly uri: vscode.Uri;
+    signature: string;
     parent?: SourceSymbol;
     children: SourceSymbol[];
 
@@ -15,11 +17,26 @@ export class SourceSymbol extends vscode.DocumentSymbol
     {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
         this.uri = uri;
+        this.signature = docSymbol.name;
         this.parent = parent;
 
-        // Sorts docSymbol.children based on their relative position to eachother.
+        // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
+        if (docSymbol.name.includes('(')) {
+            this.name = docSymbol.name.substring(0, docSymbol.name.indexOf('('));
+        }
+
+        // ccls puts function signatures in the detail property.
+        if (docSymbol.detail.includes(docSymbol.name + '(')) {
+            this.signature = docSymbol.detail;
+            // ccls recognizes static methods as properties, so we set kind to Method.
+            if (docSymbol.kind === vscode.SymbolKind.Property) {
+                this.kind = vscode.SymbolKind.Method;
+            }
+        }
+
+        // Sort docSymbol.children based on their relative position to eachother.
         docSymbol.children.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-            return a.range.start.isAfter(b.range.start) ? 1 : -1;
+            return a.range.end.isAfter(b.range.end) ? 1 : -1;
         });
 
         // Convert docSymbol.children to SourceSymbols to set the children property.
@@ -53,7 +70,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !location.range.isEqual(this.selectionRange)) {
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !this.range.contains(location.range)) {
                 return location;
             }
         }
@@ -72,7 +89,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !location.range.isEqual(this.selectionRange)) {
+            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !this.range.contains(location.range)) {
                 return location;
             }
         }
@@ -108,5 +125,105 @@ export class SourceSymbol extends vscode.DocumentSymbol
         default:
             return false;
         }
+    }
+
+    isConstructor(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Constructor:
+            return true;
+        case vscode.SymbolKind.Method:
+            return this.name === this.parent?.name;
+        default:
+            return false;
+        }
+    }
+
+    isDestructor(): boolean
+    {
+        switch (this.kind) {
+        case vscode.SymbolKind.Constructor:
+        case vscode.SymbolKind.Method:
+            return this.name === '~' + this.parent?.name;
+        default:
+            return false;
+        }
+    }
+
+    // Checks for common naming schemes of private members and return the base name.
+    baseName(): string
+    {
+        let baseMemberName: string | undefined;
+        let match = /^_+[\w_][\w\d_]*_*$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^_+|_*$/g, '');
+        }
+        match = /^_*[\w_][\w\d_]*_+$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^_*|_+$/g, '');
+        }
+        match = /^m_[\w_][\w\d_]*$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^m_/, '');
+        }
+
+        return baseMemberName ? baseMemberName : this.name;
+    }
+
+    getterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        if (!memberBaseName) {
+            memberBaseName = this.baseName();
+        }
+
+        if (memberBaseName === this.name) {
+            if (util.is_snake_case(memberBaseName)) {
+                return 'get_' + memberBaseName;
+            }
+            return 'get' + util.firstCharToUpper(memberBaseName);
+        }
+        return memberBaseName;
+    }
+
+    setterName(memberBaseName?: string): string
+    {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        if (!memberBaseName) {
+            memberBaseName = this.baseName();
+        }
+
+        if (util.is_snake_case(memberBaseName)) {
+            return 'set_' + memberBaseName;
+        }
+        return 'set' + util.firstCharToUpper(memberBaseName);
+    }
+
+    findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
+    {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const getterName = memberVariable.getterName();
+
+        return this.findChild(child => child.name === getterName);
+    }
+
+    findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
+    {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const setterName = memberVariable.setterName();
+
+        return this.findChild(child => child.name === setterName);
     }
 }
