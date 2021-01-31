@@ -4,8 +4,6 @@ Things higher on the list generally correspond to higher priority.
 
 ## Ideas/Plans for features and improvements
 
-- Customize where the definitions of generated accessor methods are placed.
-
 - Move a definition between header and source file.
 
 - Move a definition in or out of a class body.

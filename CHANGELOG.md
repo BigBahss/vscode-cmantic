@@ -2,7 +2,8 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
-Nothing, yet.
+### Added
+- Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
 
 ## [0.2.1] - January 29, 2021
 ### Changed
