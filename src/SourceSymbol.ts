@@ -176,8 +176,14 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return '';
         }
 
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        if (!memberBaseName) {
+            memberBaseName = this.baseName();
+        }
+
         if (memberBaseName === this.name) {
+            if (util.is_snake_case(memberBaseName)) {
+                return 'get_' + memberBaseName;
+            }
             return 'get' + util.firstCharToUpper(memberBaseName);
         }
         return memberBaseName;
@@ -189,7 +195,13 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return '';
         }
 
-        memberBaseName = memberBaseName ? memberBaseName : this.baseName();
+        if (!memberBaseName) {
+            memberBaseName = this.baseName();
+        }
+
+        if (util.is_snake_case(memberBaseName)) {
+            return 'set_' + memberBaseName;
+        }
         return 'set' + util.firstCharToUpper(memberBaseName);
     }
 

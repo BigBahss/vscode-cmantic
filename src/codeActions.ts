@@ -132,7 +132,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.getterSetter,
                 command: 'cmantic.generateGetterSetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterSetterDisabled
         },
@@ -142,7 +142,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.getter,
                 command: 'cmantic.generateGetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterDisabled
         },
@@ -152,7 +152,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: getterSetterTitle.setter,
                 command: 'cmantic.generateSetterFor',
-                arguments: [symbol]
+                arguments: [symbol, sourceDoc]
             },
             disabled: generateSetterDisabled
         }];

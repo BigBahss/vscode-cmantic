@@ -87,9 +87,24 @@ export function endOfLine(document: vscode.TextDocument): string
     }
 }
 
+export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): ProposedPosition
+{
+    for (let i = document.lineCount - 1; i >= 0; --i) {
+        if (!document.lineAt(i).isEmptyOrWhitespace) {
+            return { value: document.lineAt(i).range.end, after: true };
+        }
+    }
+    return { value: new vscode.Position(0, 0) };
+}
+
 export function firstCharToUpper(str: string): string
 {
     return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+export function is_snake_case(label: string): boolean
+{
+    return label.match(/[\w\d]_[\w\d]/) !== null;
 }
 
 export function maskComments(sourceText: string, maskChar: string = ' '): string
@@ -112,7 +127,7 @@ export async function insertSnippetAndReveal(
     text: string,
     position: ProposedPosition,
     uri: vscode.Uri
-): Promise<void> {
+): Promise<boolean> {
     const editor = await vscode.window.showTextDocument(uri);
 
     const eol = endOfLine(editor.document);
@@ -122,7 +137,7 @@ export async function insertSnippetAndReveal(
     } else if (position.before) {
         text += newLines;
     }
-    if (editor.document.lineCount - 1 === position.value.line && !text.endsWith(eol)) {
+    if (position.value.line === editor.document.lineCount - 1 && !text.endsWith(eol)) {
         text += eol;
     }
 
@@ -148,4 +163,6 @@ export async function insertSnippetAndReveal(
             }
         }, { undoStopBefore: false, undoStopAfter: true });
     }
+
+    return success;
 }

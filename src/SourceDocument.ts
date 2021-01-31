@@ -26,6 +26,8 @@ export class SourceDocument extends SourceFile
 
     text(): string { return this.document.getText(); }
 
+    get languageId(): string { return this.document.languageId; }
+
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
         const sourceSymbol = await super.getSymbol(position);
@@ -96,15 +98,17 @@ export class SourceDocument extends SourceFile
         };
     }
 
-    // Returns the best position to place the definition for declaration.
-    // If targetDoc is undefined the position will be for this SourceFile.
+    // Returns the best position to place the definition for a function declaration.
+    // If targetDoc is undefined the position will be for this SourceDocument.
     async findPositionForFunctionDefinition(
-        declaration: SourceSymbol, targetDoc?: SourceDocument
+        declarationOrPosition: SourceSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        if (declaration.uri.path !== this.uri.path || (!declaration.parent && this.symbols.length === 0)) {
+        const declaration = (declarationOrPosition instanceof SourceSymbol) ?
+                declarationOrPosition : await this.getSymbol(declarationOrPosition.value);
+        if (declaration?.uri.path !== this.uri.path || (!declaration?.parent && this.symbols.length === 0)) {
             return { value: new vscode.Position(0, 0) };
         }
 
@@ -114,13 +118,7 @@ export class SourceDocument extends SourceFile
         if (!targetDoc.symbols) {
             targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
             if (targetDoc.symbols.length === 0) {
-                // If the targetDoc has no symbols then place the new definiton after the last non-empty line.
-                for (let i = targetDoc.document.lineCount - 1; i >= 0; --i) {
-                    if (!targetDoc.document.lineAt(i).isEmptyOrWhitespace) {
-                        return { value: targetDoc.document.lineAt(i).range.end, after: true };
-                    }
-                }
-                return { value: new vscode.Position(0, 0) };
+                return util.positionAfterLastNonEmptyLine(targetDoc.document);
             }
         }
 
@@ -138,6 +136,15 @@ export class SourceDocument extends SourceFile
         const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
         const before = siblingSymbols.slice(start, relativeSymbolIndex);
         const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
+        if (!(declarationOrPosition instanceof SourceSymbol)) {
+            if (declarationOrPosition.after) {
+                before.push(declaration);
+                before.shift();
+            } else if (declarationOrPosition.before) {
+                after.unshift(declaration);
+                after.pop();
+            }
+        }
 
         // Find a definition of a sibling symbol in targetDoc.
         for (const symbol of before.reverse()) {
@@ -258,6 +265,21 @@ export class SourceDocument extends SourceFile
         }
 
         return { system: position, project: position };
+    }
+
+    // Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+    async findPositionForNewSymbol(): Promise<ProposedPosition>
+    {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+        if (this.symbols.length > 0) {
+            return {
+                value: this.getEndOfStatement(this.symbols[this.symbols.length - 1].range.end),
+                after: true
+            };
+        }
+        return util.positionAfterLastNonEmptyLine(this.document);
     }
 
     // DocumentSymbol ranges don't always include the final semi-colon.

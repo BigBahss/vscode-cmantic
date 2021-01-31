@@ -149,6 +149,26 @@
             "default": true,
             "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces."
           },
+          "C_mantic.cpp.accessor.getterDefinitionLocation": {
+            "type": "string",
+            "enum": [
+              "Generate definition inline",
+              "Generate definition below class body",
+              "Generate definition in matching source file"
+            ],
+            "default": "Generate definition inline",
+            "description": "Controls where the definition of new 'get' methods are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+          },
+          "C_mantic.cpp.accessor.setterDefinitionLocation": {
+            "type": "string",
+            "enum": [
+              "Generate definition inline",
+              "Generate definition below class body",
+              "Generate definition in matching source file"
+            ],
+            "default": "Generate definition inline",
+            "description": "Controls where the definition of new 'set' methods are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,

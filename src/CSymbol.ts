@@ -3,6 +3,7 @@ import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from "./ProposedPosition";
 import { SourceFile } from "./SourceFile";
+import { SourceDocument } from './SourceDocument';
 
 const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
@@ -57,6 +58,18 @@ export class CSymbol extends SourceSymbol
     leading(): string
     {
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
+    }
+
+    async scopeString(target: SourceFile, position?: vscode.Position) {
+        let scopeString = '';
+        for (const scope of this.scopes()) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a namespace block. If so, omit that scope.id().
+            if (!targetScope || (position && !targetScope.range.contains(position))) {
+                scopeString += scope.name + '::';
+            }
+        }
+        return scopeString;
     }
 
     // Finds a position for a new public method within this class or struct.
@@ -200,15 +213,7 @@ export class CSymbol extends SourceSymbol
             return '';
         }
 
-        // Build scope string to prepend to function name.
-        let scopeString = '';
-        for (const scope of this.scopes()) {
-            const targetScope = await target.findMatchingSymbol(scope);
-            // Check if position exists inside of a namespace block. If so, omit that scope.id().
-            if (!targetScope || (position && !targetScope.range.contains(position))) {
-                scopeString += scope.name + '::';
-            }
-        }
+        const scopeString = await this.scopeString(target, position);
 
         const declaration = this.text().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
@@ -265,5 +270,88 @@ export class CSymbol extends SourceSymbol
         }
 
         return strippedParameters.substring(0, strippedParameters.length - 1);
+    }
+}
+
+export interface Accessor {
+    readonly memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    returnType: string;
+    parameter: string;
+    body: string;
+    declaration: string;
+    definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
+}
+
+export class Getter implements Accessor
+{
+    readonly memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    returnType: string;
+    parameter: string;
+    body: string;
+
+    constructor(memberVariable: CSymbol)
+    {
+        const leadingText = memberVariable.leading();
+        this.memberVariable = memberVariable;
+        this.name = memberVariable.getterName();
+        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+        this.parameter = '';
+        this.body = 'return ' + memberVariable.name + ';';
+    }
+
+    get declaration(): string
+    {
+        return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
+    }
+
+    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
+    {
+        const eol = util.endOfLine(target.document);
+        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
+                + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
+                + '{' + eol + util.indentation() + this.body + eol + '}';
+    }
+}
+
+export class Setter implements Accessor
+{
+    readonly memberVariable: CSymbol;
+    name: string;
+    isStatic: boolean;
+    returnType: string;
+    parameter: string;
+    body: string;
+
+    constructor(memberVariable: CSymbol)
+    {
+        const leadingText = memberVariable.leading();
+        const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+        this.memberVariable = memberVariable;
+        this.name = memberVariable.setterName();
+        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        this.returnType = 'void ';
+        this.parameter = (!memberVariable.isPrimitive() && !memberVariable.isPointer() ?
+            'const ' + type + '&' :
+            type
+        ) + 'value';
+        this.body = memberVariable.name + ' = value;';
+    }
+
+    get declaration(): string
+    {
+        return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
+    }
+
+    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
+    {
+        const eol = util.endOfLine(target.document);
+        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
+                + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
+                + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

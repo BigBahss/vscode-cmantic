@@ -145,7 +145,7 @@ async function getNamespaceIndentation(sourceFile: SourceDocument): Promise<stri
     case cfg.NamespaceIndentation.Never:
         return '';
     case cfg.NamespaceIndentation.Auto:
-        return (await sourceFile.namespaceBodyIsIndented()) ? util.indentation() : '';
+        return (await sourceFile.isNamespaceBodyIndented()) ? util.indentation() : '';
     }
 }
 

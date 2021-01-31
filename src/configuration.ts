@@ -20,6 +20,12 @@ export enum HeaderGuardStyle {
     Both
 }
 
+export enum AccessorDefinitionLocation {
+    Inline,
+    BelowClass,
+    SourceFile
+}
+
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
@@ -28,6 +34,7 @@ const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
+const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
 
 
 export function headerExtensions(): string[]
@@ -124,4 +131,34 @@ export function headerGuardDefine(fileName: string): string
             .replace('${FILE_NAME_EXT}', FILE_NAME_EXT)
             .replace('${FILE_NAME}', FILE_NAME)
             .replace(re_charactersNotAllowedInIdentifiers, '_');
+}
+
+export function getterDefinitionLocation(): AccessorDefinitionLocation
+{
+    const location = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.accessor.getterDefinitionLocation');
+    switch (location) {
+    case 'Generate definition inline':
+        return AccessorDefinitionLocation.Inline;
+    case 'Generate definition below class body':
+        return AccessorDefinitionLocation.BelowClass;
+    case 'Generate definition in matching source file':
+        return AccessorDefinitionLocation.SourceFile;
+    default:
+        return defaultAccessorDefinitionLocation;
+    }
+}
+
+export function setterDefinitionLocation(): AccessorDefinitionLocation
+{
+    const location = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.accessor.setterDefinitionLocation');
+    switch (location) {
+    case 'Generate definition inline':
+        return AccessorDefinitionLocation.Inline;
+    case 'Generate definition below class body':
+        return AccessorDefinitionLocation.BelowClass;
+    case 'Generate definition in matching source file':
+        return AccessorDefinitionLocation.SourceFile;
+    default:
+        return defaultAccessorDefinitionLocation;
+    }
 }
