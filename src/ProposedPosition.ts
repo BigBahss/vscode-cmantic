@@ -10,22 +10,32 @@ export interface ProposedPosition {
     emptyScope?: boolean;   // Signals that the position is in an empty scope and may need to be indented.
 }
 
-export function formatTextToInsert(definition: string, position: ProposedPosition, document: TextDocument ): string
+export function formatTextToInsert(insertText: string, position: ProposedPosition, document: TextDocument ): string
 {
     // Indent text to match the relative position.
     const line = document.lineAt(position.value);
-    definition = definition.replace(/^/gm, line.text.substring(0, line.firstNonWhitespaceCharacterIndex));
+    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    if (!position.before) {
+        insertText = insertText.replace(/^/gm, indentation);
+    } else {
+        insertText = insertText.replace(/\n/gm, '\n' + indentation);
+    }
 
     const eol = endOfLine(document);
     const newLines = position.nextTo ? eol : eol + eol;
     if (position.after) {
-        definition = newLines + definition;
+        insertText = newLines + insertText;
     } else if (position.before) {
-        definition += newLines;
-    }
-    if (position.value.line === document.lineCount - 1) {
-        definition += eol;
+        insertText += newLines;
     }
 
-    return definition;
+    if (position.value.line === document.lineCount - 1) {
+        insertText += eol;
+    }
+
+    if (position.before) {
+        insertText += indentation;
+    }
+
+    return insertText;
 }
