@@ -59,6 +59,18 @@ export class CSymbol extends SourceSymbol
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
     }
 
+    async scopeString(target: SourceFile, position?: vscode.Position) {
+        let scopeString = '';
+        for (const scope of this.scopes()) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a namespace block. If so, omit that scope.id().
+            if (!targetScope || (position && !targetScope.range.contains(position))) {
+                scopeString += scope.name + '::';
+            }
+        }
+        return scopeString;
+    }
+
     // Finds a position for a new public method within this class or struct.
     // Optionally provide a relativeName to look for a position next to.
     // Optionally provide a memberVariable if the new method is an accessor.
@@ -200,15 +212,7 @@ export class CSymbol extends SourceSymbol
             return '';
         }
 
-        // Build scope string to prepend to function name.
-        let scopeString = '';
-        for (const scope of this.scopes()) {
-            const targetScope = await target.findMatchingSymbol(scope);
-            // Check if position exists inside of a namespace block. If so, omit that scope.id().
-            if (!targetScope || (position && !targetScope.range.contains(position))) {
-                scopeString += scope.name + '::';
-            }
-        }
+        const scopeString = await this.scopeString(target, position);
 
         const declaration = this.text().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
