@@ -13,7 +13,6 @@ export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
-    children: CSymbol[];
 
     // When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
     constructor(symbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
@@ -26,21 +25,12 @@ export class CSymbol extends SourceSymbol
         } else {
             this.parent = parent;
         }
-
-        symbol = (symbol instanceof SourceSymbol) ? symbol : new SourceSymbol(symbol, document.uri, parent);
-
-        // Convert symbol.children to CSymbols to set the children property.
-        let convertedChildren: CSymbol[] = [];
-        symbol.children.forEach(child => {
-            convertedChildren.push(new CSymbol(child, document, this));
-        });
-
-        this.children = convertedChildren;
     }
 
     findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
     {
-        for (const child of this.children) {
+        for (const symbol of this.children) {
+            const child = new CSymbol(symbol, this.document);
             if (compareFn(child)) {
                 return child;
             }
@@ -76,7 +66,7 @@ export class CSymbol extends SourceSymbol
     // Optionally provide a relativeName to look for a position next to.
     // Optionally provide a memberVariable if the new method is an accessor.
     // Returns undefined if this is not a class or struct, or when this.children.length === 0.
-    findPositionForNewMethod(relativeName?: string, memberVariable?: CSymbol): ProposedPosition | undefined
+    findPositionForNewMethod(relativeName?: string, memberVariable?: SourceSymbol): ProposedPosition | undefined
     {
         const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
             if (this.children.length === 0) {
