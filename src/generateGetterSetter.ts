@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as util from './utility';
-import { ProposedPosition } from "./ProposedPosition";
+import { formatTextToInsert, ProposedPosition } from "./ProposedPosition";
 import { SourceDocument } from "./SourceDocument";
-import { CSymbol, Getter, Setter } from "./CSymbol";
+import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
 import { getMatchingSourceFile } from './extension';
 
 
@@ -49,7 +48,7 @@ export async function generateSetter(): Promise<void>
 }
 
 async function getCurrentSymbolAndCall(
-    callback: (symbol: CSymbol, sourceDoc: SourceDocument) => Promise<void>
+    callback: (symbol: CSymbol, classDoc: SourceDocument) => Promise<void>
 ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -77,7 +76,7 @@ async function getCurrentSymbolAndCall(
     await callback(symbol, sourceDoc);
 }
 
-export async function generateGetterSetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
+export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
@@ -88,15 +87,15 @@ export async function generateGetterSetterFor(symbol: CSymbol, sourceDoc: Source
             return;
         }
         vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
-        await generateGetterFor(symbol, sourceDoc);
+        await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
         vscode.window.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
-        await generateSetterFor(symbol, sourceDoc);
+        await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
         vscode.window.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
-        await generateGetterFor(symbol, sourceDoc);
+        await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
         vscode.window.showErrorMessage(failure.getterAndSetterExists);
@@ -104,16 +103,20 @@ export async function generateGetterSetterFor(symbol: CSymbol, sourceDoc: Source
     }
 
     await findPositionAndCall(symbol, AccessorType.Both, async (position) => {
-        const newGetter = new Getter(symbol);
-        const getterDefinition = newGetter.declaration + ' { ' + newGetter.body + ' }';
-        const newSetter = new Setter(symbol);
-        const setterDefinition = newSetter.declaration + ' { ' + newSetter.body + ' }';
-        const combinedAccessors = getterDefinition + util.endOfLine(symbol.document) + setterDefinition;
-        await util.insertSnippetAndReveal(combinedAccessors, position, symbol.uri);
+        const setterPosition: ProposedPosition = {
+            value: position.value,
+            after: true,
+            nextTo: true
+        };
+
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+        await addNewAccessorToWorkspaceEdit(new Setter(symbol), setterPosition, classDoc, workspaceEdit);
+        await vscode.workspace.applyEdit(workspaceEdit);
     });
 }
 
-export async function generateGetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
+export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
@@ -122,12 +125,13 @@ export async function generateGetterFor(symbol: CSymbol, sourceDoc: SourceDocume
     }
 
     await findPositionAndCall(symbol, AccessorType.Getter, async (position) => {
-        const newGetter = new Getter(symbol);
-        await util.insertSnippetAndReveal(newGetter.declaration + ' { ' + newGetter.body + ' }', position, symbol.uri);
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+        await vscode.workspace.applyEdit(workspaceEdit);
     });
 }
 
-export async function generateSetterFor(symbol: CSymbol, sourceDoc: SourceDocument): Promise<void>
+export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     if (symbol.isConst()) {
         vscode.window.showErrorMessage(failure.isConst);
@@ -141,8 +145,9 @@ export async function generateSetterFor(symbol: CSymbol, sourceDoc: SourceDocume
     }
 
     await findPositionAndCall(symbol, AccessorType.Setter, async (position) => {
-        const newSetter = new Setter(symbol);
-        await util.insertSnippetAndReveal(newSetter.declaration + ' { ' + newSetter.body + ' }', position, symbol.uri);
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        await addNewAccessorToWorkspaceEdit(new Setter(symbol), position, classDoc, workspaceEdit);
+        await vscode.workspace.applyEdit(workspaceEdit);
     });
 }
 
@@ -173,79 +178,54 @@ async function findPositionAndCall(
     await callback(position);
 }
 
-interface NewGetter {
-    member: CSymbol;
-    name: string;
-    isStatic: boolean;
-    body: string;
-    returnType: string;
+async function addNewAccessorToWorkspaceEdit(
+    newAccessor: Accessor,
+    methodPosition: ProposedPosition,
+    classDoc: SourceDocument,
+    workspaceEdit: vscode.WorkspaceEdit
+): Promise<void> {
+    const target = await getTargetForAccessorDefinition(newAccessor, methodPosition, classDoc);
+
+    if (target.position === methodPosition && target.sourceDoc === classDoc) {
+        const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
+        const formattedInlineDefinition = formatTextToInsert(inlineDefinition, methodPosition, classDoc.document);
+
+        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedInlineDefinition);
+    } else {
+        const formattedDeclaration = formatTextToInsert(newAccessor.declaration + ';', methodPosition, classDoc.document);
+        const definition = await newAccessor.definition(
+                target.sourceDoc,
+                target.position.value,
+                cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
+        const formattedDefinition = formatTextToInsert(definition, target.position, target.sourceDoc.document);
+
+        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedDeclaration);
+        workspaceEdit.insert(target.sourceDoc.uri, target.position.value, formattedDefinition);
+    }
 }
 
-function constructGetter(symbol: CSymbol): NewGetter
-{
-    const leadingText = symbol.leading();
-    return {
-        member: symbol,
-        name: symbol.getterName(),
-        isStatic: leadingText.match(/\bstatic\b/) !== null,
-        body: 'return ' + symbol.name + ';',
-        returnType: leadingText.replace(/\b(static|const|mutable)\b\s*/g, '')
-    };
+async function getTargetForAccessorDefinition(
+    accessor: Accessor,
+    declarationPosition: ProposedPosition,
+    classDoc: SourceDocument
+): Promise<{ position: ProposedPosition; sourceDoc: SourceDocument }> {
+    const accessorDefinitionLocation = (accessor instanceof Getter) ?
+            cfg.getterDefinitionLocation() : cfg.setterDefinitionLocation();
+
+    switch (accessorDefinitionLocation) {
+    case cfg.AccessorDefinitionLocation.Inline:
+        return { position: declarationPosition, sourceDoc: classDoc };
+    case cfg.AccessorDefinitionLocation.BelowClass:
+        return {
+            position: await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc),
+            sourceDoc: classDoc
+        };
+    case cfg.AccessorDefinitionLocation.SourceFile:
+        const matchingUri = await getMatchingSourceFile(classDoc.uri);
+        const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
+        return {
+            position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
+            sourceDoc: targetDoc
+        };
+    }
 }
-
-interface NewSetter {
-    member: CSymbol;
-    name: string;
-    isStatic: boolean;
-    body: string;
-    parameter: string;
-}
-
-function constructSetter(symbol: CSymbol): NewSetter
-{
-    const leadingText = symbol.leading();
-    const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
-    return {
-        member: symbol,
-        name: symbol.setterName(),
-        isStatic: leadingText.match(/\bstatic\b/) !== null,
-        body: symbol.name + ' = value;',
-        parameter: ((!symbol.isPrimitive() && !symbol.isPointer()) ? 'const ' + type + '&' : type) + 'value'
-    };
-}
-
-// async function getPositionForAccessorDefinition(
-//     type: AccessorType,
-//     declarationPosition: ProposedPosition,
-//     sourceDoc: SourceDocument
-// ): Promise<{ position: ProposedPosition; sourceDoc: SourceDocument }> {
-//     let accessorDefinitionLocation: cfg.AccessorDefinitionLocation;
-
-//     switch (type) {
-//     case AccessorType.Getter:
-//         accessorDefinitionLocation = cfg.getterDefinitionLocation();
-//         break;
-//     case AccessorType.Setter:
-//         accessorDefinitionLocation = cfg.setterDefinitionLocation();
-//         break;
-//     default:
-//         return { position: declarationPosition, sourceDoc: sourceDoc };
-//     }
-
-//     switch (accessorDefinitionLocation) {
-//     case cfg.AccessorDefinitionLocation.Inline:
-//         return { position: declarationPosition, sourceDoc: sourceDoc };
-//     case cfg.AccessorDefinitionLocation.BelowClass:
-//         return {
-//             position: await sourceDoc.findPositionForFunctionDefinition(declarationPosition, sourceDoc),
-//             sourceDoc: sourceDoc
-//         };
-//     case cfg.AccessorDefinitionLocation.SourceFile:
-//         const matchingUri = await getMatchingSourceFile(sourceDoc.uri);
-//         const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : sourceDoc;
-//         return {
-//             position: await sourceDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
-//             sourceDoc: targetDoc
-//         };
-//     }
-// }
