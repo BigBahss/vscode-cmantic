@@ -3,6 +3,7 @@ import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from "./ProposedPosition";
 import { SourceFile } from "./SourceFile";
+import { SourceDocument } from './SourceDocument';
 
 const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
@@ -273,20 +274,24 @@ export class CSymbol extends SourceSymbol
 }
 
 export interface Accessor {
-    memberVariable: CSymbol;
+    readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
+    returnType: string;
+    parameter: string;
     body: string;
     declaration: string;
+    definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
 }
 
 export class Getter implements Accessor
 {
-    memberVariable: CSymbol;
+    readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
-    body: string;
     returnType: string;
+    parameter: string;
+    body: string;
 
     constructor(memberVariable: CSymbol)
     {
@@ -294,23 +299,33 @@ export class Getter implements Accessor
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
         this.isStatic = leadingText.match(/\bstatic\b/) !== null;
-        this.body = 'return ' + memberVariable.name + ';';
         this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+        this.parameter = '';
+        this.body = 'return ' + memberVariable.name + ';';
     }
 
     get declaration(): string
     {
         return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
     }
+
+    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
+    {
+        const eol = util.endOfLine(target.document);
+        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
+                + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
+                + '{' + eol + util.indentation() + this.body + eol + '}';
+    }
 }
 
 export class Setter implements Accessor
 {
-    memberVariable: CSymbol;
+    readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
-    body: string;
+    returnType: string;
     parameter: string;
+    body: string;
 
     constructor(memberVariable: CSymbol)
     {
@@ -319,15 +334,24 @@ export class Setter implements Accessor
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();
         this.isStatic = leadingText.match(/\bstatic\b/) !== null;
-        this.body = memberVariable.name + ' = value;';
+        this.returnType = 'void ';
         this.parameter = (!memberVariable.isPrimitive() && !memberVariable.isPointer() ?
             'const ' + type + '&' :
             type
         ) + 'value';
+        this.body = memberVariable.name + ' = value;';
     }
 
     get declaration(): string
     {
         return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
+    }
+
+    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
+    {
+        const eol = util.endOfLine(target.document);
+        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
+                + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
+                + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }
