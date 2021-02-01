@@ -157,17 +157,21 @@ function generateNamespaces(
     curlySeparator: string,
     indentation: string
 ): string {
-    let namespaceText = '';
-    for (const namespace of namespaces) {
-        if (namespaceText) {
-            namespaceText += eol + eol;
+    function generateNamespacesRecursive(namespaces: SourceSymbol[]): string {
+        let namespaceText = '';
+        for (const namespace of namespaces) {
+            if (namespaceText) {
+                namespaceText += eol + eol;
+            }
+            namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
+            const body = generateNamespacesRecursive(namespace.children);
+            if (body) {
+                namespaceText += body.replace(/^/gm, indentation);
+            }
+            namespaceText += eol + '} // namespace ' + namespace.name;
         }
-        namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
-        const body = generateNamespaces(namespace.children, eol, curlySeparator, indentation);
-        if (body) {
-            namespaceText += body.replace(/^/gm, indentation);
-        }
-        namespaceText += eol + '} // namespace ' + namespace.name;
+        return namespaceText;
     }
-    return namespaceText;
+
+    return generateNamespacesRecursive(namespaces).replace(/\s+$/gm, eol);
 }
