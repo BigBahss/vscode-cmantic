@@ -6,16 +6,24 @@ import { SourceDocument } from './SourceDocument';
 import { addHeaderSourcePairToCache, getMatchingSourceFile } from './extension';
 
 
+const failure = {
+    noActiveTextEditor: 'No active text editor detected.',
+    noWorkspaceFolder: 'You must have a workspace folder open.',
+    notHeaderFile: 'This file is not a header file.',
+    sourceFileExists: 'A source file already exists for this header.'
+};
+
+
 export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined>
 {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     if (!vscode.workspace.workspaceFolders) {
-        vscode.window.showErrorMessage('You must have a workspace folder open.');
+        vscode.window.showErrorMessage(failure.noWorkspaceFolder);
         return;
     }
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
@@ -26,10 +34,10 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const headerDoc = new SourceDocument(currentDocument);
     if (!headerDoc.isHeader()) {
-        vscode.window.showErrorMessage('This file is not a header file.');
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     } else if (getMatchingSourceFile(headerDoc.uri)) {
-        vscode.window.showErrorMessage('A source file already exists for this header.');
+        vscode.window.showErrorMessage(failure.sourceFileExists);
         return;
     }
 

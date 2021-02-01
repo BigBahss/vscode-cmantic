@@ -3,6 +3,7 @@ import { SourceDocument } from "./SourceDocument";
 import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
+import { failure as createSourceFileFailure } from './createSourceFile';
 import { getMatchingSourceFile } from './extension';
 
 
@@ -162,10 +163,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let addHeaderGuardDisabled: { readonly reason: string } | undefined;
 
         if (!sourceDoc.isHeader()) {
-            createMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
+            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.notHeaderFile };
             addHeaderGuardDisabled = createMatchingSourceFileDisabled;
         } else if (matchingUri) {
-            createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
+            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.sourceFileExists };
         }
         if (sourceDoc.hasHeaderGuard()) {
             addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
