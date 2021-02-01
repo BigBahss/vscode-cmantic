@@ -197,7 +197,7 @@ export class CSymbol extends SourceSymbol
     }
 
     // Formats this function declaration for use as a definition (without curly braces).
-    async newFunctionDefinition(target: SourceFile, position?: vscode.Position): Promise<string>
+    async newFunctionDefinition(target: SourceDocument, position?: vscode.Position): Promise<string>
     {
         if (!this.isFunctionDeclaration()) {
             return '';
@@ -219,10 +219,13 @@ export class CSymbol extends SourceSymbol
         let leadingText = this.leading();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
+        const leadingLines = leadingText.split(util.endOfLine(target.document));
+        const alignLength = leadingLines[leadingLines.length - 1].length;
+        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
+        leadingText = leadingText.replace(/^\s+/gm, '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
-        definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
+        definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
 
         definition = leadingText + scopeString + definition;
         definition = definition.replace(/\s*\b(override|final)\b/g, '');

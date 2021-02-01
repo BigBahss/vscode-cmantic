@@ -21,9 +21,14 @@ export class SourceSymbol extends vscode.DocumentSymbol
         this.parent = parent;
 
         // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
-        if (docSymbol.name.includes('(')) {
-            this.name = docSymbol.name.substring(0, docSymbol.name.indexOf('('));
+        let name = docSymbol.name;
+        if (name.includes('(')) {
+            name = name.substring(0, name.indexOf('('));
         }
+        if (name.endsWith('>')) {
+            name = name.substring(0, name.lastIndexOf('<'));
+        }
+        this.name = name;
 
         // ccls puts function signatures in the detail property.
         if (docSymbol.detail.includes(docSymbol.name + '(')) {
