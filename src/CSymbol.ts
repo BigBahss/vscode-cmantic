@@ -37,18 +37,35 @@ export class CSymbol extends SourceSymbol
         }
     }
 
-    // Returns all the text contained in this symbol.
+    // Returns the text contained in this symbol.
     text(): string { return this.document.getText(this.range); }
+
+    // Returns the range of this symbol including potential template statement.
+    getFullRange(): vscode.Range
+    {
+        return new vscode.Range(this.getTrueStart(), this.range.end);
+    }
+
+    // Returns the text of this symbol including potential template statement.
+    getFullText(): string
+    {
+        return this.document.getText(this.getFullRange());
+    }
+
+    // Returns the text contained in this symbol that comes before this.name.
+    leadingText(): string
+    {
+        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
+    }
+
+    getFullLeadingText(): string
+    {
+        return this.document.getText(new vscode.Range(this.getTrueStart(), this.selectionRange.start));
+    }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
-
-    // Returns the text contained in this symbol that comes before this.name.
-    leading(): string
-    {
-        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
-    }
 
     async scopeString(target: SourceFile, position?: vscode.Position) {
         let scopeString = '';
@@ -159,7 +176,7 @@ export class CSymbol extends SourceSymbol
 
     isConstexpr(): boolean
     {
-        if (this.leading().match(/\bconstexpr\b/)) {
+        if (this.leadingText().match(/\bconstexpr\b/)) {
             return true;
         }
         return false;
@@ -167,7 +184,7 @@ export class CSymbol extends SourceSymbol
 
     isInline(): boolean
     {
-        if (this.leading().match(/\binline\b/)) {
+        if (this.leadingText().match(/\binline\b/)) {
             return true;
         }
         return false;
@@ -175,12 +192,12 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leading().includes('*') ? true : false;
+        return this.leadingText().includes('*') ? true : false;
     }
 
     isConst(): boolean
     {
-        if (this.leading().match(/\bconst\b/)) {
+        if (this.leadingText().match(/\bconst\b/)) {
             return true;
         }
         return false;
@@ -189,7 +206,7 @@ export class CSymbol extends SourceSymbol
     isPrimitive(): boolean
     {
         // TODO: Resolve typedefs and using-declarations.
-        const leading = this.leading();
+        const leading = this.leadingText();
         if (leading.match(re_primitiveType) && !leading.match(/[<>]/g)) {
             return true;
         }
@@ -205,7 +222,7 @@ export class CSymbol extends SourceSymbol
 
         const scopeString = await this.scopeString(target, position);
 
-        const declaration = this.text().replace(/;$/, '');
+        const declaration = this.getFullText().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
 
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
@@ -216,7 +233,7 @@ export class CSymbol extends SourceSymbol
         const parameters = this.stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = this.leading();
+        let leadingText = this.getFullLeadingText();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(util.endOfLine(target.document));
@@ -262,6 +279,29 @@ export class CSymbol extends SourceSymbol
 
         return strippedParameters.substring(0, strippedParameters.length - 1);
     }
+
+    // clangd and ccls don't include template statements in provided DocumentSymbols.
+    private getTrueStart(): vscode.Position
+    {
+        const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
+        let maskedText = util.maskComments(this.document.getText(before), false);
+        maskedText = util.maskStringLiterals(maskedText, false);
+        maskedText = util.maskTemplateParameters(maskedText, true).trimEnd();
+        if (!maskedText.endsWith('>')) {
+            return this.range.start;
+        }
+
+        let lastMatch: RegExpMatchArray | undefined;
+        for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
+            lastMatch = match;
+        }
+        if (!lastMatch?.index) {
+            return this.range.start;
+        }
+
+        return this.document.positionAt(lastMatch.index);
+    }
+
 }
 
 
@@ -287,7 +327,7 @@ export class Getter implements Accessor
 
     constructor(memberVariable: CSymbol)
     {
-        const leadingText = memberVariable.leading();
+        const leadingText = memberVariable.leadingText();
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
         this.isStatic = leadingText.match(/\bstatic\b/) !== null;
@@ -321,7 +361,7 @@ export class Setter implements Accessor
 
     constructor(memberVariable: CSymbol)
     {
-        const leadingText = memberVariable.leading();
+        const leadingText = memberVariable.leadingText();
         const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();
