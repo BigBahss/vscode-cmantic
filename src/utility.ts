@@ -107,18 +107,36 @@ export function is_snake_case(label: string): boolean
     return label.match(/[\w\d]_[\w\d]/) !== null;
 }
 
-export function maskComments(sourceText: string, maskChar: string = ' '): string
+function masker(match: string): string { return ' '.repeat(match.length); }
+
+export function maskComments(sourceText: string, keepEnclosingChars: boolean = true): string
 {
-    const replacer = (match: string) => maskChar.repeat(match.length);
-    sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
-    sourceText = sourceText.replace(/(?<=\/\/).*/g, replacer);
+    if (keepEnclosingChars) {
+        sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, masker);
+        sourceText = sourceText.replace(/(?<=\/\/).*/g, masker);
+    } else {
+        sourceText = sourceText.replace(/\/\*(\*(?=\/)|[^*])*\*\//g, masker);
+        sourceText = sourceText.replace(/\/\/.*/g, masker);
+    }
     return sourceText;
 }
 
-export function maskStringLiterals(sourceText: string, maskChar: string = ' '): string
+export function maskStringLiterals(sourceText: string, keepEnclosingChars: boolean = true): string
 {
-    const replacer = (match: string) => maskChar.repeat(match.length);
-    sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
-    sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+    if (keepEnclosingChars) {
+        sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, masker);
+        sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+    } else {
+        sourceText = sourceText.replace(/".*"(?<!\\)/g, masker);
+        sourceText = sourceText.replace(/'.*'(?<!\\)/g, masker);
+    }
     return sourceText;
+}
+
+export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+{
+    if (keepEnclosingChars) {
+        return sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, masker);
+    }
+    return sourceText.replace(/<(>(?=>)|[^>])*>/g, masker);
 }

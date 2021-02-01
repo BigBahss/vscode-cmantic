@@ -79,8 +79,7 @@ export class SourceDocument extends SourceFile
 
     positionAfterHeaderComment(): ProposedPosition
     {
-        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
-                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
+        const maskedText = util.maskComments(this.text(), false);
         let match = maskedText.match(/\S/);
         if (match?.index !== undefined) {
             // Return position before first non-comment text.

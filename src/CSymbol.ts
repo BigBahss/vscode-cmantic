@@ -234,22 +234,19 @@ export class CSymbol extends SourceSymbol
     }
 
     // Masks comments, strings/chars, and template parameters in order to make parsing easier.
-    private maskUnimportantText(sourceText: string, maskChar: string = ' '): string
+    private maskUnimportantText(sourceText: string, keepEnclosingChars: boolean = true): string
     {
-        sourceText = util.maskComments(sourceText, maskChar);
-        sourceText = util.maskStringLiterals(sourceText, maskChar);
-        // Mask template parameters
-        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, match => maskChar.repeat(match.length));
+        sourceText = util.maskComments(sourceText, keepEnclosingChars);
+        sourceText = util.maskStringLiterals(sourceText, keepEnclosingChars);
+        sourceText = util.maskTemplateParameters(sourceText, keepEnclosingChars);
 
         return sourceText;
     }
 
     private stripDefaultValues(parameters: string): string
     {
-        let maskedParameters = this.maskUnimportantText(parameters);
+        let maskedParameters = this.maskUnimportantText(parameters, false);
         maskedParameters = maskedParameters.replace(/[^\w\s]=/g, match => ' '.repeat(match.length));
-        // maskedParameters = maskedParameters.replace(/\\s*=\s*/g, '=');
-        // maskedParameters = maskedParameters.replace(/\(\)/g, '');
 
         let splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
