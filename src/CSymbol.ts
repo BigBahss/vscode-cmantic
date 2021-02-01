@@ -236,32 +236,34 @@ export class CSymbol extends SourceSymbol
         sourceText = util.maskComments(sourceText, maskChar);
         sourceText = util.maskStringLiterals(sourceText, maskChar);
         // Mask template parameters
-        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, (match) => maskChar.repeat(match.length));
+        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, match => maskChar.repeat(match.length));
 
         return sourceText;
     }
 
     private stripDefaultValues(parameters: string): string
     {
-        parameters = parameters.replace(/[^\w\s]=/g, '');
-        parameters = parameters.replace(/\b\s*=\s*\b/g, '=');
-        parameters = parameters.replace(/\(\)/g, '');
+        let maskedParameters = this.maskUnimportantText(parameters);
+        maskedParameters = maskedParameters.replace(/[^\w\s]=/g, match => ' '.repeat(match.length));
+        // maskedParameters = maskedParameters.replace(/\\s*=\s*/g, '=');
+        // maskedParameters = maskedParameters.replace(/\(\)/g, '');
 
-        let maskedParameters = this.maskUnimportantText(parameters).split(',');
+        let splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
         let charPos = 0;
-        for (const maskedParameter of maskedParameters) {
-            if (maskedParameter.includes('=')) {
-                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.indexOf('=')) + ',';
+        for (const parameter of splitParameters) {
+            if (parameter.includes('=')) {
+                strippedParameters += parameters.substring(charPos, charPos + parameter.indexOf('=')).trimEnd() + ',';
             } else {
-                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.length) + ',';
+                strippedParameters += parameters.substring(charPos, charPos + parameter.length) + ',';
             }
-            charPos += maskedParameter.length + 1;
+            charPos += parameter.length + 1;
         }
 
         return strippedParameters.substring(0, strippedParameters.length - 1);
     }
 }
+
 
 export interface Accessor {
     readonly memberVariable: CSymbol;

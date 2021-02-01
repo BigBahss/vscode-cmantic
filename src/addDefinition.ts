@@ -32,16 +32,17 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    const sourceDoc = new SourceDocument(editor.document);
-    if (!sourceDoc.isHeader()) {
+    const headerDoc = new SourceDocument(editor.document);
+    if (!headerDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
     const [matchingUri, symbol] = await Promise.all([
-        getMatchingSourceFile(sourceDoc.uri),
-        sourceDoc.getSymbol(editor.selection.start)
+        getMatchingSourceFile(headerDoc.uri),
+        headerDoc.getSymbol(editor.selection.start)
     ]);
+
     if (!symbol?.isFunctionDeclaration()) {
         vscode.window.showErrorMessage(failure.notFunctionDeclaration);
         return;
@@ -56,7 +57,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
         return;
     }
 
-    await addDefinition(symbol, sourceDoc, matchingUri);
+    await addDefinition(symbol, headerDoc, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<void>
