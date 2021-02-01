@@ -178,7 +178,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let generateGetterDisabled: { readonly reason: string } | undefined;
         let generateSetterDisabled: { readonly reason: string } | undefined;
 
-        if (sourceDoc.document.languageId !== 'cpp') {
+        if (!sourceDoc.isCpp()) {
             generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
             generateGetterDisabled = { reason: getterSetterFailure.notCpp };
             generateSetterDisabled = { reason: getterSetterFailure.notCpp };

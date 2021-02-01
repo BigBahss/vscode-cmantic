@@ -3,7 +3,7 @@ import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
-import { ProposedPosition } from './ProposedPosition';
+import { formatTextToInsert, ProposedPosition } from './ProposedPosition';
 
 
 export const title = {
@@ -57,25 +57,13 @@ function getInsertText(
 ): string {
     let insertText = functionDefinition.text();
 
-    // Convert indentation to that of the target position.
+    // Remove the old indentation.
     let line = functionDefinition.document.lineAt(functionDefinition.range.start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
     insertText = insertText.replace(re_indentation, '');
-    line = targetDocument.lineAt(position.value);
-    const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
-    insertText = insertText.replace(/^/gm, newIndentation);
 
-    const eol = util.endOfLine(targetDocument);
-    const newLines = position.nextTo ? eol : eol + eol;
-    if (position.after) {
-        insertText = newLines + insertText;
-    } else if (position.before) {
-        insertText += newLines;
-    }
-    if (position.value.line === targetDocument.lineCount - 1) {
-        insertText += eol;
-    }
+    insertText = formatTextToInsert(insertText, position, targetDocument);
 
     return insertText;
 }

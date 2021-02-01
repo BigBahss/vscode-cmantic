@@ -56,13 +56,11 @@ async function getCurrentSymbolAndCall(
         return;
     }
 
-    if (editor.document.languageId !== 'cpp') {
+    const sourceDoc = new SourceDocument(editor.document);
+    if (!sourceDoc.isCpp()) {
         vscode.window.showErrorMessage(failure.notCpp);
         return;
-    }
-
-    const sourceDoc = new SourceDocument(editor.document);
-    if (!sourceDoc.isHeader()) {
+    } else if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }

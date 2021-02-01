@@ -68,7 +68,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const eol = util.endOfLine(currentDocument);
     const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
 
-    const namespacesText = (currentDocument.languageId === 'cpp') ?
+    const namespacesText = (currentSourceDoc.isCpp()) ?
             await getNamespaceText(currentSourceDoc, eol) : '';
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -123,21 +123,21 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
     return sourceExtension;
 }
 
-async function getNamespaceText(sourceFile: SourceDocument, eol: string)
+async function getNamespaceText(sourceDoc: SourceDocument, eol: string)
 {
-    if (sourceFile.document.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
+    if (!sourceDoc.isCpp() || !cfg.shouldGenerateNamespaces()) {
         return '';
     }
 
-    const namespaces = await sourceFile.namespaces();
+    const namespaces = await sourceDoc.namespaces();
     const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
-    const indentation = await getNamespaceIndentation(sourceFile);
+    const indentation = await getNamespaceIndentation(sourceDoc);
     const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
 
     return eol + namespacesText;
 }
 
-async function getNamespaceIndentation(sourceFile: SourceDocument): Promise<string>
+async function getNamespaceIndentation(sourceDoc: SourceDocument): Promise<string>
 {
     switch (cfg.indentNamespaceBody()) {
     case cfg.NamespaceIndentation.Always:
@@ -145,7 +145,7 @@ async function getNamespaceIndentation(sourceFile: SourceDocument): Promise<stri
     case cfg.NamespaceIndentation.Never:
         return '';
     case cfg.NamespaceIndentation.Auto:
-        return (await sourceFile.isNamespaceBodyIndented()) ? util.indentation() : '';
+        return (await sourceDoc.isNamespaceBodyIndented()) ? util.indentation() : '';
     }
 }
 
