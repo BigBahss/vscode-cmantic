@@ -3,7 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
-import { addHeaderSourcePairToCache } from './extension';
+import { addHeaderSourcePairToCache, getMatchingSourceFile } from './extension';
 
 
 export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined>
@@ -27,6 +27,9 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const headerDoc = new SourceDocument(currentDocument);
     if (!headerDoc.isHeader()) {
         vscode.window.showErrorMessage('This file is not a header file.');
+        return;
+    } else if (getMatchingSourceFile(headerDoc.uri)) {
+        vscode.window.showErrorMessage('A source file already exists for this header.');
         return;
     }
 
