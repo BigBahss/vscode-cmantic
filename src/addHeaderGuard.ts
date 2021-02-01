@@ -4,20 +4,27 @@ import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
 
 
+export const failure = {
+    noActiveTextEditor: 'No active text editor detected.',
+    notHeaderFile: 'This file is not a header file.',
+    headerGuardExists: 'A header guard already exists.'
+};
+
+
 export function addHeaderGuard(): void
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
     const fileName = util.fileName(activeEditor.document.uri.path);
     const sourceDoc = new SourceDocument(activeEditor.document);
     if (!sourceDoc.isHeader()) {
-        vscode.window.showErrorMessage('This file is not a header file.');
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     } else if (sourceDoc.hasHeaderGuard()) {
-        vscode.window.showInformationMessage('A header guard already exists.');
+        vscode.window.showInformationMessage(failure.headerGuardExists);
         return;
     }
 
