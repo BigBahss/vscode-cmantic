@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
+import { formatTextToInsert } from './ProposedPosition';
 
 
 export const failure = {
@@ -11,7 +12,7 @@ export const failure = {
 };
 
 
-export function addHeaderGuard(): void
+export async function addHeaderGuard(): Promise<void>
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
@@ -19,17 +20,17 @@ export function addHeaderGuard(): void
         return;
     }
     const fileName = util.fileName(activeEditor.document.uri.path);
-    const sourceDoc = new SourceDocument(activeEditor.document);
-    if (!sourceDoc.isHeader()) {
+    const headerDoc = new SourceDocument(activeEditor.document);
+    if (!headerDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
-    } else if (sourceDoc.hasHeaderGuard()) {
+    } else if (headerDoc.hasHeaderGuard()) {
         vscode.window.showInformationMessage(failure.headerGuardExists);
         return;
     }
 
-    const headerGuardPosition = sourceDoc.positionAfterHeaderComment();
-    const eol = util.endOfLine(sourceDoc.document);
+    const headerGuardPosition = headerDoc.positionAfterHeaderComment();
+    const eol = util.endOfLine(headerDoc.document);
 
     let header = '';
     let footer = '';
@@ -45,26 +46,28 @@ export function addHeaderGuard(): void
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
-    const footerPosition = new vscode.Position(sourceDoc.document.lineCount - 1, 0);
+    const footerPosition = headerDoc.document.lineAt(headerDoc.document.lineCount - 1).range.end;
 
     if (headerGuardPosition.after) {
         header = eol + eol + header;
     } else if (headerGuardPosition.before) {
         header += eol;
     }
-    if (sourceDoc.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
+    if (headerDoc.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
         header += eol;
     }
     if (footerPosition.line === headerGuardPosition.value.line) {
         footer = eol + footer;
     }
 
-    activeEditor.insertSnippet(
-            new vscode.SnippetString(footer),
-            footerPosition,
-            { undoStopBefore: true, undoStopAfter: false });
-    activeEditor.insertSnippet(
-            new vscode.SnippetString(header),
-            headerGuardPosition.value,
-            { undoStopBefore: false, undoStopAfter: true });
+    await Promise.all([
+        activeEditor.insertSnippet(
+                new vscode.SnippetString(footer),
+                footerPosition,
+                { undoStopBefore: true, undoStopAfter: false }),
+        activeEditor.insertSnippet(
+                new vscode.SnippetString(header),
+                headerGuardPosition.value,
+                { undoStopBefore: false, undoStopAfter: true })
+    ]);
 }
