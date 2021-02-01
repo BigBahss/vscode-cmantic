@@ -6,12 +6,12 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
 
 ### Fixed
-- Improve performance of `Add Definition` commands/code-actions.
-- Improve `Add Definition` sometimes not scrolling to the new definition. (This still happens occasionally, but far less often. It is unclear why.)
+- Improved performance of `Add Definition` commands/code-actions.
+- Improved `Add Definition` sometimes not scrolling to the new definition. (This still happens occasionally, but far less often. It is unclear why.)
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
 - Improve parameter parsing of `Add Definition`.
-- Fix `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
-- Fix `Add Definition` function names for templated functions.
+- Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
+- Fixed `Add Definition` function names for templated functions.
 
 ## [0.2.1] - January 29, 2021
 ### Changed
@@ -42,7 +42,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - `cmantic.addHeaderGuard` will now replace any illegal symbols found in the file name with an underscore when creating a `#define` name.
 - Removed `cmantic.addDefinition` from appearing in the command palette as this is an internal command and would throw an error if invoked this way.
-- Remove duplicate entries of `Refactor...` and `Source Action...` from appearing in the command palette.
+- Removed duplicate entries of `Refactor...` and `Source Action...` from appearing in the command palette.
 - Fixed issues pertaining to how the placement of new function definitions is determined.
 - Fixed `Add Definition` not recognizing `operator` overload functions.
 - Fixed `Add Definition` not placing function into a cooresponding namespace block when that block was empty.
@@ -53,8 +53,6 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - `cmantic.switchHeaderSourceInWorkspace` command
 - `cmantic.addDefinitionInSourceFile` command/code-action
 - `cmantic.addDefinitionInCurrentFile` command/code-action
-- `Refactor...` editor context menu for C/C++
-- `Source Action...` editor context menu for C/C++
 - `cmantic.createMatchingSourceFile` command/code-action
 - `cmantic.addInclude` command/code-action
 - `cmantic.addHeaderGuard` command/code-action
