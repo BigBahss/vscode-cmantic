@@ -6,7 +6,7 @@ import { SourceDocument } from './SourceDocument';
 import { addHeaderSourcePairToCache, getMatchingSourceFile } from './extension';
 
 
-const failure = {
+export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noWorkspaceFolder: 'You must have a workspace folder open.',
     notHeaderFile: 'This file is not a header file.',
