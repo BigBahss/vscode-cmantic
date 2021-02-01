@@ -14,8 +14,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
-        // TODO: Returning commands from a CodeActionProvider is deprecated.
-        // Refactor to implement CodeAction's and return them instead.
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([

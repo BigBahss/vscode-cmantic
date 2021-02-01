@@ -4,6 +4,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
+import { formatTextToInsert, ProposedPosition } from './ProposedPosition';
 
 
 export const title = {
@@ -91,30 +92,59 @@ export async function addDefinition(
     }
 
     // Find the position for the new function definition.
-    const document = await vscode.workspace.openTextDocument(targetUri);
     const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
-            declarationDoc : new SourceDocument(document);
-    const position = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+            declarationDoc : await SourceDocument.open(targetUri);
+    const targetPosition = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
-    // Construct the snippet for the new function definition.
+    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, targetDoc, targetPosition);
+
+    const editor = await vscode.window.showTextDocument(targetDoc.uri);
+    const revealRange = new vscode.Range(targetPosition.value, targetPosition.value.translate(util.lineCount(functionSkeleton)));
+    editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    workspaceEdit.insert(targetDoc.uri, targetPosition.value, functionSkeleton);
+    await vscode.workspace.applyEdit(workspaceEdit);
+
+    const cursorPosition = targetDoc.document.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
+    editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+}
+
+async function constructFunctionSkeleton(
+    functionDeclaration: CSymbol,
+    targetDoc: SourceDocument,
+    position: ProposedPosition
+): Promise<string> {
     const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position.value);
-    const curlyBraceFormat = cfg.functionCurlyBraceFormat(document.languageId);
+    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
     const eol = util.endOfLine(targetDoc.document);
     const indentation = util.indentation();
+
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + indentation + '$0' + eol + '}';
+        functionSkeleton = definition + eol + '{' + eol + indentation + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + indentation + '$0' + eol + '}';
+        functionSkeleton = definition + ' {' + eol + indentation + eol + '}';
     }
 
     if (position.emptyScope && cfg.indentNamespaceBody() && await targetDoc.isNamespaceBodyIndented()) {
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
-    await util.insertSnippetAndReveal(functionSkeleton, position, targetDoc.uri);
+    return formatTextToInsert(functionSkeleton, position, targetDoc.document);
+}
+
+function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position
+{
+    const lines = functionSkeleton.split('\n');
+    for (let i = 0; i < lines.length; ++i) {
+        if (lines[i].trimEnd().endsWith('{')) {
+            return new vscode.Position(i + 1 + position.value.line, lines[i + 1].length);
+        }
+    }
+    return new vscode.Position(0, 0);
 }
