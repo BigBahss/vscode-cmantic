@@ -5,6 +5,11 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
 
+### Fixed
+- Improve performance of `Add Definition` commands/code-actions.
+- Improve `Add Definition` sometimes not scrolling to the new definition. (This still happens occasionally, but far less often. It is unclear why.)
+- Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
+
 ## [0.2.1] - January 29, 2021
 ### Changed
 - `cmantic.addHeaderGuard` will now validate static text given by the user in the `C_mantic.headerGuard.defineFormat` setting by replacing illegal symbols with underscores.
