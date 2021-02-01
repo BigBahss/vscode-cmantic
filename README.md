@@ -19,9 +19,16 @@ C-mantic is a C/C++ extension for VS Code that provides semantic aware commands 
 
 C-mantic requires a C/C++ language server extension, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but has also been tested to work on `ccls` (ccls-project.ccls) and `clangd` (llvm-vs-code-extensions.vscode-clangd).
 
+## Issues and Feature Requests
+
+If you find a bug or would like to request a new feature/functionality, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. Also, consider leaving the extension a [rating](https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic#review-details).
+
 ## Features in-depth
 
 ### Add Definition
+
+![Add Definition](./images/add_definition.gif)
+
 Selecting an undefined function declaration with your cursor will suggest the following code actions in the lightbulb menu.
 
 The `cmantic.addDefinitionInSourceFile` command/code-action creates an empty definition in a matching source file from a function declaration in a header file.
@@ -31,6 +38,9 @@ The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty de
 `Add Definition` will look for definitions of neighboring declarations in the target file and try to place the new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++.
 
 ### Generate 'get' and 'set' Methods
+
+![Generate Accessors](./images/generate_accessors.gif)
+
 Selecting a class member variable with your cursor will suggest the following code actions based on what accessor method(s) already exist for that member variable.
 
 The `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions will generate accessor methods for a member variable within a class. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_`, these will be removed to create the method names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. Additionally, for non-primitive, non-pointer data types, 'set' methods will be generated with a const-reference (`const &`) parameter type (Currently, C-mantic does not resolve `typedef`'s or `type alias`'s, and treats them as non-primitive).
