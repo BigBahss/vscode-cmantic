@@ -15,9 +15,9 @@ C-mantic is a C/C++ extension for VS Code that provides semantic aware commands 
 - [Create Matching Source File](#create-matching-source-file)
 - [Switch Header/Source in Workspace](#switch-headersource-in-workspace)
 
-## Dependencies
+## Requirements
 
-C-mantic requires a C/C++ language server extension, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but has also been tested to work on `ccls` (ccls-project.ccls) and `clangd` (llvm-vs-code-extensions.vscode-clangd).
+C-mantic requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works on `ccls` (ccls-project.ccls) and `clangd` (llvm-vs-code-extensions.vscode-clangd).
 
 ## Issues and Feature Requests
 
@@ -35,7 +35,7 @@ The `cmantic.addDefinitionInSourceFile` command/code-action creates an empty def
 
 The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty definition in the current file from a function declaration.
 
-`Add Definition` will look for definitions of neighboring declarations in the target file and try to place the new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++.
+`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++.
 
 ### Generate 'get' and 'set' Methods
 
@@ -43,7 +43,9 @@ The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty de
 
 Selecting a class member variable with your cursor will suggest the following code actions based on what accessor method(s) already exist for that member variable.
 
-The `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions will generate accessor methods for a member variable within a class. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_`, these will be removed to create the method names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. Additionally, for non-primitive, non-pointer data types, 'set' methods will be generated with a const-reference (`const &`) parameter type (Currently, C-mantic does not resolve `typedef`'s or `type alias`'s, and treats them as non-primitive).
+The `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions will generate accessor methods for a member variable within a class. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_`, these characters will be removed to create the method names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. Additionally, for non-primitive, non-pointer data types, 'set' methods will be generated with a const-reference (`const &`) parameter type (Currently, C-mantic does not resolve `typedef`'s, `type-alias`'s, or `enum`'s, and treats them as non-primitive).
+
+`Accessor: Getter Definition Location` and `Accessor: Setter Definition Location` in the settings control where the definitions of these methods are placed (Inline, below class body, or in matching source file).
 
 ### Add Include
 `Add Include` can be found under `Source Actions...` in the editor context menu.
@@ -64,3 +66,9 @@ When creating a C++ source file from a header containing namespaces, these names
 
 ### Switch Header/Source in Workspace
 The `cmantic.switchHeaderSourceInWorkspace` command will open and switch to the matching header/source file cooresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with `Context Menu: Switch Header Source` in the settings.
+
+## License
+
+Copyright (C) 2021 Tyler Dennis.
+
+Licensed under the [MIT License](https://opensource.org/licenses/MIT).
