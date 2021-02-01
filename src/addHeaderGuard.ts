@@ -4,7 +4,7 @@ import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
 
 
-export async function addHeaderGuard(): Promise<void>
+export function addHeaderGuard(): void
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
