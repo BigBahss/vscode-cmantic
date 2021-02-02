@@ -17,7 +17,7 @@ C-mantic is a C/C++ extension for VS Code that provides semantic aware commands 
 
 ## **Requirements**
 
-C-mantic requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works on `ccls` (ccls-project.ccls) and `clangd` (llvm-vs-code-extensions.vscode-clangd).
+C-mantic requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works on `clangd` (llvm-vs-code-extensions.vscode-clangd) and `ccls` (ccls-project.ccls).
 
 ## **Issues and Feature Requests**
 
@@ -35,7 +35,7 @@ The `cmantic.addDefinitionInSourceFile` command/code-action creates an empty def
 
 The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty definition in the current file from a function declaration.
 
-`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++.
+`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
 
 ### **Generate 'get' and 'set' Methods**
 

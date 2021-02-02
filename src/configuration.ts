@@ -98,7 +98,7 @@ export function indentNamespaceBody(): NamespaceIndentation
 export function shouldGenerateNamespaces(): boolean
 {
     const shouldGenerate = vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.generateNamespaces');
-    if (typeof shouldGenerate === 'undefined') {
+    if (shouldGenerate === undefined) {
         return defaultGenerateNamespaces;
     }
     return shouldGenerate;
@@ -164,4 +164,13 @@ export function setterDefinitionLocation(): AccessorDefinitionLocation
     default:
         return defaultAccessorDefinitionLocation;
     }
+}
+
+export function revealNewDefinition(): boolean
+{
+    const shouldReveal = vscode.workspace.getConfiguration('C_mantic').get<boolean>('revealNewDefinition');
+    if (shouldReveal === undefined) {
+        return true;
+    }
+    return shouldReveal;
 }

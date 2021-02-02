@@ -99,16 +99,22 @@ export async function addDefinition(
 
     const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, targetDoc, targetPosition);
 
-    const editor = await vscode.window.showTextDocument(targetDoc.uri);
-    const revealRange = new vscode.Range(targetPosition.value, targetPosition.value.translate(util.lineCount(functionSkeleton)));
-    editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
+    let editor: vscode.TextEditor | undefined;
+    const shouldReveal = cfg.revealNewDefinition();
+    if (shouldReveal) {
+        editor = await vscode.window.showTextDocument(targetDoc.uri);
+        const revealRange = new vscode.Range(targetPosition.value, targetPosition.value.translate(util.lineCount(functionSkeleton)));
+        editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
+    }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPosition.value, functionSkeleton);
     await vscode.workspace.applyEdit(workspaceEdit);
 
-    const cursorPosition = targetDoc.document.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
-    editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+    if (shouldReveal && editor) {
+        const cursorPosition = targetDoc.document.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
+        editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+    }
 }
 
 async function constructFunctionSkeleton(
