@@ -3,6 +3,7 @@ import * as util from './utility';
 
 
 export enum CurlyBraceFormat {
+    Auto,
     SameLine,
     NewLineCtorDtor,
     NewLine
@@ -68,10 +69,12 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat
 {
     const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.curlyBraceFormat.namespace');
     switch (format) {
-    case 'New line':
-        return CurlyBraceFormat.NewLine;
+    case 'Auto':
+        return CurlyBraceFormat.Auto;
     case 'Same line':
         return CurlyBraceFormat.SameLine;
+    case 'New line':
+        return CurlyBraceFormat.NewLine;
     default:
         return defaultNamespaceCurlyBraceFormat;
     }

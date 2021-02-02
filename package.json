@@ -128,10 +128,11 @@
           "C_mantic.cpp.curlyBraceFormat.namespace": {
             "type": "string",
             "enum": [
+              "Auto",
               "New line",
               "Same line"
             ],
-            "default": "Same line",
+            "default": "Auto",
             "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++."
           },
           "C_mantic.cpp.indentation.namespace": {

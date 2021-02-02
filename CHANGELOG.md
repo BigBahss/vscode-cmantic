@@ -4,6 +4,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [Unreleased]
 ### Added
 - Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
+- Added `Auto` configuration for `Curly Brace Format: Namespace`.
 
 ### Fixed
 - Improved performance of `Add Definition` commands/code-actions.
@@ -11,7 +12,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
 - Improve parameter parsing of `Add Definition`.
 - Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
-- Fixed `Add Definition` function names for templated functions.
+- Fixed `Add Definition` parsing of function templates.
 
 ## [0.2.1] - January 29, 2021
 ### Changed

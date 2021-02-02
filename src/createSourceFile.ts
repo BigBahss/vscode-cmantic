@@ -4,6 +4,7 @@ import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
 import { addHeaderSourcePairToCache, getMatchingSourceFile } from './extension';
+import { CSymbol } from './CSymbol';
 
 
 export const failure = {
@@ -36,7 +37,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     if (!headerDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
-    } else if (getMatchingSourceFile(headerDoc.uri)) {
+    } else if (await getMatchingSourceFile(headerDoc.uri)) {
         vscode.window.showErrorMessage(failure.sourceFileExists);
         return;
     }
@@ -143,11 +144,27 @@ async function getNamespaceText(headerDoc: SourceDocument, eol: string)
     }
 
     const namespaces = await headerDoc.namespaces();
-    const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
+    const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc.document);
     const indentation = await getNamespaceIndentation(headerDoc);
     const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
 
     return eol + namespacesText + eol;
+}
+
+function getNamespaceCurlySeparator(namespaces: SourceSymbol[], document: vscode.TextDocument): string
+{
+    const curlyFormat = cfg.namespaceCurlyBraceFormat();
+    if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
+        const namespace = new CSymbol(namespaces[0], document);
+        const namespaceText = util.maskComments(namespace.text());
+        if (namespaceText.match(/^\s*namespace\s+[\w\d_]+[ \t]*{/)) {
+            return ' ';
+        }
+        return util.endOfLine(document);
+    } else if (curlyFormat === cfg.CurlyBraceFormat.NewLine) {
+        return util.endOfLine(document);
+    }
+    return ' ';
 }
 
 async function getNamespaceIndentation(headerDoc: SourceDocument): Promise<string>
