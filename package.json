@@ -1,8 +1,8 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "Provides various refactorings and commands for C/C++",
-  "version": "0.2.1",
+  "description": "C/C++ refactorings: Add Definition, Generate Accessors, and more.",
+  "version": "0.2.2",
   "icon": "images/cmantic.png",
   "publisher": "tdennis4496",
   "author": {
@@ -13,6 +13,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/BigBahss/vscode-cmantic"
+  },
+  "bugs": {
+    "url": "https://github.com/BigBahss/vscode-cmantic/issues"
   },
   "readme": "README.md",
   "engines": {
@@ -193,7 +196,7 @@
           "C_mantic.revealNewDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether to reveal a newly added function definition in the editor with the 'Add Definition' commands."
+            "description": "Controls whether 'Add Definition' reveals new definitions in the editor."
           }
         }
       }

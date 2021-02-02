@@ -1,10 +1,11 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.2.2] - February 02, 2021
 ### Added
 - Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
 - Added `Auto` configuration for `Curly Brace Format: Namespace`.
+- Added configuration to control whether `Add Definition` reveals new definitions in the editor.
 
 ### Fixed
 - Improved performance of `Add Definition` commands/code-actions.

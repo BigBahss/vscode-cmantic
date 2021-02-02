@@ -4,7 +4,7 @@
     <b>C-mantic</b>
 </h1>
 
-C-mantic is a C/C++ extension for VS Code that provides semantic aware commands and refactorings. Relevant code actions are suggested via the lightbulb menu, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code actions are also available from the command palette.
+C-mantic is a C/C++ extension for VS Code that provides various semantic aware commands and refactorings. Relevant code actions are suggested via the lightbulb menu, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code actions are also available from the command palette.
 
 ## **Features at a glance**
 
