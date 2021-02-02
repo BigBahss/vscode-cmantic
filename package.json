@@ -133,7 +133,7 @@
               "Same line"
             ],
             "default": "Auto",
-            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++."
+            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++. 'Auto' will detect namespace curly brace format from the header file."
           },
           "C_mantic.cpp.indentation.namespace": {
             "type": "string",

@@ -101,7 +101,7 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
     let foundSourceFile = false;
     for (const fileSystemItem of fileSystemItems) {
         if (fileSystemItem[1] === vscode.FileType.Directory) {
-            directories.push(...await findSourceFolders(vscode.Uri.parse(uri.path + '/' + fileSystemItem[0])));
+            directories.push(...await findSourceFolders(vscode.Uri.parse(`${uri.path}/${fileSystemItem[0]}`)));
         } else if (!foundSourceFile && fileSystemItem[1] === vscode.FileType.File
                 && cfg.sourceExtensions().includes(util.fileExtension(fileSystemItem[0]))) {
             foundSourceFile = true;
@@ -147,6 +147,9 @@ async function getNamespaceText(headerDoc: SourceDocument, eol: string)
     const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc.document);
     const indentation = await getNamespaceIndentation(headerDoc);
     const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
+    if (namespacesText.length === 0) {
+        return '';
+    }
 
     return eol + namespacesText + eol;
 }
