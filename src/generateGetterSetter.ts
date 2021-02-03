@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as util from './utility';
 import { formatTextToInsert, ProposedPosition } from "./ProposedPosition";
 import { SourceDocument } from "./SourceDocument";
 import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
@@ -215,17 +216,20 @@ async function getTargetForAccessorDefinition(
     switch (accessorDefinitionLocation) {
     case cfg.AccessorDefinitionLocation.Inline:
         return { position: declarationPosition, sourceDoc: classDoc };
+    case cfg.AccessorDefinitionLocation.SourceFile:
+        // If the class is not in a header file then control will pass down to BelowClass.
+        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.uri.path)))) {
+            const matchingUri = await getMatchingSourceFile(classDoc.uri);
+            const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
+            return {
+                position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
+                sourceDoc: targetDoc
+            };
+        }
     case cfg.AccessorDefinitionLocation.BelowClass:
         return {
             position: await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc),
             sourceDoc: classDoc
-        };
-    case cfg.AccessorDefinitionLocation.SourceFile:
-        const matchingUri = await getMatchingSourceFile(classDoc.uri);
-        const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
-        return {
-            position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
-            sourceDoc: targetDoc
         };
     }
 }
