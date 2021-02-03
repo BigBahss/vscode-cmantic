@@ -10,38 +10,64 @@ import { getMatchingSourceFile } from './extension';
 
 export class CodeActionProvider implements vscode.CodeActionProvider
 {
+    private lastPositionProvided: vscode.Position | undefined;
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+    ): Promise<vscode.CodeAction[] | undefined> {
+        if (this.lastPositionProvided && rangeOrSelection.contains(this.lastPositionProvided)) {
+            return;
+        }
+        this.lastPositionProvided = rangeOrSelection.start;
+
         const sourceDoc = new SourceDocument(document);
+
+        if (token.isCancellationRequested) {
+            return [];
+        }
 
         const [matchingUri, symbol] = await Promise.all([
             getMatchingSourceFile(sourceDoc.uri),
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 
+        if (token.isCancellationRequested) {
+            return [];
+        }
+
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, sourceDoc, matchingUri),
+            this.getRefactorings(symbol, sourceDoc, token, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
         return [...refactorings, ...sourceActions];
     }
 
+    async resolveCodeAction(codeAction: vscode.CodeAction, token: vscode.CancellationToken): Promise<vscode.CodeAction>
+    {
+        return codeAction;
+    }
+
     private async getRefactorings(
         symbol: CSymbol | undefined,
         sourceDoc: SourceDocument,
+        token: vscode.CancellationToken,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
+        const refactorings: vscode.CodeAction[] = [];
         if (symbol?.isFunctionDeclaration()) {
-            return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
+            refactorings.push(...await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri));
         } else if (symbol?.isMemberVariable()) {
-            return await this.getMemberVariableRefactorings(symbol, sourceDoc, matchingUri);
+            refactorings.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
         }
-        return [];
+
+        if (token.isCancellationRequested) {
+            return [];
+        }
+
+        return refactorings;
     }
 
     private async getFunctionDeclarationRefactorings(
@@ -98,8 +124,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getMemberVariableRefactorings(
         symbol: CSymbol,
-        sourceDoc: SourceDocument,
-        matchingUri?: vscode.Uri
+        sourceDoc: SourceDocument
     ): Promise<vscode.CodeAction[]> {
         let generateGetterSetterDisabled: { readonly reason: string } | undefined;
         let generateGetterDisabled: { readonly reason: string } | undefined;

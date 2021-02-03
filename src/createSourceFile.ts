@@ -38,7 +38,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     } else if (await getMatchingSourceFile(headerDoc.uri)) {
-        vscode.window.showErrorMessage(failure.sourceFileExists);
+        vscode.window.showInformationMessage(failure.sourceFileExists);
         return;
     }
 

@@ -50,10 +50,10 @@ export async function addDefinitionInSourceFile(): Promise<void>
         vscode.window.showErrorMessage(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
-        vscode.window.showErrorMessage(failure.isConstexpr);
+        vscode.window.showInformationMessage(failure.isConstexpr);
         return;
     } else if (symbol.isInline()) {
-        vscode.window.showErrorMessage(failure.isInline);
+        vscode.window.showInformationMessage(failure.isInline);
         return;
     }
 
