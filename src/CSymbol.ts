@@ -210,7 +210,7 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leadingText().includes('*') ? true : false;
+        return this.leadingText().includes('*');
     }
 
     isConst(): boolean
@@ -325,7 +325,6 @@ export class CSymbol extends SourceSymbol
 
         return this.document.positionAt(lastMatch.index);
     }
-
 }
 
 
