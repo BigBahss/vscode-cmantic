@@ -110,13 +110,6 @@ export class CSymbol extends SourceSymbol
             return { value: this.children[this.children.length - 1].range.end, after: true };
         };
 
-        const symbolIsBetween = (symbol: CSymbol, afterOffset: number, beforeOffset: number): boolean => {
-            if (symbol.isFunction() && symbol.isAfter(afterOffset) && symbol.isBefore(beforeOffset)) {
-                return true;
-            }
-            return false;
-        };
-
         if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
             return lastChildPositionOrUndefined();
         }
@@ -151,7 +144,7 @@ export class CSymbol extends SourceSymbol
         let fallbackIndex = 0;
         for (let i = this.children.length - 1; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
+            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
                 fallbackPosition = { value: symbol.range.end, after: true };
                 fallbackIndex = i;
                 break;
@@ -170,7 +163,8 @@ export class CSymbol extends SourceSymbol
 
         for (let i = fallbackIndex; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.name === relativeName) {
+            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
+                    && symbol.name === relativeName) {
                 if (isGetter) {
                     return { value: symbol.range.start, before: true, nextTo: true };
                 } else {
@@ -325,6 +319,14 @@ export class CSymbol extends SourceSymbol
 
         return this.document.positionAt(lastMatch.index);
     }
+
+    private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean
+    {
+        if (child.isFunction() && child.isAfter(afterOffset) && child.isBefore(beforeOffset)) {
+            return true;
+        }
+        return false;
+    };
 }
 
 
