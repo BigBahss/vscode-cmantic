@@ -84,8 +84,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc, matchingUri]
             },
             disabled: addDefinitionInMatchingSourceFileDisabled
-        },
-        {
+        }, {
             title: addDefinitionTitle.currentFile,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -133,8 +132,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterSetterDisabled
-        },
-        {
+        }, {
             title: getterSetterTitle.getter,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -143,8 +141,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterDisabled
-        },
-        {
+        }, {
             title: getterSetterTitle.setter,
             kind: vscode.CodeActionKind.Refactor,
             command: {

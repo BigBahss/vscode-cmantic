@@ -6,7 +6,9 @@ import { SourceFile } from './SourceFile';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from "./ProposedPosition";
 
-
+/**
+ * Represents a C/C++ source file.
+ */
 export class SourceDocument extends SourceFile
 {
     readonly document: vscode.TextDocument;
@@ -97,8 +99,10 @@ export class SourceDocument extends SourceFile
         };
     }
 
-    // Returns the best position to place the definition for a function declaration.
-    // If targetDoc is undefined the position will be for this SourceDocument.
+    /**
+     * Returns the best position to place the definition for a function declaration.
+     * If targetDoc is undefined the position will be for this SourceDocument.
+     */
     async findPositionForFunctionDefinition(
         declarationOrPosition: SourceSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
@@ -196,7 +200,9 @@ export class SourceDocument extends SourceFile
         };
     }
 
-    // Returns the best positions to place new includes (system and project includes).
+    /**
+     * Returns the best positions to place new includes (system and project includes).
+     */
     findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
     {
         // TODO: Clean up this mess.
@@ -266,7 +272,9 @@ export class SourceDocument extends SourceFile
         return { system: position, project: position };
     }
 
-    // Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+    /**
+     * Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+     */
     async findPositionForNewSymbol(): Promise<ProposedPosition>
     {
         if (!this.symbols) {
@@ -281,7 +289,9 @@ export class SourceDocument extends SourceFile
         return util.positionAfterLastNonEmptyLine(this.document);
     }
 
-    // DocumentSymbol ranges don't always include the final semi-colon.
+    /**
+     * DocumentSymbol ranges don't always include the final semi-colon.
+     */
     private getEndOfStatement(position: vscode.Position): vscode.Position
     {
         let nextPosition = position.translate(0, 1);

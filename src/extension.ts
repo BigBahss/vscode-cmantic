@@ -12,7 +12,10 @@ import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
 
+
 const disposables: vscode.Disposable[] = [];
+const headerSourceCache = new Map<string, vscode.Uri>();
+
 
 export function activate(context: vscode.ExtensionContext)
 {
@@ -27,16 +30,15 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterFor", generateGetterFor));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateSetterFor", generateSetterFor));
 
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.switchHeaderSourceInWorkspace", switchHeaderSourceInWorkspace));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.createMatchingSourceFile", createMatchingSourceFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.switchHeaderSourceInWorkspace", switchHeaderSourceInWorkspace));
 
     vscode.languages.registerCodeActionsProvider(
-        [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
-        new CodeActionProvider(),
-        { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] }
-    );
+            [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
+            new CodeActionProvider(),
+            { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
     disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
     disposables.push(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
@@ -63,9 +65,6 @@ export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri
 
     return matchingUri;
 }
-
-// Stores header/source pairs after they have been requested.
-const headerSourceCache = new Map<string, vscode.Uri>();
 
 export function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
 {

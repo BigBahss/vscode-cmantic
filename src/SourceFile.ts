@@ -5,7 +5,9 @@ import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
 
 
-// Represents a C/C++ source file.
+/**
+ * Represents a C/C++ source file.
+ */
 export class SourceFile
 {
     readonly uri: vscode.Uri;
@@ -16,16 +18,20 @@ export class SourceFile
         this.uri = uri;
     }
 
-    // Effectively promotes this SourceFile to a SourceDocument by opening the cooresponding TextDocument.
+    /**
+     * Effectively promotes this SourceFile to a SourceDocument by opening the cooresponding TextDocument.
+     */
     async openDocument(): Promise<SourceDocument>
     {
         const document = await vscode.workspace.openTextDocument(this.uri);
         return new SourceDocument(document, this);
     }
 
-    /* Executes the 'vscode.executeDocumentSymbolProvider' command and converts them to
+    /**
+     * Executes the 'vscode.executeDocumentSymbolProvider' command and converts them to
      * SourceSymbols to update the symbols property. Returns a reference to the new symbols.
-     * Methods that use the symbols property will call this automatically if needed. */
+     * Methods that use the symbols property will call this automatically if needed.
+     */
     async executeSourceSymbolProvider(): Promise<SourceSymbol[]>
     {
         const documentSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
@@ -109,7 +115,9 @@ export class SourceFile
         return cfg.headerExtensions().includes(util.fileExtension(this.uri.path));
     }
 
-    // Returns a SourceSymbol tree of the namespaces in this SourceFile.
+    /**
+     * Returns a SourceSymbol tree of just the namespaces in this SourceFile.
+     */
     async namespaces(): Promise<SourceSymbol[]>
     {
         if (!this.symbols) {

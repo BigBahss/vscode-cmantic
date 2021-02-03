@@ -8,13 +8,17 @@ import { SourceDocument } from './SourceDocument';
 const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
 
-// Extends SourceSymbol by adding a document property that gives more semantic-awareness vs SourceSymbol.
+/**
+ * Extends SourceSymbol by adding a document property that gives more semantic-awareness vs SourceSymbol.
+ */
 export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
 
-    // When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
+    /**
+     * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
+     */
     constructor(symbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
         super(symbol, document.uri, parent);
@@ -37,27 +41,39 @@ export class CSymbol extends SourceSymbol
         }
     }
 
-    // Returns the text contained in this symbol.
+    /**
+     * Returns the text contained in this symbol.
+     */
     text(): string { return this.document.getText(this.range); }
 
-    // Returns the range of this symbol including potential template statement.
+    /**
+     * Returns the range of this symbol including potential template statement.
+     */
     getFullRange(): vscode.Range
     {
         return new vscode.Range(this.getTrueStart(), this.range.end);
     }
 
-    // Returns the text of this symbol including potential template statement.
+    /**
+     * Returns the text of this symbol including potential template statement.
+     */
     getFullText(): string
     {
         return this.document.getText(this.getFullRange());
     }
 
-    // Returns the text contained in this symbol that comes before this.name.
+    /**
+     * Returns the text contained in this symbol that comes before this.selectionRange.
+     */
     leadingText(): string
     {
         return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
     }
 
+    /**
+     * Returns the text contained in this symbol that comes before this.selectionRange,
+     * including potential template statement.
+     */
     getFullLeadingText(): string
     {
         return this.document.getText(new vscode.Range(this.getTrueStart(), this.selectionRange.start));
@@ -67,7 +83,8 @@ export class CSymbol extends SourceSymbol
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
 
-    async scopeString(target: SourceFile, position?: vscode.Position) {
+    async scopeString(target: SourceFile, position?: vscode.Position): Promise<string>
+    {
         let scopeString = '';
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
@@ -79,10 +96,11 @@ export class CSymbol extends SourceSymbol
         return scopeString;
     }
 
-    // Finds a position for a new public method within this class or struct.
-    // Optionally provide a relativeName to look for a position next to.
-    // Optionally provide a memberVariable if the new method is an accessor.
-    // Returns undefined if this is not a class or struct, or when this.children.length === 0.
+    /**
+     * Finds a position for a new public method within this class or struct. Optionally provide a relativeName
+     * to look for a position next to. Optionally provide a memberVariable if the new method is an accessor.
+     * Returns undefined if this is not a class or struct, or when this.children.length === 0.
+     */
     findPositionForNewMethod(relativeName?: string, memberVariable?: SourceSymbol): ProposedPosition | undefined
     {
         const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
@@ -213,7 +231,9 @@ export class CSymbol extends SourceSymbol
         return false;
     }
 
-    // Formats this function declaration for use as a definition (without curly braces).
+    /**
+     * Formats this function declaration for use as a definition (without curly braces).
+     */
     async newFunctionDefinition(target: SourceDocument, position?: vscode.Position): Promise<string>
     {
         if (!this.isFunctionDeclaration()) {
@@ -250,7 +270,9 @@ export class CSymbol extends SourceSymbol
         return definition;
     }
 
-    // Masks comments, strings/chars, and template parameters in order to make parsing easier.
+    /**
+     * Masks comments, strings/chars, and template parameters in order to make parsing easier.
+     */
     private maskUnimportantText(sourceText: string, keepEnclosingChars: boolean = true): string
     {
         sourceText = util.maskComments(sourceText, keepEnclosingChars);
@@ -280,7 +302,9 @@ export class CSymbol extends SourceSymbol
         return strippedParameters.substring(0, strippedParameters.length - 1);
     }
 
-    // clangd and ccls don't include template statements in provided DocumentSymbols.
+    /**
+     * clangd and ccls don't include template statements in provided DocumentSymbols.
+     */
     private getTrueStart(): vscode.Position
     {
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
@@ -305,6 +329,9 @@ export class CSymbol extends SourceSymbol
 }
 
 
+/**
+ * Represents a new accessor method for a member variable.
+ */
 export interface Accessor {
     readonly memberVariable: CSymbol;
     name: string;
@@ -316,6 +343,9 @@ export interface Accessor {
     definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
 }
 
+/**
+ * Represents a new 'get' method for a member variable.
+ */
 export class Getter implements Accessor
 {
     readonly memberVariable: CSymbol;
@@ -350,6 +380,9 @@ export class Getter implements Accessor
     }
 }
 
+/**
+ * Represents a new 'set' method for a member variable.
+ */
 export class Setter implements Accessor
 {
     readonly memberVariable: CSymbol;
