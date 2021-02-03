@@ -40,8 +40,12 @@ export function activate(context: vscode.ExtensionContext)
             new CodeActionProvider(),
             { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
+    disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
+    disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
     disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
     disposables.push(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
+
+    vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
 }
 
 export function deactivate()
@@ -66,13 +70,21 @@ export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri
     return matchingUri;
 }
 
-export function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
+async function cacheMatchingSourceFile(uri: vscode.Uri): Promise<void>
+{
+    const matchingUri = await getMatchingSourceFile(uri);
+    if (matchingUri) {
+        addHeaderSourcePairToCache(uri, matchingUri);
+    }
+}
+
+function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
 {
     headerSourceCache.set(uri_a.toString(), uri_b);
     headerSourceCache.set(uri_b.toString(), uri_a);
 }
 
-export function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
+function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
 {
     if (!uri_b) {
         uri_b = headerSourceCache.get(uri_a.toString());
@@ -120,6 +132,23 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
     return bestMatch;
 }
 
+async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void>
+{
+    if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
+        cacheMatchingSourceFile(document.uri);
+    }
+}
+
+async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void>
+{
+    event.files.forEach(async (uri) => {
+        const ext = util.fileExtension(uri.path);
+        if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
+            cacheMatchingSourceFile(uri);
+        }
+    });
+}
+
 function onDidDeleteFiles(event: vscode.FileDeleteEvent): void
 {
     event.files.forEach(uri => removeHeaderSourcePairFromCache(uri));
@@ -127,11 +156,11 @@ function onDidDeleteFiles(event: vscode.FileDeleteEvent): void
 
 function onDidRenameFiles(event: vscode.FileRenameEvent): void
 {
-    event.files.forEach(file => {
-        const matchingUri = headerSourceCache.get(file.oldUri.toString());
+    event.files.forEach(uri => {
+        const matchingUri = headerSourceCache.get(uri.oldUri.toString());
         if (matchingUri) {
-            removeHeaderSourcePairFromCache(file.oldUri, matchingUri);
-            addHeaderSourcePairToCache(file.newUri, matchingUri);
+            removeHeaderSourcePairFromCache(uri.oldUri, matchingUri);
+            addHeaderSourcePairToCache(uri.newUri, matchingUri);
         }
     });
 }

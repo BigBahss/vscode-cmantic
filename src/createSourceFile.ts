@@ -3,7 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
-import { addHeaderSourcePairToCache, getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile } from './extension';
 import { CSymbol } from './CSymbol';
 
 
@@ -85,7 +85,6 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const cursorPosition = editor.document.lineAt(0).range.end;
     editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
 
-    addHeaderSourcePairToCache(headerDoc.uri, newFileUri);
     return newFileUri;
 }
 
