@@ -36,6 +36,7 @@ const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
 const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
+const defaultRevealNewDefinition = true;
 
 
 export function headerExtensions(): string[]
@@ -170,7 +171,7 @@ export function revealNewDefinition(): boolean
 {
     const shouldReveal = vscode.workspace.getConfiguration('C_mantic').get<boolean>('revealNewDefinition');
     if (shouldReveal === undefined) {
-        return true;
+        return defaultRevealNewDefinition;
     }
     return shouldReveal;
 }

@@ -112,7 +112,7 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
         }
 
         const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
-        if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
+        if (smallestDiff === undefined || diff < smallestDiff) {
             smallestDiff = diff;
             bestMatch = uri;
         }
