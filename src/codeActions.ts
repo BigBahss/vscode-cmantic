@@ -10,32 +10,18 @@ import { getMatchingSourceFile } from './extension';
 
 export class CodeActionProvider implements vscode.CodeActionProvider
 {
-    private lastPositionProvided: vscode.Position | undefined;
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[] | undefined> {
-        if (this.lastPositionProvided && rangeOrSelection.contains(this.lastPositionProvided)) {
-            return;
-        }
-        this.lastPositionProvided = rangeOrSelection.start;
-
         const sourceDoc = new SourceDocument(document);
-
-        if (token.isCancellationRequested) {
-            return [];
-        }
 
         const [matchingUri, symbol] = await Promise.all([
             getMatchingSourceFile(sourceDoc.uri),
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
-
-        if (token.isCancellationRequested) {
-            return [];
-        }
 
         const [refactorings, sourceActions] = await Promise.all([
             this.getRefactorings(symbol, sourceDoc, token, matchingUri),
@@ -43,11 +29,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         ]);
 
         return [...refactorings, ...sourceActions];
-    }
-
-    async resolveCodeAction(codeAction: vscode.CodeAction, token: vscode.CancellationToken): Promise<vscode.CodeAction>
-    {
-        return codeAction;
     }
 
     private async getRefactorings(
@@ -62,11 +43,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (symbol?.isMemberVariable()) {
             refactorings.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
         }
-
-        if (token.isCancellationRequested) {
-            return [];
-        }
-
         return refactorings;
     }
 

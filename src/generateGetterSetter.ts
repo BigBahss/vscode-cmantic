@@ -49,7 +49,7 @@ export async function generateSetter(): Promise<void>
 }
 
 async function getCurrentSymbolAndCall(
-    callback: (symbol: CSymbol, classDoc: SourceDocument) => void
+    callback: (symbol: CSymbol, classDoc: SourceDocument) => Promise<void>
 ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
@@ -74,10 +74,10 @@ async function getCurrentSymbolAndCall(
         return;
     }
 
-    callback(symbol, sourceDoc);
+    await callback(symbol, sourceDoc);
 }
 
-export function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocument): void
+export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
@@ -88,15 +88,15 @@ export function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocumen
             return;
         }
         vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
-        generateGetterFor(symbol, classDoc);
+        await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
         vscode.window.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
-        generateSetterFor(symbol, classDoc);
+        await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
         vscode.window.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
-        generateGetterFor(symbol, classDoc);
+        await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
         vscode.window.showInformationMessage(failure.getterAndSetterExists);
@@ -115,18 +115,13 @@ export function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocumen
         nextTo: true
     };
 
-    doTheThing(symbol, position, classDoc, setterPosition);
-}
-
-async function doTheThing(symbol: CSymbol, position: ProposedPosition, classDoc: SourceDocument, setterPosition: ProposedPosition): Promise<void>
-{
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
     await addNewAccessorToWorkspaceEdit(new Setter(symbol), setterPosition, classDoc, workspaceEdit);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
-export function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): void
+export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
@@ -140,11 +135,6 @@ export function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): vo
         return;
     }
 
-    doAnotherThing(symbol, position, classDoc);
-}
-
-async function doAnotherThing(symbol: CSymbol, position: ProposedPosition, classDoc: SourceDocument)
-{
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
     await vscode.workspace.applyEdit(workspaceEdit);
