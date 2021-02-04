@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Changed
+- Preemptively find header/source pairs to improve performance of commands.
+
+### Fixed
+- Fixed generated code placement in the case that the relative a relative declaration is multi-lined.
+
 ## [0.2.2] - February 02, 2021
 ### Added
 - Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
