@@ -103,18 +103,8 @@ export class CSymbol extends SourceSymbol
      */
     findPositionForNewMethod(relativeName?: string, memberVariable?: SourceSymbol): ProposedPosition | undefined
     {
-        const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
-            if (this.children.length === 0) {
-                return undefined;
-            }
-            return new ProposedPosition(this.children[this.children.length - 1].range.end, {
-                relativeTo: this.children[this.children.length - 1].range,
-                after: true
-            });
-        };
-
         if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
-            return lastChildPositionOrUndefined();
+            return this.positionAfterLastChildOrUndefined();
         }
 
         const text = this.text();
@@ -122,7 +112,7 @@ export class CSymbol extends SourceSymbol
         let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
 
         if (!publicSpecifierOffset) {
-            return lastChildPositionOrUndefined();
+            return this.positionAfterLastChildOrUndefined();
         }
         publicSpecifierOffset += startOffset;
 
@@ -158,7 +148,7 @@ export class CSymbol extends SourceSymbol
         }
 
         if (!fallbackPosition || fallbackIndex === undefined) {
-            return lastChildPositionOrUndefined();
+            return this.positionAfterLastChildOrUndefined();
         } else if (!relativeName) {
             return fallbackPosition;
         }
@@ -339,7 +329,18 @@ export class CSymbol extends SourceSymbol
             return true;
         }
         return false;
-    };
+    }
+
+    private positionAfterLastChildOrUndefined(): ProposedPosition | undefined
+    {
+        if (this.children.length === 0) {
+            return undefined;
+        }
+        return new ProposedPosition(this.children[this.children.length - 1].range.end, {
+            relativeTo: this.children[this.children.length - 1].range,
+            after: true
+        });
+    }
 }
 
 
