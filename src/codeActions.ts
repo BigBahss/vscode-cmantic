@@ -118,7 +118,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             let declarationFile = new SourceFile(declarationLocation.uri);
             declaration = await declarationFile.getSymbol(declarationLocation.range.start);
             if (symbol.kind === vscode.SymbolKind.Method || declaration?.kind === vscode.SymbolKind.Method) {
-                if (declaration?.location.uri.path === symbol.uri.path
+                if (declaration?.location.uri.fsPath === symbol.uri.fsPath
                         && declaration.selectionRange.isEqual(symbol.selectionRange)) {
                     moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
                 } else {

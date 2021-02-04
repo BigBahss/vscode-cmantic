@@ -122,7 +122,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         }
         const declaration = (declarationOrPosition instanceof SourceSymbol) ?
                 declarationOrPosition : await this.getSymbol(declarationOrPosition);
-        if (declaration?.uri.path !== this.uri.path || (!declaration?.parent && this.symbols.length === 0)) {
+        if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration?.parent && this.symbols.length === 0)) {
             return new ProposedPosition();
         }
 
@@ -164,7 +164,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         // Find a definition of a sibling symbol in targetDoc.
         for (const symbol of before.reverse()) {
             const definitionLocation = await symbol.findDefinition();
-            if (!definitionLocation || definitionLocation.uri.path !== targetDoc.uri.path) {
+            if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
                 continue;
             }
 
@@ -179,7 +179,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         }
         for (const symbol of after) {
             const definitionLocation = await symbol.findDefinition();
-            if (!definitionLocation || definitionLocation.uri.path !== targetDoc.uri.path) {
+            if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
                 continue;
             }
 

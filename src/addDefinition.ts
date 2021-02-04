@@ -93,7 +93,7 @@ export async function addDefinition(
     }
 
     // Find the position for the new function definition.
-    const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
+    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath) ?
             declarationDoc : await SourceDocument.open(targetUri);
     const targetPosition = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
