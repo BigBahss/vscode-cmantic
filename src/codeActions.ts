@@ -70,9 +70,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         if (!sourceDoc.isHeader()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
         } else if (matchingUri) {
-            // TODO: Elide the path if it is very long.
-            addDefinitionInMatchingSourceFileTitle = 'Add Definition in "'
-                    + vscode.workspace.asRelativePath(matchingUri, false) + '"';
+            const displayPath = this.formatPathToDisplay(matchingUri);
+            addDefinitionInMatchingSourceFileTitle = `Add Definition in "${displayPath}"`;
         } else {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.noMatchingSourceFile };
         }
@@ -195,5 +194,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             },
             disabled: createMatchingSourceFileDisabled
         }];
+    }
+
+    private formatPathToDisplay(uri: vscode.Uri): string
+    {
+        const relativePath = vscode.workspace.asRelativePath(uri, false);
+        // Arbitrary limit, as to not display a path that's running all the way across the screen.
+        if (relativePath.length > 60) {
+            const length = relativePath.length;
+            return relativePath.substring(0, 28) + '....' + relativePath.substring(length - 28, length);
+        }
+        return relativePath;
     }
 }
