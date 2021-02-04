@@ -91,10 +91,10 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 {
     for (let i = document.lineCount - 1; i >= 0; --i) {
         if (!document.lineAt(i).isEmptyOrWhitespace) {
-            return { value: document.lineAt(i).range.end, after: true };
+            return new ProposedPosition(document.lineAt(i).range.end, { after: true });
         }
     }
-    return { value: new vscode.Position(0, 0) };
+    return new ProposedPosition();
 }
 
 export function firstCharToUpper(str: string): string

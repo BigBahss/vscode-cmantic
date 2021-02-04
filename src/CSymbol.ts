@@ -107,7 +107,10 @@ export class CSymbol extends SourceSymbol
             if (this.children.length === 0) {
                 return undefined;
             }
-            return { value: this.children[this.children.length - 1].range.end, after: true };
+            return new ProposedPosition(this.children[this.children.length - 1].range.end, {
+                relativeTo: this.children[this.children.length - 1].range,
+                after: true
+            });
         };
 
         if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
@@ -141,17 +144,20 @@ export class CSymbol extends SourceSymbol
         }
 
         let fallbackPosition: ProposedPosition | undefined;
-        let fallbackIndex = 0;
+        let fallbackIndex: number | undefined;
         for (let i = this.children.length - 1; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = { value: symbol.range.end, after: true };
+                fallbackPosition = new ProposedPosition(symbol.range.end, {
+                    relativeTo: symbol.range,
+                    after: true
+                });
                 fallbackIndex = i;
                 break;
             }
         }
 
-        if (!fallbackPosition || !fallbackIndex) {
+        if (!fallbackPosition || fallbackIndex === undefined) {
             return lastChildPositionOrUndefined();
         } else if (!relativeName) {
             return fallbackPosition;
@@ -166,10 +172,17 @@ export class CSymbol extends SourceSymbol
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
                     && symbol.name === relativeName) {
                 if (isGetter) {
-                    return { value: symbol.range.start, before: true, nextTo: true };
-                } else {
-                    return { value: symbol.range.end, after: true, nextTo: true };
+                    return new ProposedPosition(symbol.range.start, {
+                        relativeTo: symbol.range,
+                        before: true,
+                        nextTo: true
+                    });
                 }
+                return new ProposedPosition(symbol.range.end, {
+                    relativeTo: symbol.range,
+                    after: true,
+                    nextTo: true
+                });
             }
         }
 

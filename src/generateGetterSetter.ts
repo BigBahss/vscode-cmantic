@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { formatTextToInsert, ProposedPosition } from "./ProposedPosition";
+import { ProposedPosition } from "./ProposedPosition";
 import { SourceDocument } from "./SourceDocument";
 import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
 import { getMatchingSourceFile } from './extension';
@@ -109,11 +109,10 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
         return;
     }
 
-    const setterPosition: ProposedPosition = {
-        value: position.value,
+    const setterPosition = new ProposedPosition(position, {
         after: true,
         nextTo: true
-    };
+    });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
@@ -189,19 +188,19 @@ async function addNewAccessorToWorkspaceEdit(
 
     if (target.position === methodPosition && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = formatTextToInsert(inlineDefinition, methodPosition, classDoc.document);
+        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc.document);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedInlineDefinition);
+        workspaceEdit.insert(classDoc.uri, methodPosition, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = formatTextToInsert(newAccessor.declaration + ';', methodPosition, classDoc.document);
+        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc.document);
         const definition = await newAccessor.definition(
                 target.sourceDoc,
-                target.position.value,
+                target.position,
                 cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
-        const formattedDefinition = formatTextToInsert(definition, target.position, target.sourceDoc.document);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc.document);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedDeclaration);
-        workspaceEdit.insert(target.sourceDoc.uri, target.position.value, formattedDefinition);
+        workspaceEdit.insert(classDoc.uri, methodPosition, formattedDeclaration);
+        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
     }
 }
 

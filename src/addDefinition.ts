@@ -4,7 +4,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
-import { formatTextToInsert, ProposedPosition } from './ProposedPosition';
+import { ProposedPosition } from './ProposedPosition';
 
 
 export const title = {
@@ -103,12 +103,12 @@ export async function addDefinition(
     const shouldReveal = cfg.revealNewDefinition();
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
-        const revealRange = new vscode.Range(targetPosition.value, targetPosition.value.translate(util.lineCount(functionSkeleton)));
+        const revealRange = new vscode.Range(targetPosition, targetPosition.translate(util.lineCount(functionSkeleton)));
         editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    workspaceEdit.insert(targetDoc.uri, targetPosition.value, functionSkeleton);
+    workspaceEdit.insert(targetDoc.uri, targetPosition, functionSkeleton);
     await vscode.workspace.applyEdit(workspaceEdit);
 
     if (shouldReveal && editor) {
@@ -122,7 +122,7 @@ async function constructFunctionSkeleton(
     targetDoc: SourceDocument,
     position: ProposedPosition
 ): Promise<string> {
-    const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position.value);
+    const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position);
     const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
     const eol = util.endOfLine(targetDoc.document);
     const indentation = util.indentation();
@@ -138,11 +138,11 @@ async function constructFunctionSkeleton(
         functionSkeleton = definition + ' {' + eol + indentation + eol + '}';
     }
 
-    if (position.emptyScope && cfg.indentNamespaceBody() && await targetDoc.isNamespaceBodyIndented()) {
+    if (position.options.emptyScope && cfg.indentNamespaceBody() && await targetDoc.isNamespaceBodyIndented()) {
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
-    return formatTextToInsert(functionSkeleton, position, targetDoc.document);
+    return position.formatTextToInsert(functionSkeleton, targetDoc.document);
 }
 
 function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position
@@ -150,7 +150,7 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
     const lines = functionSkeleton.split('\n');
     for (let i = 0; i < lines.length; ++i) {
         if (lines[i].trimEnd().endsWith('{')) {
-            return new vscode.Position(i + 1 + position.value.line, lines[i + 1].length);
+            return new vscode.Position(i + 1 + position.line, lines[i + 1].length);
         }
     }
     return new vscode.Position(0, 0);

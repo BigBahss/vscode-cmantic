@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
-import { formatTextToInsert } from './ProposedPosition';
 
 
 export const failure = {
@@ -48,15 +47,15 @@ export async function addHeaderGuard(): Promise<void>
 
     const footerPosition = headerDoc.document.lineAt(headerDoc.document.lineCount - 1).range.end;
 
-    if (headerGuardPosition.after) {
+    if (headerGuardPosition.options.after) {
         header = eol + eol + header;
-    } else if (headerGuardPosition.before) {
+    } else if (headerGuardPosition.options.before) {
         header += eol;
     }
-    if (headerDoc.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
+    if (headerDoc.document.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
         header += eol;
     }
-    if (footerPosition.line === headerGuardPosition.value.line) {
+    if (footerPosition.line === headerGuardPosition.line) {
         footer = eol + footer;
     }
 
@@ -67,7 +66,7 @@ export async function addHeaderGuard(): Promise<void>
                 { undoStopBefore: true, undoStopAfter: false }),
         activeEditor.insertSnippet(
                 new vscode.SnippetString(header),
-                headerGuardPosition.value,
+                headerGuardPosition,
                 { undoStopBefore: false, undoStopAfter: true })
     ]);
 }
