@@ -187,16 +187,16 @@ async function addNewAccessorToWorkspaceEdit(
 
     if (target.position === methodPosition && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc.document);
+        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, methodPosition, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc.document);
+        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc);
         const definition = await newAccessor.definition(
                 target.sourceDoc,
                 target.position,
                 cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
-        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc.document);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
 
         workspaceEdit.insert(classDoc.uri, methodPosition, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);

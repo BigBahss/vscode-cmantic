@@ -33,7 +33,7 @@ export async function moveDefinitionToMatchingSourceFile(
     const position = await getNewPosition(targetDoc, functionDeclaration);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    const insertText = getInsertText(functionDefinition, position, targetDoc.document);
+    const insertText = getInsertText(functionDefinition, position, targetDoc);
     workspaceEdit.insert(targetDoc.uri, position, insertText);
     const deletionRange = getDeletionRange(functionDefinition);
     workspaceEdit.delete(functionDefinition.uri, deletionRange);

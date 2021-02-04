@@ -253,7 +253,7 @@ export class CSymbol extends SourceSymbol
         let leadingText = this.getFullLeadingText();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(util.endOfLine(target.document));
+        const leadingLines = leadingText.split(target.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
@@ -388,7 +388,7 @@ export class Getter implements Accessor
 
     async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
     {
-        const eol = util.endOfLine(target.document);
+        const eol = target.endOfLine;
         return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
                 + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
                 + '{' + eol + util.indentation() + this.body + eol + '}';
@@ -429,7 +429,7 @@ export class Setter implements Accessor
 
     async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
     {
-        const eol = util.endOfLine(target.document);
+        const eol = target.endOfLine;
         return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
                 + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
                 + '{' + eol + util.indentation() + this.body + eol + '}';

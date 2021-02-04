@@ -9,14 +9,14 @@ import { ProposedPosition } from "./ProposedPosition";
 /**
  * Represents a C/C++ source file.
  */
-export class SourceDocument extends SourceFile
+export class SourceDocument extends SourceFile implements vscode.TextDocument
 {
-    readonly document: vscode.TextDocument;
+    private readonly doc: vscode.TextDocument;
 
     constructor(document: vscode.TextDocument, sourceFile?: SourceFile)
     {
         super(document.uri);
-        this.document = document;
+        this.doc = document;
         this.symbols = sourceFile?.symbols;
     }
 
@@ -26,9 +26,24 @@ export class SourceDocument extends SourceFile
         return new SourceDocument(document);
     }
 
-    text(): string { return this.document.getText(); }
+    // Pass through to the provided TextDocument in order to implement.
+    get isUntitled(): boolean { return this.doc.isUntitled; }
+    get languageId(): string { return this.doc.languageId; }
+    get version(): number { return this.doc.version; }
+    get isDirty(): boolean { return this.doc.isDirty; }
+    get isClosed(): boolean { return this.doc.isClosed; }
+    save(): Thenable<boolean> { return this.doc.save(); }
+    get eol(): vscode.EndOfLine { return this.doc.eol; }
+    get lineCount(): number { return this.doc.lineCount; }
+    lineAt(lineOrPosition: number | vscode.Position): vscode.TextLine { return this.doc.lineAt(lineOrPosition as any); }
+    offsetAt(position: vscode.Position): number { return this.doc.offsetAt(position); }
+    positionAt(offset: number): vscode.Position { return this.doc.positionAt(offset); }
+    getText(range?: vscode.Range): string { return this.doc.getText(range); }
+    getWordRangeAtPosition(position: vscode.Position, regex?: RegExp): vscode.Range | undefined { return this.doc.getWordRangeAtPosition(position, regex); }
+    validateRange(range: vscode.Range): vscode.Range { return this.doc.validateRange(range); }
+    validatePosition(position: vscode.Position): vscode.Position { return this.doc.validatePosition(position); }
 
-    get languageId(): string { return this.document.languageId; }
+    get endOfLine(): string { return util.endOfLine(this); }
 
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
@@ -37,7 +52,7 @@ export class SourceDocument extends SourceFile
             return;
         }
 
-        return new CSymbol(sourceSymbol, this.document);
+        return new CSymbol(sourceSymbol, this);
     }
 
     async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined>
@@ -47,7 +62,7 @@ export class SourceDocument extends SourceFile
             return;
         }
 
-        return new CSymbol(sourceSymbol, this.document);
+        return new CSymbol(sourceSymbol, this);
     }
 
     hasHeaderGuard(): boolean
@@ -58,7 +73,7 @@ export class SourceDocument extends SourceFile
     positionAfterHeaderGuard(): vscode.Position | undefined
     {
         let offset: number | undefined;
-        let maskedText = util.maskComments(this.text());
+        let maskedText = util.maskComments(this.getText());
         maskedText = util.maskStringLiterals(maskedText);
 
         const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
@@ -74,23 +89,23 @@ export class SourceDocument extends SourceFile
         }
 
         if (offset !== undefined) {
-            const positionOfHeaderGuard = this.document.positionAt(offset);
+            const positionOfHeaderGuard = this.positionAt(offset);
             return new vscode.Position(positionOfHeaderGuard.line + 1, 0);
         }
     }
 
     positionAfterHeaderComment(): ProposedPosition
     {
-        const maskedText = util.maskComments(this.text(), false);
+        const maskedText = util.maskComments(this.getText(), false);
         let match = maskedText.match(/\S/);
         if (match?.index !== undefined) {
             // Return position before first non-comment text.
-            return new ProposedPosition(this.document.positionAt(match.index), { before: true });
+            return new ProposedPosition(this.positionAt(match.index), { before: true });
         }
 
         // Return position after header comment when there is no non-comment text in the file.
-        const endTrimmedTextLength = this.text().trimEnd().length;
-        return new ProposedPosition(this.document.positionAt(endTrimmedTextLength), {
+        const endTrimmedTextLength = this.getText().trimEnd().length;
+        return new ProposedPosition(this.positionAt(endTrimmedTextLength), {
             after: endTrimmedTextLength !== 0
         });
     }
@@ -117,7 +132,7 @@ export class SourceDocument extends SourceFile
         if (!targetDoc.symbols) {
             targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
             if (targetDoc.symbols.length === 0) {
-                return util.positionAfterLastNonEmptyLine(targetDoc.document);
+                return util.positionAfterLastNonEmptyLine(targetDoc);
             }
         }
 
@@ -187,9 +202,9 @@ export class SourceDocument extends SourceFile
                 }
 
                 if (targetNamespace.children.length === 0) {
-                    const bodyStart = targetDoc.document.offsetAt(targetNamespace.range.start)
+                    const bodyStart = targetDoc.offsetAt(targetNamespace.range.start)
                             + targetNamespace.text().indexOf('{') + 1;
-                    return new ProposedPosition(targetDoc.document.positionAt(bodyStart), {
+                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
                         after: true,
                         nextTo: true,
                         emptyScope: true
@@ -230,8 +245,8 @@ export class SourceDocument extends SourceFile
         let projectIncludeStart: vscode.Position | undefined;
         let largestSystemIncludeBlock: vscode.Range | undefined;
         let largestProjectIncludeBlock: vscode.Range | undefined;
-        for (let i = 0; i < this.document.lineCount; ++i) {
-            const line = this.document.lineAt(i);
+        for (let i = 0; i < this.lineCount; ++i) {
+            const line = this.lineAt(i);
             if (!line.text.trim().match(/^#include\s*(<.+>)|(".+")$/)) {
                 if (systemIncludeStart) {
                     largestSystemIncludeBlock = largestBlock(line, systemIncludeStart, largestSystemIncludeBlock);
@@ -298,7 +313,7 @@ export class SourceDocument extends SourceFile
                 after: true
             });
         }
-        return util.positionAfterLastNonEmptyLine(this.document);
+        return util.positionAfterLastNonEmptyLine(this);
     }
 
     /**
@@ -307,7 +322,7 @@ export class SourceDocument extends SourceFile
     private getEndOfStatement(position: vscode.Position): vscode.Position
     {
         let nextPosition = position.translate(0, 1);
-        while (this.document.getText(new vscode.Range(position, nextPosition)) === ';') {
+        while (this.getText(new vscode.Range(position, nextPosition)) === ';') {
             position = nextPosition;
             nextPosition = position.translate(0, 1);
         }

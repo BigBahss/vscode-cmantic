@@ -27,6 +27,8 @@ export class SourceFile
         return new SourceDocument(document, this);
     }
 
+    get fileName(): string { return this.uri.fsPath; }
+
     /**
      * Executes the 'vscode.executeDocumentSymbolProvider' command and converts them to
      * SourceSymbols to update the symbols property. Returns a reference to the new symbols.

@@ -104,7 +104,7 @@ export async function addDefinition(
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
         const revealRange = new vscode.Range(targetPosition, targetPosition.translate(util.lineCount(functionSkeleton)));
-        editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
+        editor.revealRange(targetDoc.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -112,7 +112,7 @@ export async function addDefinition(
     await vscode.workspace.applyEdit(workspaceEdit);
 
     if (shouldReveal && editor) {
-        const cursorPosition = targetDoc.document.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
+        const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
         editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
     }
 }
@@ -124,7 +124,7 @@ async function constructFunctionSkeleton(
 ): Promise<string> {
     const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position);
     const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
-    const eol = util.endOfLine(targetDoc.document);
+    const eol = targetDoc.endOfLine;
     const indentation = util.indentation();
 
     let functionSkeleton: string;
@@ -142,7 +142,7 @@ async function constructFunctionSkeleton(
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
-    return position.formatTextToInsert(functionSkeleton, targetDoc.document);
+    return position.formatTextToInsert(functionSkeleton, targetDoc);
 }
 
 function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position

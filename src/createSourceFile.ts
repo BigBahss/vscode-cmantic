@@ -72,9 +72,8 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const newFilePath = `${folder.uri.path}/${headerFileNameBase}.${extension}`;
     const newFileUri = vscode.Uri.file(newFilePath);
 
-    const eol = util.endOfLine(headerDoc.document);
-    const includeStatement = `#include "${util.fileName(headerDoc.uri.path)}"${eol}`;
-    const namespacesText = (headerDoc.languageId === 'cpp') ? await getNamespaceText(headerDoc, eol) : '';
+    const includeStatement = `#include "${util.fileName(headerDoc.uri.path)}"${headerDoc.endOfLine}`;
+    const namespacesText = (headerDoc.languageId === 'cpp') ? await getNamespaceText(headerDoc) : '';
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
@@ -136,14 +135,15 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
     return sourceExtension;
 }
 
-async function getNamespaceText(headerDoc: SourceDocument, eol: string)
+async function getNamespaceText(headerDoc: SourceDocument)
 {
     if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
         return '';
     }
 
+    const eol = headerDoc.endOfLine;
     const namespaces = await headerDoc.namespaces();
-    const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc.document);
+    const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc);
     const indentation = await getNamespaceIndentation(headerDoc);
     const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
     if (namespacesText.length === 0) {
@@ -153,18 +153,18 @@ async function getNamespaceText(headerDoc: SourceDocument, eol: string)
     return eol + namespacesText + eol;
 }
 
-function getNamespaceCurlySeparator(namespaces: SourceSymbol[], document: vscode.TextDocument): string
+function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: SourceDocument): string
 {
     const curlyFormat = cfg.namespaceCurlyBraceFormat();
     if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
-        const namespace = new CSymbol(namespaces[0], document);
+        const namespace = new CSymbol(namespaces[0], headerDoc);
         const namespaceText = util.maskComments(namespace.text());
         if (namespaceText.match(/^\s*namespace\s+[\w\d_]+[ \t]*{/)) {
             return ' ';
         }
-        return util.endOfLine(document);
+        return headerDoc.endOfLine;
     } else if (curlyFormat === cfg.CurlyBraceFormat.NewLine) {
-        return util.endOfLine(document);
+        return headerDoc.endOfLine;
     }
     return ' ';
 }

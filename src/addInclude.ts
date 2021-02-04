@@ -15,7 +15,7 @@ export async function addInclude(): Promise<void>
 
     const sourceDoc = new SourceDocument(editor.document);
     const newIncludePosition = sourceDoc.findPositionForNewInclude();
-    const eol = util.endOfLine(sourceDoc.document);
+    const eol = sourceDoc.endOfLine;
 
     userInput.then(value => {
         if (value?.trim().match(/^#include\s*<.+>/)) {

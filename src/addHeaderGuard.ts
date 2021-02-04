@@ -29,7 +29,7 @@ export async function addHeaderGuard(): Promise<void>
     }
 
     const headerGuardPosition = headerDoc.positionAfterHeaderComment();
-    const eol = util.endOfLine(headerDoc.document);
+    const eol = headerDoc.endOfLine;
 
     let header = '';
     let footer = '';
@@ -45,14 +45,14 @@ export async function addHeaderGuard(): Promise<void>
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
-    const footerPosition = headerDoc.document.lineAt(headerDoc.document.lineCount - 1).range.end;
+    const footerPosition = headerDoc.lineAt(headerDoc.lineCount - 1).range.end;
 
     if (headerGuardPosition.options.after) {
         header = eol + eol + header;
     } else if (headerGuardPosition.options.before) {
         header += eol;
     }
-    if (headerDoc.document.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
+    if (headerDoc.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
         header += eol;
     }
     if (footerPosition.line === headerGuardPosition.line) {
