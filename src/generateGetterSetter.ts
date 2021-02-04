@@ -110,6 +110,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
     }
 
     const setterPosition = new ProposedPosition(position, {
+        relativeTo: position.options.relativeTo,
         after: true,
         nextTo: true
     });

@@ -32,7 +32,7 @@ export class ProposedPosition extends Position
     formatTextToInsert(insertText: string, document: TextDocument): string
     {
         // Indent text to match the relative position.
-        const line = document.lineAt(this);
+        const line = this.options.relativeTo ? document.lineAt(this.options.relativeTo.start) : document.lineAt(this);
         const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
         if (!this.options.before) {
             insertText = insertText.replace(/^/gm, indentation);

@@ -9,7 +9,7 @@ const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|in
 
 
 /**
- * Extends SourceSymbol by adding a document property that gives more semantic-awareness vs SourceSymbol.
+ * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
  */
 export class CSymbol extends SourceSymbol
 {
