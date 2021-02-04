@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as util from './utility';
-import { SourceDocument } from "./SourceDocument";
+import * as path from 'path';
+import { SourceDocument } from './SourceDocument';
 
 
 export const failure = {
@@ -18,7 +18,7 @@ export async function addHeaderGuard(): Promise<void>
         vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
-    const fileName = util.fileName(activeEditor.document.uri.path);
+    const fileName = path.basename(activeEditor.document.fileName);
     const headerDoc = new SourceDocument(activeEditor.document);
     if (!headerDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);

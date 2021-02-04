@@ -1,44 +1,33 @@
 import * as vscode from 'vscode';
-import { ProposedPosition } from "./ProposedPosition";
+import * as path from 'path';
+import { ProposedPosition } from './ProposedPosition';
 
 
-export function fileName(filePath: string): string
+export function fileExtension(fsPath: string): string
 {
-    const lastSeparator = filePath.lastIndexOf('/');
-    return (lastSeparator !== -1) ? filePath.substring(lastSeparator + 1) : filePath;
-}
-
-export function fileExtension(filePath: string): string
-{
-    const name = fileName(filePath);
-    const lastDot = name.lastIndexOf('.');
-    return (lastDot !== -1) ? name.substring(lastDot + 1) : '';
+    const extension = path.extname(fsPath);
+    if (extension.length > 0) {
+        return extension.substring(1);
+    }
+    return extension;
 }
 
 // Strips the directory and extension from a file name.
-export function fileNameBase(filePath: string): string
+export function fileNameBase(fsPath: string): string
 {
-    const name = fileName(filePath);
-    const lastDot = name.lastIndexOf('.');
-    return (lastDot !== -1) ? name.substring(0, lastDot) : name;
-}
-
-export function directory(filePath: string): string
-{
-    const lastSeparator = filePath.lastIndexOf('/');
-    return (lastSeparator !== -1) ? filePath.substring(0, lastSeparator) : '';
+    return path.basename(fsPath, path.extname(fsPath));
 }
 
 // Returns the amount of different directories between directoryPath_a and directoryPath_b.
 export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number
 {
-    const path1_segments = directoryPath_a.split('/');
-    const path2_segments = directoryPath_b.split('/');
-    const minSegments = Math.min(path1_segments.length, path2_segments.length);
+    const a_segments = directoryPath_a.split(path.sep);
+    const b_segments = directoryPath_b.split(path.sep);
+    const minSegments = Math.min(a_segments.length, b_segments.length);
 
     let commonLeadingDirectories = 0;
     for (let i = 0; i < minSegments; ++i) {
-        if (path1_segments[i] !== path2_segments[i]) {
+        if (a_segments[i] !== b_segments[i]) {
             break;
         }
         ++commonLeadingDirectories;
@@ -46,14 +35,14 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
 
     let commonTrailingDirectories = 0;
     for (let i = 1; i < minSegments - commonLeadingDirectories - 1; ++i) {
-        if (path1_segments[path1_segments.length - i] !== path2_segments[path2_segments.length - i]) {
+        if (a_segments[a_segments.length - i] !== b_segments[b_segments.length - i]) {
             break;
         }
         ++commonTrailingDirectories;
     }
 
-    return Math.max((path1_segments.length - commonLeadingDirectories - commonTrailingDirectories),
-                    (path2_segments.length - commonLeadingDirectories - commonTrailingDirectories));
+    return Math.max((a_segments.length - commonLeadingDirectories - commonTrailingDirectories),
+                    (b_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
 export function indentation(options?: vscode.TextEditorOptions): string

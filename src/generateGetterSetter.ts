@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { ProposedPosition } from "./ProposedPosition";
-import { SourceDocument } from "./SourceDocument";
-import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
+import { ProposedPosition } from './ProposedPosition';
+import { SourceDocument } from './SourceDocument';
+import { Accessor, CSymbol, Getter, Setter } from './CSymbol';
 import { getMatchingSourceFile } from './extension';
 
 
@@ -216,7 +216,7 @@ async function getTargetForAccessorDefinition(
         return { position: declarationPosition, sourceDoc: classDoc };
     case cfg.AccessorDefinitionLocation.SourceFile:
         // If the class is not in a header file then control will pass down to BelowClass.
-        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.uri.path)))) {
+        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.fileName)))) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
             const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
             return {

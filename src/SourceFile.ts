@@ -114,7 +114,7 @@ export class SourceFile
 
     isHeader(): boolean
     {
-        return cfg.headerExtensions().includes(util.fileExtension(this.uri.path));
+        return cfg.headerExtensions().includes(util.fileExtension(this.uri.fsPath));
     }
 
     /**

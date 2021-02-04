@@ -143,7 +143,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         if (matchingUri) {
             // TODO: Elide the path if it is very long.
             moveDefinitionToMatchingSourceFileTitle = 'Move Definition to "'
-                    + vscode.workspace.asRelativePath(matchingUri.path, false) + '"';
+                    + vscode.workspace.asRelativePath(matchingUri, false) + '"';
         } else {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
         }

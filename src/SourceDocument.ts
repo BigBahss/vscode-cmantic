@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
+import * as path from 'path';
 import { CSymbol } from './CSymbol';
 import { SourceFile } from './SourceFile';
 import { SourceSymbol } from './SourceSymbol';
-import { ProposedPosition } from "./ProposedPosition";
+import { ProposedPosition } from './ProposedPosition';
 
 /**
  * Represents a C/C++ source file.
@@ -81,7 +82,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
             offset = pragmaOnceMatch.index;
         }
 
-        const headerGuardDefine = cfg.headerGuardDefine(util.fileName(this.uri.path));
+        const headerGuardDefine = cfg.headerGuardDefine(path.basename(this.fileName));
         const re_headerGuardDefine = new RegExp('^\\s*#define\\s+' + headerGuardDefine + '\\b', 'm');
         const defineMatch = maskedText.match(re_headerGuardDefine);
         if (defineMatch) {

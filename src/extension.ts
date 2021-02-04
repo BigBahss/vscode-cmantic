@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
+import * as path from 'path';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
 import { moveDefinitionToMatchingSourceFile } from './moveDefinition';
 import {
@@ -101,9 +102,9 @@ function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri):
 
 async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined>
 {
-    const extension = util.fileExtension(uri.path);
-    const baseName = util.fileNameBase(uri.path);
-    const directory = util.directory(uri.path);
+    const extension = util.fileExtension(uri.fsPath);
+    const baseName = util.fileNameBase(uri.fsPath);
+    const directory = path.dirname(uri.fsPath);
     const headerExtensions = cfg.headerExtensions();
     const sourceExtensions = cfg.sourceExtensions();
 
@@ -125,7 +126,7 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
             continue;
         }
 
-        const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
+        const diff = util.compareDirectoryPaths(path.dirname(uri.fsPath), directory);
         if (smallestDiff === undefined || diff < smallestDiff) {
             smallestDiff = diff;
             bestMatch = uri;
@@ -145,7 +146,7 @@ async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<voi
 async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void>
 {
     event.files.forEach(async (uri) => {
-        const ext = util.fileExtension(uri.path);
+        const ext = util.fileExtension(uri.fsPath);
         if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
             cacheMatchingSourceFile(uri);
         }

@@ -75,12 +75,12 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return;
         }
 
-        const thisFileNameBase = util.fileNameBase(this.uri.path);
+        const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
         for (const result of definitionResults) {
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
                 return location;
             }
         }
@@ -97,12 +97,12 @@ export class SourceSymbol extends vscode.DocumentSymbol
             return;
         }
 
-        const thisFileNameBase = util.fileNameBase(this.uri.path);
+        const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
         for (const result of declarationResults) {
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.path) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
                 return location;
             }
         }
