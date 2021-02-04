@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import { formatTextToInsert, ProposedPosition } from "./ProposedPosition";
+import * as util from './utility';
+import { ProposedPosition } from "./ProposedPosition";
 import { SourceDocument } from "./SourceDocument";
 import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
 import { getMatchingSourceFile } from './extension';
@@ -57,7 +58,7 @@ async function getCurrentSymbolAndCall(
     }
 
     const sourceDoc = new SourceDocument(editor.document);
-    if (!sourceDoc.isCpp()) {
+    if (sourceDoc.languageId !== 'cpp') {
         vscode.window.showErrorMessage(failure.notCpp);
         return;
     } else if (!sourceDoc.isHeader()) {
@@ -81,7 +82,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 
     if (symbol.isConst()) {
         if (getter) {
-            vscode.window.showErrorMessage(failure.isConst + ' ' + failure.getterExists);
+            vscode.window.showInformationMessage(failure.isConst + ' ' + failure.getterExists);
             return;
         }
         vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
@@ -96,7 +97,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
-        vscode.window.showErrorMessage(failure.getterAndSetterExists);
+        vscode.window.showInformationMessage(failure.getterAndSetterExists);
         return;
     }
 
@@ -106,11 +107,11 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
         return;
     }
 
-    const setterPosition: ProposedPosition = {
-        value: position.value,
+    const setterPosition = new ProposedPosition(position, {
+        relativeTo: position.options.relativeTo,
         after: true,
         nextTo: true
-    };
+    });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
@@ -140,7 +141,7 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
 export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     if (symbol.isConst()) {
-        vscode.window.showErrorMessage(failure.isConst);
+        vscode.window.showInformationMessage(failure.isConst);
         return;
     }
 
@@ -186,19 +187,19 @@ async function addNewAccessorToWorkspaceEdit(
 
     if (target.position === methodPosition && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = formatTextToInsert(inlineDefinition, methodPosition, classDoc.document);
+        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc.document);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedInlineDefinition);
+        workspaceEdit.insert(classDoc.uri, methodPosition, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = formatTextToInsert(newAccessor.declaration + ';', methodPosition, classDoc.document);
+        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc.document);
         const definition = await newAccessor.definition(
                 target.sourceDoc,
-                target.position.value,
+                target.position,
                 cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
-        const formattedDefinition = formatTextToInsert(definition, target.position, target.sourceDoc.document);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc.document);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition.value, formattedDeclaration);
-        workspaceEdit.insert(target.sourceDoc.uri, target.position.value, formattedDefinition);
+        workspaceEdit.insert(classDoc.uri, methodPosition, formattedDeclaration);
+        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
     }
 }
 
@@ -213,17 +214,20 @@ async function getTargetForAccessorDefinition(
     switch (accessorDefinitionLocation) {
     case cfg.AccessorDefinitionLocation.Inline:
         return { position: declarationPosition, sourceDoc: classDoc };
+    case cfg.AccessorDefinitionLocation.SourceFile:
+        // If the class is not in a header file then control will pass down to BelowClass.
+        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.uri.path)))) {
+            const matchingUri = await getMatchingSourceFile(classDoc.uri);
+            const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
+            return {
+                position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
+                sourceDoc: targetDoc
+            };
+        }
     case cfg.AccessorDefinitionLocation.BelowClass:
         return {
             position: await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc),
             sourceDoc: classDoc
-        };
-    case cfg.AccessorDefinitionLocation.SourceFile:
-        const matchingUri = await getMatchingSourceFile(classDoc.uri);
-        const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
-        return {
-            position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
-            sourceDoc: targetDoc
         };
     }
 }

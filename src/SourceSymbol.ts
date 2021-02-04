@@ -2,8 +2,10 @@ import * as vscode from 'vscode';
 import * as util from './utility';
 
 
-// Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
-// Additionally, some properties are normalized for different language servers.
+/**
+ * Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
+ * Additionally, some properties are normalized for different language servers.
+ */
 export class SourceSymbol extends vscode.DocumentSymbol
 {
     readonly uri: vscode.Uri;
@@ -21,9 +23,14 @@ export class SourceSymbol extends vscode.DocumentSymbol
         this.parent = parent;
 
         // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
-        if (docSymbol.name.includes('(')) {
-            this.name = docSymbol.name.substring(0, docSymbol.name.indexOf('('));
+        let name = docSymbol.name;
+        if (name.includes('(')) {
+            name = name.substring(0, name.indexOf('('));
         }
+        if (name.endsWith('>')) {
+            name = name.substring(0, name.lastIndexOf('<'));
+        }
+        this.name = name;
 
         // ccls puts function signatures in the detail property.
         if (docSymbol.detail.includes(docSymbol.name + '(')) {
@@ -57,8 +64,11 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    // Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
-    async findDefinition(): Promise<vscode.Location | undefined> {
+    /**
+     * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
+     */
+    async findDefinition(): Promise<vscode.Location | undefined>
+    {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, this.selectionRange.start);
         if (!definitionResults) {
@@ -76,8 +86,11 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    // Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
-    async findDeclaration(): Promise<vscode.Location | undefined> {
+    /**
+     * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
+     */
+    async findDeclaration(): Promise<vscode.Location | undefined>
+    {
         const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, this.selectionRange.start);
         if (!declarationResults) {
@@ -95,8 +108,10 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    // Returns an array of SourceSymbol's starting with the top-most ancestor and ending with this.parent.
-    // Returns an empty array if this is a top-level symbol (parent is undefined).
+    /**
+     * Returns an array of SourceSymbol's starting with the top-most ancestor and ending with this.parent.
+     * Returns an empty array if this is a top-level symbol (parent is undefined).
+     */
     scopes(): SourceSymbol[]
     {
         let scopes: SourceSymbol[] = [];
@@ -150,7 +165,9 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    // Checks for common naming schemes of private members and return the base name.
+    /**
+     * Checks for common naming schemes of private members and return the base name.
+     */
     baseName(): string
     {
         let baseMemberName: string | undefined;

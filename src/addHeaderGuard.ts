@@ -4,25 +4,32 @@ import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
 
 
+export const failure = {
+    noActiveTextEditor: 'No active text editor detected.',
+    notHeaderFile: 'This file is not a header file.',
+    headerGuardExists: 'A header guard already exists.'
+};
+
+
 export async function addHeaderGuard(): Promise<void>
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
     const fileName = util.fileName(activeEditor.document.uri.path);
-    const sourceDoc = new SourceDocument(activeEditor.document);
-    if (!sourceDoc.isHeader()) {
-        vscode.window.showErrorMessage('This file is not a header file.');
+    const headerDoc = new SourceDocument(activeEditor.document);
+    if (!headerDoc.isHeader()) {
+        vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
-    } else if (sourceDoc.hasHeaderGuard()) {
-        vscode.window.showInformationMessage('A header guard already exists.');
+    } else if (headerDoc.hasHeaderGuard()) {
+        vscode.window.showInformationMessage(failure.headerGuardExists);
         return;
     }
 
-    const headerGuardPosition = sourceDoc.positionAfterHeaderComment();
-    const eol = util.endOfLine(sourceDoc.document);
+    const headerGuardPosition = headerDoc.positionAfterHeaderComment();
+    const eol = util.endOfLine(headerDoc.document);
 
     let header = '';
     let footer = '';
@@ -38,26 +45,28 @@ export async function addHeaderGuard(): Promise<void>
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
-    const footerPosition = new vscode.Position(sourceDoc.document.lineCount - 1, 0);
+    const footerPosition = headerDoc.document.lineAt(headerDoc.document.lineCount - 1).range.end;
 
-    if (headerGuardPosition.after) {
+    if (headerGuardPosition.options.after) {
         header = eol + eol + header;
-    } else if (headerGuardPosition.before) {
+    } else if (headerGuardPosition.options.before) {
         header += eol;
     }
-    if (sourceDoc.document.getText(new vscode.Range(headerGuardPosition.value, footerPosition)).trim().length === 0) {
+    if (headerDoc.document.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
         header += eol;
     }
-    if (footerPosition.line === headerGuardPosition.value.line) {
+    if (footerPosition.line === headerGuardPosition.line) {
         footer = eol + footer;
     }
 
-    activeEditor.insertSnippet(
-            new vscode.SnippetString(footer),
-            footerPosition,
-            { undoStopBefore: true, undoStopAfter: false });
-    activeEditor.insertSnippet(
-            new vscode.SnippetString(header),
-            headerGuardPosition.value,
-            { undoStopBefore: false, undoStopAfter: true });
+    await Promise.all([
+        activeEditor.insertSnippet(
+                new vscode.SnippetString(footer),
+                footerPosition,
+                { undoStopBefore: true, undoStopAfter: false }),
+        activeEditor.insertSnippet(
+                new vscode.SnippetString(header),
+                headerGuardPosition,
+                { undoStopBefore: false, undoStopAfter: true })
+    ]);
 }

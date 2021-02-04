@@ -3,7 +3,7 @@ import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
-import { formatTextToInsert, ProposedPosition } from './ProposedPosition';
+import { ProposedPosition } from './ProposedPosition';
 
 
 export const title = {
@@ -34,7 +34,7 @@ export async function moveDefinitionToMatchingSourceFile(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     const insertText = getInsertText(functionDefinition, position, targetDoc.document);
-    workspaceEdit.insert(targetDoc.uri, position.value, insertText);
+    workspaceEdit.insert(targetDoc.uri, position, insertText);
     const deletionRange = getDeletionRange(functionDefinition);
     workspaceEdit.delete(functionDefinition.uri, deletionRange);
     await vscode.workspace.applyEdit(workspaceEdit);
@@ -63,7 +63,7 @@ function getInsertText(
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
     insertText = insertText.replace(re_indentation, '');
 
-    insertText = formatTextToInsert(insertText, position, targetDocument);
+    insertText = position.formatTextToInsert(insertText, targetDocument);
 
     return insertText;
 }

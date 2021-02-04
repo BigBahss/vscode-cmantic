@@ -23,7 +23,7 @@ export async function addInclude(): Promise<void>
         } else if (value?.trim().match(/^#include\s*".+"/)) {
             editor.edit(edit => edit.insert(newIncludePosition.project, value + eol));
         } else if (value) {
-            vscode.window.showWarningMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
+            vscode.window.showInformationMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
         }
     });
 }

@@ -1,8 +1,8 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "Provides various refactorings and commands for C/C++",
-  "version": "0.2.1",
+  "description": "C/C++ refactorings: Add Definition, Generate Accessors, and more.",
+  "version": "0.2.2",
   "icon": "images/cmantic.png",
   "publisher": "tdennis4496",
   "author": {
@@ -13,6 +13,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/BigBahss/vscode-cmantic"
+  },
+  "bugs": {
+    "url": "https://github.com/BigBahss/vscode-cmantic/issues"
   },
   "readme": "README.md",
   "engines": {
@@ -36,20 +39,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "cmantic.switchHeaderSourceInWorkspace",
-        "title": "Switch Header/Source in Workspace"
-      },
-      {
         "command": "cmantic.addDefinitionInSourceFile",
         "title": "C-mantic: Add Definition in matching source file"
       },
       {
         "command": "cmantic.addDefinitionInCurrentFile",
         "title": "C-mantic: Add Definition in this file"
-      },
-      {
-        "command": "cmantic.createMatchingSourceFile",
-        "title": "C-mantic: Create Matching Source File"
       },
       {
         "command": "cmantic.generateGetterSetter",
@@ -64,12 +59,20 @@
         "title": "C-mantic: Generate 'set' method"
       },
       {
-        "command": "cmantic.addInclude",
-        "title": "C-mantic: Add Include"
+        "command": "cmantic.createMatchingSourceFile",
+        "title": "C-mantic: Create Matching Source File"
       },
       {
         "command": "cmantic.addHeaderGuard",
         "title": "C-mantic: Add Header Guard"
+      },
+      {
+        "command": "cmantic.addInclude",
+        "title": "C-mantic: Add Include"
+      },
+      {
+        "command": "cmantic.switchHeaderSourceInWorkspace",
+        "title": "Switch Header/Source in Workspace"
       }
     ],
     "menus": {
@@ -128,11 +131,12 @@
           "C_mantic.cpp.curlyBraceFormat.namespace": {
             "type": "string",
             "enum": [
+              "Auto",
               "New line",
               "Same line"
             ],
-            "default": "Same line",
-            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++."
+            "default": "Auto",
+            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++. 'Auto' will detect namespace curly brace format from the header file."
           },
           "C_mantic.cpp.indentation.namespace": {
             "type": "string",
@@ -188,6 +192,11 @@
             "type": "string",
             "default": "${FILE_NAME_EXT}",
             "description": "Controls how new header guard defines are generated. The variable '${FILE_NAME_EXT}' is replaced with the file name in uppercase, with all symbols replaced with underscores. The variable '${FILE_NAME}' is replaced with the file name in uppercase, not including any file extensions, with all symbols replaced with underscores. For example, a file named 'some-header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
+          },
+          "C_mantic.revealNewDefinition": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether 'Add Definition' reveals new definitions in the editor."
           }
         }
       }

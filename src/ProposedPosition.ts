@@ -1,41 +1,61 @@
-import { Position, TextDocument } from 'vscode';
+import { Position, Range, TextDocument } from 'vscode';
 import { endOfLine } from './utility';
 
 
-export interface ProposedPosition {
-    value: Position;
+export interface PositionOptions {
+    relativeTo?: Range;
     before?: boolean;
     after?: boolean;
     nextTo?: boolean;       // Signals to not put a blank line between.
     emptyScope?: boolean;   // Signals that the position is in an empty scope and may need to be indented.
 }
 
-export function formatTextToInsert(insertText: string, position: ProposedPosition, document: TextDocument ): string
+export class ProposedPosition extends Position
 {
-    // Indent text to match the relative position.
-    const line = document.lineAt(position.value);
-    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
-    if (!position.before) {
-        insertText = insertText.replace(/^/gm, indentation);
-    } else {
-        insertText = insertText.replace(/\n/gm, '\n' + indentation);
+    options: PositionOptions;
+
+    constructor(position?: Position, options?: PositionOptions)
+    {
+        if (position) {
+            super(position.line, position.character);
+        } else {
+            super(0, 0);
+        }
+
+        if (options) {
+            this.options = options;
+        } else {
+            this.options = { };
+        }
     }
 
-    const eol = endOfLine(document);
-    const newLines = position.nextTo ? eol : eol + eol;
-    if (position.after) {
-        insertText = newLines + insertText;
-    } else if (position.before) {
-        insertText += newLines;
-    }
+    formatTextToInsert(insertText: string, document: TextDocument): string
+    {
+        // Indent text to match the relative position.
+        const line = this.options.relativeTo ? document.lineAt(this.options.relativeTo.start) : document.lineAt(this);
+        const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+        if (!this.options.before) {
+            insertText = insertText.replace(/^/gm, indentation);
+        } else {
+            insertText = insertText.replace(/\n/gm, '\n' + indentation);
+        }
 
-    if (position.value.line === document.lineCount - 1) {
-        insertText += eol;
-    }
+        const eol = endOfLine(document);
+        const newLines = this.options.nextTo ? eol : eol + eol;
+        if (this.options.after) {
+            insertText = newLines + insertText;
+        } else if (this.options.before) {
+            insertText += newLines;
+        }
 
-    if (position.before) {
-        insertText += indentation;
-    }
+        if (this.line === document.lineCount - 1) {
+            insertText += eol;
+        }
 
-    return insertText;
+        if (this.options.before) {
+            insertText += indentation;
+        }
+
+        return insertText;
+    }
 }

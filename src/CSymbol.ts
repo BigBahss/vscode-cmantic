@@ -8,13 +8,17 @@ import { SourceDocument } from './SourceDocument';
 const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 
 
-// Extends SourceSymbol by adding a document property that gives more semantic-awareness vs SourceSymbol.
+/**
+ * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
+ */
 export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
 
-    // When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
+    /**
+     * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
+     */
     constructor(symbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol)
     {
         super(symbol, document.uri, parent);
@@ -37,20 +41,50 @@ export class CSymbol extends SourceSymbol
         }
     }
 
-    // Returns all the text contained in this symbol.
+    /**
+     * Returns the text contained in this symbol.
+     */
     text(): string { return this.document.getText(this.range); }
+
+    /**
+     * Returns the range of this symbol including potential template statement.
+     */
+    getFullRange(): vscode.Range
+    {
+        return new vscode.Range(this.getTrueStart(), this.range.end);
+    }
+
+    /**
+     * Returns the text of this symbol including potential template statement.
+     */
+    getFullText(): string
+    {
+        return this.document.getText(this.getFullRange());
+    }
+
+    /**
+     * Returns the text contained in this symbol that comes before this.selectionRange.
+     */
+    leadingText(): string
+    {
+        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
+    }
+
+    /**
+     * Returns the text contained in this symbol that comes before this.selectionRange,
+     * including potential template statement.
+     */
+    getFullLeadingText(): string
+    {
+        return this.document.getText(new vscode.Range(this.getTrueStart(), this.selectionRange.start));
+    }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
     isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
 
-    // Returns the text contained in this symbol that comes before this.name.
-    leading(): string
+    async scopeString(target: SourceFile, position?: vscode.Position): Promise<string>
     {
-        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
-    }
-
-    async scopeString(target: SourceFile, position?: vscode.Position) {
         let scopeString = '';
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
@@ -62,28 +96,15 @@ export class CSymbol extends SourceSymbol
         return scopeString;
     }
 
-    // Finds a position for a new public method within this class or struct.
-    // Optionally provide a relativeName to look for a position next to.
-    // Optionally provide a memberVariable if the new method is an accessor.
-    // Returns undefined if this is not a class or struct, or when this.children.length === 0.
+    /**
+     * Finds a position for a new public method within this class or struct. Optionally provide a relativeName
+     * to look for a position next to. Optionally provide a memberVariable if the new method is an accessor.
+     * Returns undefined if this is not a class or struct, or when this.children.length === 0.
+     */
     findPositionForNewMethod(relativeName?: string, memberVariable?: SourceSymbol): ProposedPosition | undefined
     {
-        const lastChildPositionOrUndefined = (): ProposedPosition | undefined => {
-            if (this.children.length === 0) {
-                return undefined;
-            }
-            return { value: this.children[this.children.length - 1].range.end, after: true };
-        };
-
-        const symbolIsBetween = (symbol: CSymbol, afterOffset: number, beforeOffset: number): boolean => {
-            if (symbol.isFunction() && symbol.isAfter(afterOffset) && symbol.isBefore(beforeOffset)) {
-                return true;
-            }
-            return false;
-        };
-
         if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
-            return lastChildPositionOrUndefined();
+            return this.positionAfterLastChildOrUndefined();
         }
 
         const text = this.text();
@@ -91,7 +112,7 @@ export class CSymbol extends SourceSymbol
         let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
 
         if (!publicSpecifierOffset) {
-            return lastChildPositionOrUndefined();
+            return this.positionAfterLastChildOrUndefined();
         }
         publicSpecifierOffset += startOffset;
 
@@ -113,18 +134,21 @@ export class CSymbol extends SourceSymbol
         }
 
         let fallbackPosition: ProposedPosition | undefined;
-        let fallbackIndex = 0;
+        let fallbackIndex: number | undefined;
         for (let i = this.children.length - 1; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = { value: symbol.range.end, after: true };
+            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
+                fallbackPosition = new ProposedPosition(symbol.range.end, {
+                    relativeTo: symbol.range,
+                    after: true
+                });
                 fallbackIndex = i;
                 break;
             }
         }
 
-        if (!fallbackPosition || !fallbackIndex) {
-            return lastChildPositionOrUndefined();
+        if (!fallbackPosition || fallbackIndex === undefined) {
+            return this.positionAfterLastChildOrUndefined();
         } else if (!relativeName) {
             return fallbackPosition;
         }
@@ -135,12 +159,20 @@ export class CSymbol extends SourceSymbol
 
         for (let i = fallbackIndex; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
-            if (symbolIsBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset) && symbol.name === relativeName) {
+            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
+                    && symbol.name === relativeName) {
                 if (isGetter) {
-                    return { value: symbol.range.start, before: true, nextTo: true };
-                } else {
-                    return { value: symbol.range.end, after: true, nextTo: true };
+                    return new ProposedPosition(symbol.range.start, {
+                        relativeTo: symbol.range,
+                        before: true,
+                        nextTo: true
+                    });
                 }
+                return new ProposedPosition(symbol.range.end, {
+                    relativeTo: symbol.range,
+                    after: true,
+                    nextTo: true
+                });
             }
         }
 
@@ -159,7 +191,7 @@ export class CSymbol extends SourceSymbol
 
     isConstexpr(): boolean
     {
-        if (this.leading().match(/\bconstexpr\b/)) {
+        if (this.leadingText().match(/\bconstexpr\b/)) {
             return true;
         }
         return false;
@@ -167,7 +199,7 @@ export class CSymbol extends SourceSymbol
 
     isInline(): boolean
     {
-        if (this.leading().match(/\binline\b/)) {
+        if (this.leadingText().match(/\binline\b/)) {
             return true;
         }
         return false;
@@ -175,12 +207,12 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leading().includes('*') ? true : false;
+        return this.leadingText().includes('*');
     }
 
     isConst(): boolean
     {
-        if (this.leading().match(/\bconst\b/)) {
+        if (this.leadingText().match(/\bconst\b/)) {
             return true;
         }
         return false;
@@ -189,15 +221,17 @@ export class CSymbol extends SourceSymbol
     isPrimitive(): boolean
     {
         // TODO: Resolve typedefs and using-declarations.
-        const leading = this.leading();
+        const leading = this.leadingText();
         if (leading.match(re_primitiveType) && !leading.match(/[<>]/g)) {
             return true;
         }
         return false;
     }
 
-    // Formats this function declaration for use as a definition (without curly braces).
-    async newFunctionDefinition(target: SourceFile, position?: vscode.Position): Promise<string>
+    /**
+     * Formats this function declaration for use as a definition (without curly braces).
+     */
+    async newFunctionDefinition(target: SourceDocument, position?: vscode.Position): Promise<string>
     {
         if (!this.isFunctionDeclaration()) {
             return '';
@@ -205,7 +239,7 @@ export class CSymbol extends SourceSymbol
 
         const scopeString = await this.scopeString(target, position);
 
-        const declaration = this.text().replace(/;$/, '');
+        const declaration = this.getFullText().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
 
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
@@ -216,13 +250,16 @@ export class CSymbol extends SourceSymbol
         const parameters = this.stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = this.leading();
+        let leadingText = this.getFullLeadingText();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + leadingText.length), 'gm');
+        const leadingLines = leadingText.split(util.endOfLine(target.document));
+        const alignLength = leadingLines[leadingLines.length - 1].length;
+        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
+        leadingText = leadingText.replace(/^\s+/gm, '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
-        definition = definition.replace(re_newLineAlignment, ' '.repeat(leadingText.length + scopeString.length));
+        definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
 
         definition = leadingText + scopeString + definition;
         definition = definition.replace(/\s*\b(override|final)\b/g, '');
@@ -230,39 +267,86 @@ export class CSymbol extends SourceSymbol
         return definition;
     }
 
-    // Masks comments, strings/chars, and template parameters in order to make parsing easier.
-    private maskUnimportantText(sourceText: string, maskChar: string = ' '): string
+    /**
+     * Masks comments, strings/chars, and template parameters in order to make parsing easier.
+     */
+    private maskUnimportantText(sourceText: string, keepEnclosingChars: boolean = true): string
     {
-        sourceText = util.maskComments(sourceText, maskChar);
-        sourceText = util.maskStringLiterals(sourceText, maskChar);
-        // Mask template parameters
-        sourceText = sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, (match) => maskChar.repeat(match.length));
+        sourceText = util.maskComments(sourceText, keepEnclosingChars);
+        sourceText = util.maskStringLiterals(sourceText, keepEnclosingChars);
+        sourceText = util.maskTemplateParameters(sourceText, keepEnclosingChars);
 
         return sourceText;
     }
 
     private stripDefaultValues(parameters: string): string
     {
-        parameters = parameters.replace(/[^\w\s]=/g, '');
-        parameters = parameters.replace(/\b\s*=\s*\b/g, '=');
-        parameters = parameters.replace(/\(\)/g, '');
+        let maskedParameters = this.maskUnimportantText(parameters, false);
+        maskedParameters = maskedParameters.replace(/[^\w\s]=/g, match => ' '.repeat(match.length));
 
-        let maskedParameters = this.maskUnimportantText(parameters).split(',');
+        let splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
         let charPos = 0;
-        for (const maskedParameter of maskedParameters) {
-            if (maskedParameter.includes('=')) {
-                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.indexOf('=')) + ',';
+        for (const parameter of splitParameters) {
+            if (parameter.includes('=')) {
+                strippedParameters += parameters.substring(charPos, charPos + parameter.indexOf('=')).trimEnd() + ',';
             } else {
-                strippedParameters += parameters.substring(charPos, charPos + maskedParameter.length) + ',';
+                strippedParameters += parameters.substring(charPos, charPos + parameter.length) + ',';
             }
-            charPos += maskedParameter.length + 1;
+            charPos += parameter.length + 1;
         }
 
         return strippedParameters.substring(0, strippedParameters.length - 1);
     }
+
+    /**
+     * clangd and ccls don't include template statements in provided DocumentSymbols.
+     */
+    private getTrueStart(): vscode.Position
+    {
+        const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
+        let maskedText = util.maskComments(this.document.getText(before), false);
+        maskedText = util.maskStringLiterals(maskedText, false);
+        maskedText = util.maskTemplateParameters(maskedText, true).trimEnd();
+        if (!maskedText.endsWith('>')) {
+            return this.range.start;
+        }
+
+        let lastMatch: RegExpMatchArray | undefined;
+        for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
+            lastMatch = match;
+        }
+        if (!lastMatch?.index) {
+            return this.range.start;
+        }
+
+        return this.document.positionAt(lastMatch.index);
+    }
+
+    private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean
+    {
+        if (child.isFunction() && child.isAfter(afterOffset) && child.isBefore(beforeOffset)) {
+            return true;
+        }
+        return false;
+    }
+
+    private positionAfterLastChildOrUndefined(): ProposedPosition | undefined
+    {
+        if (this.children.length === 0) {
+            return undefined;
+        }
+        return new ProposedPosition(this.children[this.children.length - 1].range.end, {
+            relativeTo: this.children[this.children.length - 1].range,
+            after: true
+        });
+    }
 }
 
+
+/**
+ * Represents a new accessor method for a member variable.
+ */
 export interface Accessor {
     readonly memberVariable: CSymbol;
     name: string;
@@ -274,6 +358,9 @@ export interface Accessor {
     definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
 }
 
+/**
+ * Represents a new 'get' method for a member variable.
+ */
 export class Getter implements Accessor
 {
     readonly memberVariable: CSymbol;
@@ -285,7 +372,7 @@ export class Getter implements Accessor
 
     constructor(memberVariable: CSymbol)
     {
-        const leadingText = memberVariable.leading();
+        const leadingText = memberVariable.leadingText();
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
         this.isStatic = leadingText.match(/\bstatic\b/) !== null;
@@ -308,6 +395,9 @@ export class Getter implements Accessor
     }
 }
 
+/**
+ * Represents a new 'set' method for a member variable.
+ */
 export class Setter implements Accessor
 {
     readonly memberVariable: CSymbol;
@@ -319,7 +409,7 @@ export class Setter implements Accessor
 
     constructor(memberVariable: CSymbol)
     {
-        const leadingText = memberVariable.leading();
+        const leadingText = memberVariable.leadingText();
         const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();

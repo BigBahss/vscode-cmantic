@@ -91,10 +91,10 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 {
     for (let i = document.lineCount - 1; i >= 0; --i) {
         if (!document.lineAt(i).isEmptyOrWhitespace) {
-            return { value: document.lineAt(i).range.end, after: true };
+            return new ProposedPosition(document.lineAt(i).range.end, { after: true });
         }
     }
-    return { value: new vscode.Position(0, 0) };
+    return new ProposedPosition();
 }
 
 export function firstCharToUpper(str: string): string
@@ -107,62 +107,36 @@ export function is_snake_case(label: string): boolean
     return label.match(/[\w\d]_[\w\d]/) !== null;
 }
 
-export function maskComments(sourceText: string, maskChar: string = ' '): string
+function masker(match: string): string { return ' '.repeat(match.length); }
+
+export function maskComments(sourceText: string, keepEnclosingChars: boolean = true): string
 {
-    const replacer = (match: string) => maskChar.repeat(match.length);
-    sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, replacer);
-    sourceText = sourceText.replace(/(?<=\/\/).*/g, replacer);
+    if (keepEnclosingChars) {
+        sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, masker);
+        sourceText = sourceText.replace(/(?<=\/\/).*/g, masker);
+    } else {
+        sourceText = sourceText.replace(/\/\*(\*(?=\/)|[^*])*\*\//g, masker);
+        sourceText = sourceText.replace(/\/\/.*/g, masker);
+    }
     return sourceText;
 }
 
-export function maskStringLiterals(sourceText: string, maskChar: string = ' '): string
+export function maskStringLiterals(sourceText: string, keepEnclosingChars: boolean = true): string
 {
-    const replacer = (match: string) => maskChar.repeat(match.length);
-    sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, replacer);
-    sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, replacer);
+    if (keepEnclosingChars) {
+        sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, masker);
+        sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+    } else {
+        sourceText = sourceText.replace(/".*"(?<!\\)/g, masker);
+        sourceText = sourceText.replace(/'.*'(?<!\\)/g, masker);
+    }
     return sourceText;
 }
 
-export async function insertSnippetAndReveal(
-    text: string,
-    position: ProposedPosition,
-    uri: vscode.Uri
-): Promise<boolean> {
-    const editor = await vscode.window.showTextDocument(uri);
-
-    const eol = endOfLine(editor.document);
-    const newLines = position.nextTo ? eol : eol + eol;
-    if (position.after) {
-        text = newLines + text;
-    } else if (position.before) {
-        text += newLines;
+export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+{
+    if (keepEnclosingChars) {
+        return sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, masker);
     }
-    if (position.value.line === editor.document.lineCount - 1 && !text.endsWith(eol)) {
-        text += eol;
-    }
-
-    const revealPosition = position.value.translate(lineCount(text) - 1);
-    editor.revealRange(new vscode.Range(revealPosition, revealPosition), vscode.TextEditorRevealType.InCenter);
-
-    const snippet = new vscode.SnippetString(text);
-    const success = await editor.insertSnippet(snippet, position.value, { undoStopBefore: true, undoStopAfter: false });
-    if (success) {
-        /* When inserting an indented snippet that contains empty lines, the empty lines will be
-         * indented, thus leaving trailing whitespace. So we need to clean up that whitespace. */
-        await editor.edit(editBuilder => {
-            const snippetLines = text.split(eol);
-            for (let i = 0; i < snippetLines.length; ++i) {
-                // Don't trim whitespace from the line that contains the new cursor position.
-                if (snippetLines[i].endsWith('$0')) {
-                    continue;
-                }
-                const documentLine = editor.document.lineAt(i + position.value.line);
-                if (documentLine.isEmptyOrWhitespace) {
-                    editBuilder.delete(documentLine.range);
-                }
-            }
-        }, { undoStopBefore: false, undoStopAfter: true });
-    }
-
-    return success;
+    return sourceText.replace(/<(>(?=>)|[^>])*>/g, masker);
 }

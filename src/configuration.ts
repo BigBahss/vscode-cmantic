@@ -3,6 +3,7 @@ import * as util from './utility';
 
 
 export enum CurlyBraceFormat {
+    Auto,
     SameLine,
     NewLineCtorDtor,
     NewLine
@@ -35,6 +36,7 @@ const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
 const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
+const defaultRevealNewDefinition = true;
 
 
 export function headerExtensions(): string[]
@@ -68,10 +70,12 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat
 {
     const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.curlyBraceFormat.namespace');
     switch (format) {
-    case 'New line':
-        return CurlyBraceFormat.NewLine;
+    case 'Auto':
+        return CurlyBraceFormat.Auto;
     case 'Same line':
         return CurlyBraceFormat.SameLine;
+    case 'New line':
+        return CurlyBraceFormat.NewLine;
     default:
         return defaultNamespaceCurlyBraceFormat;
     }
@@ -95,7 +99,7 @@ export function indentNamespaceBody(): NamespaceIndentation
 export function shouldGenerateNamespaces(): boolean
 {
     const shouldGenerate = vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.generateNamespaces');
-    if (typeof shouldGenerate === 'undefined') {
+    if (shouldGenerate === undefined) {
         return defaultGenerateNamespaces;
     }
     return shouldGenerate;
@@ -161,4 +165,13 @@ export function setterDefinitionLocation(): AccessorDefinitionLocation
     default:
         return defaultAccessorDefinitionLocation;
     }
+}
+
+export function revealNewDefinition(): boolean
+{
+    const shouldReveal = vscode.workspace.getConfiguration('C_mantic').get<boolean>('revealNewDefinition');
+    if (shouldReveal === undefined) {
+        return defaultRevealNewDefinition;
+    }
+    return shouldReveal;
 }

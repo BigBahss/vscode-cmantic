@@ -6,7 +6,9 @@ import { SourceFile } from './SourceFile';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from "./ProposedPosition";
 
-
+/**
+ * Represents a C/C++ source file.
+ */
 export class SourceDocument extends SourceFile
 {
     readonly document: vscode.TextDocument;
@@ -27,8 +29,6 @@ export class SourceDocument extends SourceFile
     text(): string { return this.document.getText(); }
 
     get languageId(): string { return this.document.languageId; }
-
-    isCpp(): boolean { return this.languageId === 'cpp'; }
 
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
     {
@@ -81,27 +81,24 @@ export class SourceDocument extends SourceFile
 
     positionAfterHeaderComment(): ProposedPosition
     {
-        const maskedText = this.text().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, match => ' '.repeat(match.length))
-                                      .replace(/\/\/.*/g, match => ' '.repeat(match.length));
+        const maskedText = util.maskComments(this.text(), false);
         let match = maskedText.match(/\S/);
         if (match?.index !== undefined) {
             // Return position before first non-comment text.
-            return {
-                value: this.document.positionAt(match.index),
-                before: true
-            };
+            return new ProposedPosition(this.document.positionAt(match.index), { before: true });
         }
 
         // Return position after header comment when there is no non-comment text in the file.
         const endTrimmedTextLength = this.text().trimEnd().length;
-        return {
-            value: this.document.positionAt(endTrimmedTextLength),
+        return new ProposedPosition(this.document.positionAt(endTrimmedTextLength), {
             after: endTrimmedTextLength !== 0
-        };
+        });
     }
 
-    // Returns the best position to place the definition for a function declaration.
-    // If targetDoc is undefined the position will be for this SourceDocument.
+    /**
+     * Returns the best position to place the definition for a function declaration.
+     * If targetDoc is undefined the position will be for this SourceDocument.
+     */
     async findPositionForFunctionDefinition(
         declarationOrPosition: SourceSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
@@ -109,9 +106,9 @@ export class SourceDocument extends SourceFile
             this.symbols = await this.executeSourceSymbolProvider();
         }
         const declaration = (declarationOrPosition instanceof SourceSymbol) ?
-                declarationOrPosition : await this.getSymbol(declarationOrPosition.value);
+                declarationOrPosition : await this.getSymbol(declarationOrPosition);
         if (declaration?.uri.path !== this.uri.path || (!declaration?.parent && this.symbols.length === 0)) {
-            return { value: new vscode.Position(0, 0) };
+            return new ProposedPosition();
         }
 
         if (!targetDoc) {
@@ -138,11 +135,12 @@ export class SourceDocument extends SourceFile
         const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
         const before = siblingSymbols.slice(start, relativeSymbolIndex);
         const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
-        if (!(declarationOrPosition instanceof SourceSymbol)) {
-            if (declarationOrPosition.after) {
+        if (declarationOrPosition instanceof ProposedPosition) {
+            const position = declarationOrPosition;
+            if (position.options.after) {
                 before.push(declaration);
                 before.shift();
-            } else if (declarationOrPosition.before) {
+            } else if (position.options.before) {
                 after.unshift(declaration);
                 after.pop();
             }
@@ -157,7 +155,11 @@ export class SourceDocument extends SourceFile
 
             const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: targetDoc.getEndOfStatement(definition.range.end), after: true };
+                const endPosition = targetDoc.getEndOfStatement(definition.range.end);
+                return new ProposedPosition(endPosition, {
+                    relativeTo: new vscode.Range(definition.range.start, endPosition),
+                    after: true
+                });
             }
         }
         for (const symbol of after) {
@@ -168,7 +170,11 @@ export class SourceDocument extends SourceFile
 
             const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                return { value: definition.range.start, before: true };
+                const endPosition = targetDoc.getEndOfStatement(definition.range.end);
+                return new ProposedPosition(definition.range.start, {
+                    relativeTo: new vscode.Range(definition.range.start, endPosition),
+                    before: true
+                });
             }
         }
 
@@ -183,23 +189,33 @@ export class SourceDocument extends SourceFile
                 if (targetNamespace.children.length === 0) {
                     const bodyStart = targetDoc.document.offsetAt(targetNamespace.range.start)
                             + targetNamespace.text().indexOf('{') + 1;
-                    return { value: targetDoc.document.positionAt(bodyStart), after: true, nextTo: true, emptyScope: true };
+                    return new ProposedPosition(targetDoc.document.positionAt(bodyStart), {
+                        after: true,
+                        nextTo: true,
+                        emptyScope: true
+                    });
                 }
-                return {
-                    value: targetDoc.getEndOfStatement(targetNamespace.children[targetNamespace.children.length - 1].range.end),
+                const lastChild = targetNamespace.children[targetNamespace.children.length - 1];
+                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
+                return new ProposedPosition(endPosition, {
+                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
                     after: true
-                };
+                });
             }
         }
 
         // If all else fails then return a position after the last symbol in the document.
-        return {
-            value: targetDoc.getEndOfStatement(targetDoc.symbols[targetDoc.symbols.length - 1].range.end),
+        const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
+        const endPosition = targetDoc.getEndOfStatement(lastSymbol.range.end);
+        return new ProposedPosition(endPosition, {
+            relativeTo: new vscode.Range(lastSymbol.range.start, endPosition),
             after: true
-        };
+        });
     }
 
-    // Returns the best positions to place new includes (system and project includes).
+    /**
+     * Returns the best positions to place new includes (system and project includes).
+     */
     findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
     {
         // TODO: Clean up this mess.
@@ -263,28 +279,31 @@ export class SourceDocument extends SourceFile
 
         let position = this.positionAfterHeaderGuard();
         if (!position) {
-            position = this.positionAfterHeaderComment().value;
+            position = this.positionAfterHeaderComment();
         }
 
         return { system: position, project: position };
     }
 
-    // Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+    /**
+     * Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+     */
     async findPositionForNewSymbol(): Promise<ProposedPosition>
     {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
         if (this.symbols.length > 0) {
-            return {
-                value: this.getEndOfStatement(this.symbols[this.symbols.length - 1].range.end),
+            return new ProposedPosition(this.getEndOfStatement(this.symbols[this.symbols.length - 1].range.end), {
                 after: true
-            };
+            });
         }
         return util.positionAfterLastNonEmptyLine(this.document);
     }
 
-    // DocumentSymbol ranges don't always include the final semi-colon.
+    /**
+     * DocumentSymbol ranges don't always include the final semi-colon.
+     */
     private getEndOfStatement(position: vscode.Position): vscode.Position
     {
         let nextPosition = position.translate(0, 1);

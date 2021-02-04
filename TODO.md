@@ -4,15 +4,15 @@ Things higher on the list generally correspond to higher priority.
 
 ## Ideas/Plans for features and improvements
 
-- Move a definition between header and source file.
+- Move a function definition to a matching header/source file.
 
-- Move a definition in or out of a class body.
+- Move a function definition into/out of a class body.
 
-- Resolve `typedef`'s and `type alias`'s when generating a 'set' method to determine if the parameter should be pass-by-value or pass-by-const-ref.
+- Resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating a 'set' method to determine if the parameter should be pass-by-value or pass-by-const-ref.
 
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and syncrhonize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to syncrhonize the change across references for trivial changes, such as re-ordering parameters.
 
-- Generate all definitions from a header file. Additionally add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
+- Generate all definitions from a header file. Additionally, add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
 
 - Check for the existence of `.vscode/c_cpp_properties.json` or `compile_commands.json` to parse include paths and improve the generation of the include statement in `cmantic.createMatchingSourceFile`, amongst other things.
 

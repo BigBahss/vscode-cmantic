@@ -4,6 +4,8 @@ import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
+import { failure as createSourceFileFailure } from './createSourceFile';
+import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile } from './extension';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceFile } from './SourceFile';
@@ -42,7 +44,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (symbol?.isFunctionDefinition()) {
             return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
-            return await this.getMemberVariableRefactorings(symbol, sourceDoc, matchingUri);
+            return await this.getMemberVariableRefactorings(symbol, sourceDoc);
         }
         return [];
     }
@@ -87,8 +89,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc, matchingUri]
             },
             disabled: addDefinitionInMatchingSourceFileDisabled
-        },
-        {
+        }, {
             title: addDefinitionTitle.currentFile,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -129,7 +130,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (symbol.kind === vscode.SymbolKind.Method) {
             moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
         }
-        if (!sourceDoc.isCpp()) {
+        if (sourceDoc.languageId !== 'cpp') {
             moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
         }
 
@@ -171,14 +172,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getMemberVariableRefactorings(
         symbol: CSymbol,
-        sourceDoc: SourceDocument,
-        matchingUri?: vscode.Uri
+        sourceDoc: SourceDocument
     ): Promise<vscode.CodeAction[]> {
         let generateGetterSetterDisabled: { readonly reason: string } | undefined;
         let generateGetterDisabled: { readonly reason: string } | undefined;
         let generateSetterDisabled: { readonly reason: string } | undefined;
 
-        if (!sourceDoc.isCpp()) {
+        if (sourceDoc.languageId !== 'cpp') {
             generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
             generateGetterDisabled = { reason: getterSetterFailure.notCpp };
             generateSetterDisabled = { reason: getterSetterFailure.notCpp };
@@ -205,8 +205,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterSetterDisabled
-        },
-        {
+        }, {
             title: getterSetterTitle.getter,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -215,8 +214,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc]
             },
             disabled: generateGetterDisabled
-        },
-        {
+        }, {
             title: getterSetterTitle.setter,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -236,13 +234,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let addHeaderGuardDisabled: { readonly reason: string } | undefined;
 
         if (!sourceDoc.isHeader()) {
-            createMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
-            addHeaderGuardDisabled = createMatchingSourceFileDisabled;
+            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.notHeaderFile };
+            addHeaderGuardDisabled = { reason: addHeaderGuardFailure.notHeaderFile };
         } else if (matchingUri) {
-            createMatchingSourceFileDisabled = { reason: 'A matching source file already exists.' };
+            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.sourceFileExists };
         }
         if (sourceDoc.hasHeaderGuard()) {
-            addHeaderGuardDisabled = { reason: 'A header guard already exists.'};
+            addHeaderGuardDisabled = { reason: addHeaderGuardFailure.headerGuardExists };
         }
 
         return [{

@@ -3,25 +3,28 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
-import { addHeaderSourcePairToCache } from './extension';
+import { getMatchingSourceFile } from './extension';
+import { CSymbol } from './CSymbol';
 
 
-interface FolderItem extends vscode.QuickPickItem
-{
-    uri: vscode.Uri;
-}
+export const failure = {
+    noActiveTextEditor: 'No active text editor detected.',
+    noWorkspaceFolder: 'You must have a workspace folder open.',
+    notHeaderFile: 'This file is not a header file.',
+    sourceFileExists: 'A source file already exists for this header.'
+};
 
 
 export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined>
 {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
+        vscode.window.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     if (!vscode.workspace.workspaceFolders) {
-        vscode.window.showErrorMessage('You must have a workspace folder open.');
+        vscode.window.showErrorMessage(failure.noWorkspaceFolder);
         return;
     }
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
@@ -30,9 +33,12 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         return;
     }
 
-    const currentSourceDoc = new SourceDocument(currentDocument);
-    if (!currentSourceDoc.isHeader()) {
-        vscode.window.showErrorMessage('This file is not a header file.');
+    const headerDoc = new SourceDocument(currentDocument);
+    if (!headerDoc.isHeader()) {
+        vscode.window.showErrorMessage(failure.notHeaderFile);
+        return;
+    } else if (await getMatchingSourceFile(headerDoc.uri)) {
+        vscode.window.showInformationMessage(failure.sourceFileExists);
         return;
     }
 
@@ -63,22 +69,27 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
         }
     }
 
-    const newFilePath = folder.uri.path + '/' + headerFileNameBase + '.' + extension;
-    const newFileUri = vscode.Uri.parse(newFilePath);
-    const eol = util.endOfLine(currentDocument);
-    const includeStatement = '#include "' + util.fileName(currentDocument.uri.path) + '"$0' + eol;
+    const newFilePath = `${folder.uri.path}/${headerFileNameBase}.${extension}`;
+    const newFileUri = vscode.Uri.file(newFilePath);
 
-    const namespacesText = (currentSourceDoc.isCpp()) ?
-            await getNamespaceText(currentSourceDoc, eol) : '';
+    const eol = util.endOfLine(headerDoc.document);
+    const includeStatement = `#include "${util.fileName(headerDoc.uri.path)}"${eol}`;
+    const namespacesText = (headerDoc.languageId === 'cpp') ? await getNamespaceText(headerDoc, eol) : '';
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
-    if (await vscode.workspace.applyEdit(workspaceEdit)) {
-        util.insertSnippetAndReveal(
-                includeStatement + namespacesText, { value: new vscode.Position(0, 0) }, newFileUri);
-        addHeaderSourcePairToCache(currentSourceDoc.uri, newFileUri);
-        return newFileUri;
-    }
+    workspaceEdit.insert(newFileUri, new vscode.Position(0, 0), includeStatement + namespacesText);
+    await vscode.workspace.applyEdit(workspaceEdit);
+
+    const editor = await vscode.window.showTextDocument(newFileUri);
+    const cursorPosition = editor.document.lineAt(0).range.end;
+    editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+
+    return newFileUri;
+}
+
+interface FolderItem extends vscode.QuickPickItem {
+    uri: vscode.Uri;
 }
 
 // Returns an array of FolderItem's that contain C/C++ source files.
@@ -89,12 +100,12 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
     let foundSourceFile = false;
     for (const fileSystemItem of fileSystemItems) {
         if (fileSystemItem[1] === vscode.FileType.Directory) {
-            directories.push(...await findSourceFolders(vscode.Uri.parse(uri.path + '/' + fileSystemItem[0])));
+            directories.push(...await findSourceFolders(vscode.Uri.parse(`${uri.path}/${fileSystemItem[0]}`)));
         } else if (!foundSourceFile && fileSystemItem[1] === vscode.FileType.File
                 && cfg.sourceExtensions().includes(util.fileExtension(fileSystemItem[0]))) {
             foundSourceFile = true;
             directories.push({
-                label: '$(folder) ' + vscode.workspace.asRelativePath(uri, true),
+                label: `$(folder) ${vscode.workspace.asRelativePath(uri, true)}`,
                 uri: uri
             });
         }
@@ -106,9 +117,10 @@ async function findSourceFolders(uri: vscode.Uri): Promise<FolderItem[]>
 // Returns undefined if more than one kind of source file extension is found.
 async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined>
 {
+    const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
     const sourceExtensions = cfg.sourceExtensions();
     let sourceExtension: string | undefined;
-    const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
+
     for (const fileSystemItem of fileSystemItems) {
         if (fileSystemItem[1] === vscode.FileType.File) {
             const extension = util.fileExtension(fileSystemItem[0]);
@@ -120,24 +132,44 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
             }
         }
     }
+
     return sourceExtension;
 }
 
-async function getNamespaceText(sourceDoc: SourceDocument, eol: string)
+async function getNamespaceText(headerDoc: SourceDocument, eol: string)
 {
-    if (!sourceDoc.isCpp() || !cfg.shouldGenerateNamespaces()) {
+    if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
         return '';
     }
 
-    const namespaces = await sourceDoc.namespaces();
-    const curlySeparator = (cfg.namespaceCurlyBraceFormat() === cfg.CurlyBraceFormat.NewLine) ? eol : ' ';
-    const indentation = await getNamespaceIndentation(sourceDoc);
+    const namespaces = await headerDoc.namespaces();
+    const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc.document);
+    const indentation = await getNamespaceIndentation(headerDoc);
     const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
+    if (namespacesText.length === 0) {
+        return '';
+    }
 
-    return eol + namespacesText;
+    return eol + namespacesText + eol;
 }
 
-async function getNamespaceIndentation(sourceDoc: SourceDocument): Promise<string>
+function getNamespaceCurlySeparator(namespaces: SourceSymbol[], document: vscode.TextDocument): string
+{
+    const curlyFormat = cfg.namespaceCurlyBraceFormat();
+    if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
+        const namespace = new CSymbol(namespaces[0], document);
+        const namespaceText = util.maskComments(namespace.text());
+        if (namespaceText.match(/^\s*namespace\s+[\w\d_]+[ \t]*{/)) {
+            return ' ';
+        }
+        return util.endOfLine(document);
+    } else if (curlyFormat === cfg.CurlyBraceFormat.NewLine) {
+        return util.endOfLine(document);
+    }
+    return ' ';
+}
+
+async function getNamespaceIndentation(headerDoc: SourceDocument): Promise<string>
 {
     switch (cfg.indentNamespaceBody()) {
     case cfg.NamespaceIndentation.Always:
@@ -145,7 +177,7 @@ async function getNamespaceIndentation(sourceDoc: SourceDocument): Promise<strin
     case cfg.NamespaceIndentation.Never:
         return '';
     case cfg.NamespaceIndentation.Auto:
-        return (await sourceDoc.isNamespaceBodyIndented()) ? util.indentation() : '';
+        return (await headerDoc.isNamespaceBodyIndented()) ? util.indentation() : '';
     }
 }
 
@@ -155,17 +187,21 @@ function generateNamespaces(
     curlySeparator: string,
     indentation: string
 ): string {
-    let namespaceText: string = '';
-    for (const namespace of namespaces) {
-        if (namespaceText) {
-            namespaceText += eol + eol;
+    function generateNamespacesRecursive(namespaces: SourceSymbol[]): string {
+        let namespaceText = '';
+        for (const namespace of namespaces) {
+            if (namespaceText) {
+                namespaceText += eol + eol;
+            }
+            namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
+            const body = generateNamespacesRecursive(namespace.children);
+            if (body) {
+                namespaceText += body.replace(/^/gm, indentation);
+            }
+            namespaceText += eol + '} // namespace ' + namespace.name;
         }
-        namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
-        const body = generateNamespaces(namespace.children, eol, curlySeparator, indentation);
-        if (body) {
-            namespaceText += body.replace(/^/gm, indentation);
-        }
-        namespaceText += eol + '} // namespace ' + namespace.name;
+        return namespaceText;
     }
-    return namespaceText;
+
+    return generateNamespacesRecursive(namespaces).replace(/\s+$/gm, eol);
 }

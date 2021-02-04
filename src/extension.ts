@@ -13,7 +13,10 @@ import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
 
+
 const disposables: vscode.Disposable[] = [];
+const headerSourceCache = new Map<string, vscode.Uri>();
+
 
 export function activate(context: vscode.ExtensionContext)
 {
@@ -30,19 +33,22 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterFor", generateGetterFor));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateSetterFor", generateSetterFor));
 
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.switchHeaderSourceInWorkspace", switchHeaderSourceInWorkspace));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.createMatchingSourceFile", createMatchingSourceFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.switchHeaderSourceInWorkspace", switchHeaderSourceInWorkspace));
 
     vscode.languages.registerCodeActionsProvider(
-        [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
-        new CodeActionProvider(),
-        { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] }
-    );
+            [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
+            new CodeActionProvider(),
+            { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
+    disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
+    disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
     disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
     disposables.push(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
+
+    vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
 }
 
 export function deactivate()
@@ -67,16 +73,21 @@ export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri
     return matchingUri;
 }
 
-// Stores header/source pairs after they have been requested.
-const headerSourceCache = new Map<string, vscode.Uri>();
+async function cacheMatchingSourceFile(uri: vscode.Uri): Promise<void>
+{
+    const matchingUri = await getMatchingSourceFile(uri);
+    if (matchingUri) {
+        addHeaderSourcePairToCache(uri, matchingUri);
+    }
+}
 
-export function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
+function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void
 {
     headerSourceCache.set(uri_a.toString(), uri_b);
     headerSourceCache.set(uri_b.toString(), uri_a);
 }
 
-export function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
+function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void
 {
     if (!uri_b) {
         uri_b = headerSourceCache.get(uri_a.toString());
@@ -115,13 +126,30 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
         }
 
         const diff = util.compareDirectoryPaths(util.directory(uri.path), directory);
-        if (typeof smallestDiff === 'undefined' || diff < smallestDiff) {
+        if (smallestDiff === undefined || diff < smallestDiff) {
             smallestDiff = diff;
             bestMatch = uri;
         }
     }
 
     return bestMatch;
+}
+
+async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void>
+{
+    if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
+        cacheMatchingSourceFile(document.uri);
+    }
+}
+
+async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void>
+{
+    event.files.forEach(async (uri) => {
+        const ext = util.fileExtension(uri.path);
+        if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
+            cacheMatchingSourceFile(uri);
+        }
+    });
 }
 
 function onDidDeleteFiles(event: vscode.FileDeleteEvent): void
@@ -131,11 +159,11 @@ function onDidDeleteFiles(event: vscode.FileDeleteEvent): void
 
 function onDidRenameFiles(event: vscode.FileRenameEvent): void
 {
-    event.files.forEach(file => {
-        const matchingUri = headerSourceCache.get(file.oldUri.toString());
+    event.files.forEach(uri => {
+        const matchingUri = headerSourceCache.get(uri.oldUri.toString());
         if (matchingUri) {
-            removeHeaderSourcePairFromCache(file.oldUri, matchingUri);
-            addHeaderSourcePairToCache(file.newUri, matchingUri);
+            removeHeaderSourcePairFromCache(uri.oldUri, matchingUri);
+            addHeaderSourcePairToCache(uri.newUri, matchingUri);
         }
     });
 }
