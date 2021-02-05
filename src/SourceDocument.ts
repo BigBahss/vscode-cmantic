@@ -317,16 +317,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         return util.positionAfterLastNonEmptyLine(this);
     }
 
-    /**
-     * DocumentSymbol ranges don't always include the final semi-colon.
-     */
     private getEndOfStatement(position: vscode.Position): vscode.Position
     {
-        let nextPosition = position.translate(0, 1);
-        while (this.getText(new vscode.Range(position, nextPosition)) === ';') {
-            position = nextPosition;
-            nextPosition = position.translate(0, 1);
-        }
-        return position;
+        return util.getEndOfStatement(this, position);
     }
 }

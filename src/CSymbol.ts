@@ -144,7 +144,7 @@ export class CSymbol extends SourceSymbol
         for (let i = this.children.length - 1; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = new ProposedPosition(symbol.range.end, {
+                fallbackPosition = new ProposedPosition(symbol.getEndOfStatement(), {
                     relativeTo: symbol.range,
                     after: true
                 });
@@ -168,13 +168,13 @@ export class CSymbol extends SourceSymbol
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
                     && symbol.name === relativeName) {
                 if (isGetter) {
-                    return new ProposedPosition(symbol.range.start, {
+                    return new ProposedPosition(symbol.getHeaderCommentStart(), {
                         relativeTo: symbol.range,
                         before: true,
                         nextTo: true
                     });
                 }
-                return new ProposedPosition(symbol.range.end, {
+                return new ProposedPosition(symbol.getEndOfStatement(), {
                     relativeTo: symbol.range,
                     after: true,
                     nextTo: true
@@ -384,13 +384,18 @@ export class CSymbol extends SourceSymbol
 
     private positionAfterLastChildOrUndefined(): ProposedPosition | undefined
     {
-        if (this.children.length === 0) {
-            return undefined;
+        if (this.children.length > 0) {
+            const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
+            return new ProposedPosition(lastChild.getEndOfStatement(), {
+                relativeTo: this.children[this.children.length - 1].range,
+                after: true
+            });
         }
-        return new ProposedPosition(this.children[this.children.length - 1].range.end, {
-            relativeTo: this.children[this.children.length - 1].range,
-            after: true
-        });
+    }
+
+    private getEndOfStatement(): vscode.Position
+    {
+        return util.getEndOfStatement(this.document, this.range.end);
     }
 }
 

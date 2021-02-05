@@ -92,6 +92,19 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
     return new ProposedPosition();
 }
 
+/**
+ * DocumentSymbol ranges don't always include the final semi-colon.
+ */
+export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position
+{
+    let nextPosition = position.translate(0, 1);
+    while (document.getText(new vscode.Range(position, nextPosition)) === ';') {
+        position = nextPosition;
+        nextPosition = position.translate(0, 1);
+    }
+    return position;
+}
+
 export function firstCharToUpper(str: string): string
 {
     return str.charAt(0).toUpperCase() + str.slice(1);
