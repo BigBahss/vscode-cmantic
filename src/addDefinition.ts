@@ -95,30 +95,31 @@ export async function addDefinition(
     // Find the position for the new function definition.
     const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath) ?
             declarationDoc : await SourceDocument.open(targetUri);
-    const targetPosition = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+    const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
-    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, targetDoc, targetPosition);
+    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos);
 
     let editor: vscode.TextEditor | undefined;
     const shouldReveal = cfg.revealNewDefinition();
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
-        const revealRange = new vscode.Range(targetPosition, targetPosition.translate(util.lineCount(functionSkeleton)));
+        const revealRange = new vscode.Range(targetPos, targetPos.translate(util.lineCount(functionSkeleton)));
         editor.revealRange(targetDoc.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    workspaceEdit.insert(targetDoc.uri, targetPosition, functionSkeleton);
+    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
     await vscode.workspace.applyEdit(workspaceEdit);
 
     if (shouldReveal && editor) {
-        const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
+        const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPos, functionSkeleton));
         editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
     }
 }
 
 async function constructFunctionSkeleton(
     functionDeclaration: CSymbol,
+    declarationDoc: SourceDocument,
     targetDoc: SourceDocument,
     position: ProposedPosition
 ): Promise<string> {
@@ -138,7 +139,9 @@ async function constructFunctionSkeleton(
         functionSkeleton = definition + ' {' + eol + indentation + eol + '}';
     }
 
-    if (position.options.emptyScope && cfg.indentNamespaceBody() && await targetDoc.isNamespaceBodyIndented()) {
+    const cfgIndent = cfg.indentNamespaceBody();
+    if (position.options.emptyScope && (cfgIndent === cfg.NamespaceIndentation.Always
+            || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented()))) {
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
