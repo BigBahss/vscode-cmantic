@@ -4,11 +4,12 @@
     <b>C-mantic</b>
 </h1>
 
-C-mantic is a C/C++ extension for VS Code that provides various semantic aware commands and refactorings. Relevant code actions are suggested via the lightbulb menu, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code actions are also available from the command palette.
+C/C++ extension for VS Code that provides various IDE-like commands and refactorings. Relevant code-actions are suggested via the light-bulb menu, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
 
 ## **Features at a glance**
 
 - [Add Definition](#add-definition)
+- [Move Definition](#move-definition)
 - [Generate 'get' and 'set' Methods](#generate-get-and-set-methods)
 - [Create Matching Source File](#create-matching-source-file)
 - [Add Header Guard](#add-header-guard)
@@ -17,7 +18,7 @@ C-mantic is a C/C++ extension for VS Code that provides various semantic aware c
 
 ## **Requirements**
 
-C-mantic requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works on `clangd` (llvm-vs-code-extensions.vscode-clangd) and `ccls` (ccls-project.ccls).
+C-mantic requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). See [Language Server](#language-server) For more details.
 
 ## **Issues and Feature Requests**
 
@@ -29,7 +30,7 @@ If you find a bug or would like to suggest a new feature/functionality, please o
 
 ![Add Definition](./images/add_definition.gif)
 
-Selecting an undefined function declaration with your cursor will suggest the following code actions in the lightbulb menu.
+Selecting an undefined function declaration will suggest the following code-actions in the light-bulb menu.
 
 The `cmantic.addDefinitionInSourceFile` command/code-action creates an empty definition in a matching source file from a function declaration in a header file.
 
@@ -37,13 +38,23 @@ The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty de
 
 `Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
 
+### **Move Definition**
+
+![Move Definition](./images/move_definition.gif)
+
+Selecting the name of a function definition will suggest the following code-action in the light-bulb menu.
+
+The `cmantic.moveDefinitionToMatchingSourceFile` command/code-action will move a function definition to a matching header/source file.
+
+`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Moving a definition will also move any comments associated with that function. Moving a definition into/out of a class body is currently not supported, this is a [planned feature](#planned-features).
+
 ### **Generate 'get' and 'set' Methods**
 
 ![Generate Accessors](./images/generate_accessors.gif)
 
-Selecting a class member variable with your cursor will suggest the following code actions based on what accessor method(s) already exist for that member variable.
+Selecting a class member variable will suggest the following code-actions based on what accessor method(s) already exist for that member variable.
 
-The `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions will generate accessor methods for a member variable within a class. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_`, these characters will be removed to create the method names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. Additionally, for non-primitive, non-pointer data types, 'set' methods will be generated with a const-reference (`const &`) parameter type (Currently, C-mantic does not resolve `typedef`'s, `type-alias`'s, or `enum`'s, and treats them as non-primitive).
+The `cmantic.generateGetterSetter`, `cmantic.generateGetter`, and `cmantic.generateSetter` commands/code-actions will generate accessor methods for a member variable within a class. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_`, these characters will be removed to create the method names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. Additionally, for non-primitive, non-pointer data types, 'set' methods will be generated with a const-reference (`const &`) parameter type (Currently, C-mantic does not resolve `typedef`'s, `type-alias`'s, or `enum`'s, and treats them as non-primitive. This is a [planned feature](#planned-features)).
 
 `Accessor: Getter Definition Location` and `Accessor: Setter Definition Location` in the settings control where the definitions of these methods are placed (Inline, below class body, or in matching source file).
 
@@ -67,11 +78,17 @@ The `cmantic.addInclude` command/code-action adds includes to the top of the fil
 ### **Switch Header/Source in Workspace**
 The `cmantic.switchHeaderSourceInWorkspace` command will open and switch to the matching header/source file cooresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with `Context Menu: Switch Header Source` in the settings.
 
+## **Language Server**
+
+The features that require a C/C++ language server extension are: `Add Definition`, `Move Definition`, `Generate 'get' and 'set' Methods`, and namespace generation for `Create Matching Source File`. If you find that these features aren't working, make sure your language server is working correctly. To do this, check out the Outline view, usually found in Explorer in the side-bar. The Outline view should show all symbols for the current file. Also, make sure 'Go to Definition' and 'Go to Declaration' are working.
+
+C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works with `clangd` (llvm-vs-code-extensions.vscode-clangd) and `ccls` (ccls-project.ccls). If you use a different language server, C-mantic will *probably* still work, but testing each one extensively is unfeasible. If you find bug while using a language server other than `C/C++` (ms-vscode.cpptools), please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and include what language server you are using.
+
 ## **Planned Features**
 
-The next major features being worked on are:
-- Move a function definition to a matching header/source file.
+The next features being worked on are:
 - Move a function definition into/out of a class body.
+- Resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating a 'set' method to determine if the parameter should be pass-by-value or pass-by-const-ref.
 
 A complete list of planned features/ideas can be found [here](https://github.com/BigBahss/vscode-cmantic/blob/master/TODO.md). I'd love to here ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. And of course, if you'd like to contribute, feel free to open a pull-request.
 

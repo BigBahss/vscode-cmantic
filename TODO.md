@@ -4,8 +4,6 @@ Things higher on the list generally correspond to higher priority.
 
 ## Ideas/Plans for features and improvements
 
-- Move a function definition to a matching header/source file.
-
 - Move a function definition into/out of a class body.
 
 - Resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating a 'set' method to determine if the parameter should be pass-by-value or pass-by-const-ref.
