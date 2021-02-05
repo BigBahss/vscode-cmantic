@@ -77,6 +77,12 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
+    static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined>
+    {
+        const sourceFile = new SourceFile(location.uri);
+        return await sourceFile.getSymbol(location.range.start);
+    }
+
     async findDefintions(position: vscode.Position): Promise<vscode.Location[]>
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
