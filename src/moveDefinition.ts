@@ -88,10 +88,10 @@ function getInsertText(
     position: ProposedPosition,
     targetDoc: vscode.TextDocument
 ): string {
-    let insertText = definition.getFullText();
+    let insertText = definition.getTextIncludingHeaderComment();
 
     // Remove the old indentation.
-    let line = definition.document.lineAt(definition.getFullRange().start);
+    let line = definition.document.lineAt(definition.getRangeIncludingHeaderComment().start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
     insertText = insertText.replace(re_indentation, '');
@@ -103,7 +103,7 @@ function getInsertText(
 
 function getDeletionRange(definition: CSymbol): vscode.Range
 {
-    let deletionRange = definition.getFullRange();
+    let deletionRange = definition.getRangeIncludingHeaderComment();
     if (definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
         deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.start.line - 1).range);
     }

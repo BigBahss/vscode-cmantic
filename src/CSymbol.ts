@@ -360,7 +360,11 @@ export class CSymbol extends SourceSymbol
         for (let i = this.getTrueStart().line - 1; i >= 0; --i) {
             const line = this.document.lineAt(i);
             if (!line.text.trimStart().startsWith('//')) {
-                this.headerCommentStart = new vscode.Position(i + 1, line.text.indexOf('//'));
+                const indexOfComment = this.document.lineAt(i + 1).text.indexOf('//');
+                if (indexOfComment === -1) {
+                    break;  // This shouldn't happen, but just in-case.
+                }
+                this.headerCommentStart = new vscode.Position(i + 1, indexOfComment);
                 return this.headerCommentStart;
             }
         }
