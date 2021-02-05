@@ -2,10 +2,13 @@ import * as vscode from 'vscode';
 import { SourceDocument } from "./SourceDocument";
 import { CSymbol } from "./CSymbol";
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
+import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile } from './extension';
+import { SourceSymbol } from './SourceSymbol';
+import { SourceFile } from './SourceFile';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
@@ -15,7 +18,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[] | undefined> {
+    ): Promise<vscode.CodeAction[]> {
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
@@ -24,7 +27,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         ]);
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, sourceDoc, token, matchingUri),
+            this.getRefactorings(symbol, rangeOrSelection, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
@@ -33,17 +36,18 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getRefactorings(
         symbol: CSymbol | undefined,
+        rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
-        token: vscode.CancellationToken,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
-        const refactorings: vscode.CodeAction[] = [];
         if (symbol?.isFunctionDeclaration()) {
-            refactorings.push(...await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri));
+            return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
+        } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(rangeOrSelection.start)) {
+            return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
-            refactorings.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
+            return await this.getMemberVariableRefactorings(symbol, sourceDoc);
         }
-        return refactorings;
+        return [];
     }
 
     private async getFunctionDeclarationRefactorings(
@@ -51,16 +55,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
-        const existingDefinition = await symbol?.findDefinition();
+        const existingDefinition = await symbol.findDefinition();
 
         let addDefinitionInMatchingSourceFileTitle = addDefinitionTitle.matchingSourceFile;
         let addDefinitionInMatchingSourceFileDisabled: { readonly reason: string } | undefined;
         let addDefinitionInCurrentFileDisabled: { readonly reason: string } | undefined;
 
-        if (symbol?.isInline()) {
+        if (symbol.isInline()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isInline };
         }
-        if (symbol?.isConstexpr()) {
+        if (symbol.isConstexpr()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isConstexpr };
         }
         if (existingDefinition) {
@@ -97,6 +101,77 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         }];
     }
 
+    private async getFunctionDefinitionRefactorings(
+        symbol: CSymbol,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<vscode.CodeAction[]> {
+        const declarationLocation = await symbol.findDeclaration();
+
+        let moveDefinitionToMatchingSourceFileTitle = moveDefinitionTitle.matchingSourceFile;
+        let moveDefinitionToMatchingSourceFileDisabled: { readonly reason: string } | undefined;
+        let moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoOrOutOfClassPlaceholder;
+        let moveDefinitionIntoOrOutOfClassDisabled: { readonly reason: string } | undefined;
+
+        let declaration: SourceSymbol | undefined;
+        if (declarationLocation) {
+            const declarationFile = new SourceFile(declarationLocation.uri);
+            declaration = await declarationFile.getSymbol(declarationLocation.range.start);
+            if (symbol.kind === vscode.SymbolKind.Method || declaration?.kind === vscode.SymbolKind.Method) {
+                if (declaration?.location.uri.fsPath === symbol.uri.fsPath) {
+                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+                } else {
+                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass;
+                }
+            } else {
+                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMethod };
+            }
+        } else if (symbol.kind === vscode.SymbolKind.Method) {
+            moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+        }
+
+        if (sourceDoc.languageId !== 'cpp') {
+            moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
+        }
+        if (symbol.isInline()) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
+        }
+        if (symbol.isConstexpr()) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
+        }
+        if (matchingUri) {
+            const displayPath = this.formatPathToDisplay(matchingUri);
+            moveDefinitionToMatchingSourceFileTitle = `Move Definition to "${displayPath}"`;
+        } else {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
+        }
+
+        // Function is defined in class body, which we don't fully support moving of yet. So we disable it for now.
+        if (symbol.parent?.kind === vscode.SymbolKind.Class || symbol.parent?.kind === vscode.SymbolKind.Struct) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.inClassBody };
+        }
+
+        return [{
+            title: moveDefinitionToMatchingSourceFileTitle,
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: moveDefinitionToMatchingSourceFileTitle,
+                command: 'cmantic.moveDefinitionToMatchingSourceFile',
+                arguments: [symbol, matchingUri, declaration]
+            },
+            disabled: moveDefinitionToMatchingSourceFileDisabled
+        }/* , {
+            title: moveDefinitionIntoOrOutOfClassTitle,
+            kind: vscode.CodeActionKind.Refactor,
+            command: {
+                title: moveDefinitionIntoOrOutOfClassTitle,
+                command: 'cmantic.moveDefinitionIntoOrOutOfClass',  // Placeholder, for now.
+                arguments: [symbol, sourceDoc.uri]
+            },
+            disabled: moveDefinitionIntoOrOutOfClassDisabled
+        } */];
+    }
+
     private async getMemberVariableRefactorings(
         symbol: CSymbol,
         sourceDoc: SourceDocument
@@ -105,7 +180,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let generateGetterDisabled: { readonly reason: string } | undefined;
         let generateSetterDisabled: { readonly reason: string } | undefined;
 
-        if (sourceDoc.document.languageId !== 'cpp') {
+        if (sourceDoc.languageId !== 'cpp') {
             generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
             generateGetterDisabled = { reason: getterSetterFailure.notCpp };
             generateSetterDisabled = { reason: getterSetterFailure.notCpp };

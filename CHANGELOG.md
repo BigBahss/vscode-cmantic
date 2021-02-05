@@ -7,6 +7,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed generated code placement in the case that the relative a relative declaration is multi-lined.
+- Fixed smart-placement of function definitions on Windows.
 
 ## [0.2.2] - February 02, 2021
 ### Added

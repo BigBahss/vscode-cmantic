@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { ProposedPosition } from "./ProposedPosition";
-import { SourceDocument } from "./SourceDocument";
-import { Accessor, CSymbol, Getter, Setter } from "./CSymbol";
+import { ProposedPosition } from './ProposedPosition';
+import { SourceDocument } from './SourceDocument';
+import { Accessor, CSymbol, Getter, Setter } from './CSymbol';
 import { getMatchingSourceFile } from './extension';
 
 
@@ -57,13 +57,11 @@ async function getCurrentSymbolAndCall(
         return;
     }
 
-    if (editor.document.languageId !== 'cpp') {
+    const sourceDoc = new SourceDocument(editor.document);
+    if (sourceDoc.languageId !== 'cpp') {
         vscode.window.showErrorMessage(failure.notCpp);
         return;
-    }
-
-    const sourceDoc = new SourceDocument(editor.document);
-    if (!sourceDoc.isHeader()) {
+    } else if (!sourceDoc.isHeader()) {
         vscode.window.showErrorMessage(failure.notHeaderFile);
         return;
     }
@@ -189,16 +187,16 @@ async function addNewAccessorToWorkspaceEdit(
 
     if (target.position === methodPosition && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc.document);
+        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, methodPosition, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc.document);
+        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc);
         const definition = await newAccessor.definition(
                 target.sourceDoc,
                 target.position,
                 cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
-        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc.document);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
 
         workspaceEdit.insert(classDoc.uri, methodPosition, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
@@ -218,7 +216,7 @@ async function getTargetForAccessorDefinition(
         return { position: declarationPosition, sourceDoc: classDoc };
     case cfg.AccessorDefinitionLocation.SourceFile:
         // If the class is not in a header file then control will pass down to BelowClass.
-        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.uri.path)))) {
+        if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
             const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
             return {

@@ -15,6 +15,7 @@ export class CSymbol extends SourceSymbol
 {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
+    private trueStart?: vscode.Position;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
@@ -47,20 +48,9 @@ export class CSymbol extends SourceSymbol
     text(): string { return this.document.getText(this.range); }
 
     /**
-     * Returns the range of this symbol including potential template statement.
-     */
-    getFullRange(): vscode.Range
-    {
-        return new vscode.Range(this.getTrueStart(), this.range.end);
-    }
-
-    /**
      * Returns the text of this symbol including potential template statement.
      */
-    getFullText(): string
-    {
-        return this.document.getText(this.getFullRange());
-    }
+    getFullText(): string { return this.document.getText(this.getFullRange()); }
 
     /**
      * Returns the text contained in this symbol that comes before this.selectionRange.
@@ -78,6 +68,11 @@ export class CSymbol extends SourceSymbol
     {
         return this.document.getText(new vscode.Range(this.getTrueStart(), this.selectionRange.start));
     }
+
+    /**
+     * Returns the range of this symbol including potential template statement.
+     */
+    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.range.end); }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
@@ -253,7 +248,7 @@ export class CSymbol extends SourceSymbol
         let leadingText = this.getFullLeadingText();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(util.endOfLine(target.document));
+        const leadingLines = leadingText.split(target.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
@@ -304,6 +299,10 @@ export class CSymbol extends SourceSymbol
      */
     private getTrueStart(): vscode.Position
     {
+        if (this.trueStart) {
+            return this.trueStart;
+        }
+
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = util.maskComments(this.document.getText(before), false);
         maskedText = util.maskStringLiterals(maskedText, false);
@@ -320,7 +319,8 @@ export class CSymbol extends SourceSymbol
             return this.range.start;
         }
 
-        return this.document.positionAt(lastMatch.index);
+        this.trueStart = this.document.positionAt(lastMatch.index);
+        return this.trueStart;
     }
 
     private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean
@@ -388,7 +388,7 @@ export class Getter implements Accessor
 
     async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
     {
-        const eol = util.endOfLine(target.document);
+        const eol = target.endOfLine;
         return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
                 + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
                 + '{' + eol + util.indentation() + this.body + eol + '}';
@@ -429,7 +429,7 @@ export class Setter implements Accessor
 
     async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>
     {
-        const eol = util.endOfLine(target.document);
+        const eol = target.endOfLine;
         return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
                 + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
                 + '{' + eol + util.indentation() + this.body + eol + '}';

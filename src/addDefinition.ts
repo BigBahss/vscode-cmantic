@@ -16,7 +16,7 @@ export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noDocumentSymbol: 'No document symbol detected.',
     notHeaderFile: 'This file is not a header file.',
-    notFunctionDeclaration: 'No function declaration detected.',
+    noFunctionDeclaration: 'No function declaration detected.',
     noMatchingSourceFile: 'No matching source file was found.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
@@ -44,7 +44,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
     ]);
 
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
         return;
     } else if (!matchingUri) {
         vscode.window.showErrorMessage(failure.noMatchingSourceFile);
@@ -72,7 +72,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
         return;
     }
 
@@ -93,7 +93,7 @@ export async function addDefinition(
     }
 
     // Find the position for the new function definition.
-    const targetDoc = (targetUri.path === declarationDoc.uri.path) ?
+    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath) ?
             declarationDoc : await SourceDocument.open(targetUri);
     const targetPosition = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
@@ -104,7 +104,7 @@ export async function addDefinition(
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
         const revealRange = new vscode.Range(targetPosition, targetPosition.translate(util.lineCount(functionSkeleton)));
-        editor.revealRange(targetDoc.document.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
+        editor.revealRange(targetDoc.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -112,7 +112,7 @@ export async function addDefinition(
     await vscode.workspace.applyEdit(workspaceEdit);
 
     if (shouldReveal && editor) {
-        const cursorPosition = targetDoc.document.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
+        const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPosition, functionSkeleton));
         editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
     }
 }
@@ -124,7 +124,7 @@ async function constructFunctionSkeleton(
 ): Promise<string> {
     const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position);
     const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
-    const eol = util.endOfLine(targetDoc.document);
+    const eol = targetDoc.endOfLine;
     const indentation = util.indentation();
 
     let functionSkeleton: string;
@@ -142,7 +142,7 @@ async function constructFunctionSkeleton(
         functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
     }
 
-    return position.formatTextToInsert(functionSkeleton, targetDoc.document);
+    return position.formatTextToInsert(functionSkeleton, targetDoc);
 }
 
 function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position

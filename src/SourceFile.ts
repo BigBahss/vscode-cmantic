@@ -27,6 +27,8 @@ export class SourceFile
         return new SourceDocument(document, this);
     }
 
+    get fileName(): string { return this.uri.fsPath; }
+
     /**
      * Executes the 'vscode.executeDocumentSymbolProvider' command and converts them to
      * SourceSymbols to update the symbols property. Returns a reference to the new symbols.
@@ -75,6 +77,12 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
+    static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined>
+    {
+        const sourceFile = new SourceFile(location.uri);
+        return await sourceFile.getSymbol(location.range.start);
+    }
+
     async findDefintions(position: vscode.Position): Promise<vscode.Location[]>
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
@@ -112,7 +120,7 @@ export class SourceFile
 
     isHeader(): boolean
     {
-        return cfg.headerExtensions().includes(util.fileExtension(this.uri.path));
+        return cfg.headerExtensions().includes(util.fileExtension(this.fileName));
     }
 
     /**
