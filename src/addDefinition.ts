@@ -16,7 +16,7 @@ export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noDocumentSymbol: 'No document symbol detected.',
     notHeaderFile: 'This file is not a header file.',
-    notFunctionDeclaration: 'No function declaration detected.',
+    noFunctionDeclaration: 'No function declaration detected.',
     noMatchingSourceFile: 'No matching source file was found.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
@@ -44,7 +44,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
     ]);
 
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
         return;
     } else if (!matchingUri) {
         vscode.window.showErrorMessage(failure.noMatchingSourceFile);
@@ -72,7 +72,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.notFunctionDeclaration);
+        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
         return;
     }
 

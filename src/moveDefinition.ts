@@ -3,19 +3,21 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { getMatchingSourceFile } from './extension';
+import { SourceFile } from './SourceFile';
 
 
 export const title = {
+    matchingSourceFile: 'Move Definition to matching source file',
     outOfClass: 'Move Definition out of class body',
     intoClass: 'Move Definition into class body',
-    intoOrOutOfClassPlaceholder: 'Move Definition into or out of class body',
-    matchingSourceFile: 'Move Definition to matching source file'
+    intoOrOutOfClassPlaceholder: 'Move Definition into or out of class body'
 };
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noDocumentSymbol: 'No document symbol detected.',
-    notFunctionDefinition: 'No function declaration detected.',
+    noFunctionDefinition: 'No function definition detected.',
     noMatchingSourceFile: 'No matching source file was found.',
     notCpp: 'Detected language is not C++, cannot operate on classes.',
     notMethod: 'Function is not a class method.',
@@ -25,10 +27,40 @@ export const failure = {
 };
 
 export async function moveDefinitionToMatchingSourceFile(
-    definition: CSymbol,
-    targetUri: vscode.Uri,
+    definition?: CSymbol,
+    targetUri?: vscode.Uri,
     declaration?: SourceSymbol
 ): Promise<void> {
+    if (!definition || !targetUri) {    // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage(failure.noActiveTextEditor);
+            return;
+        }
+
+        const sourceDoc = new SourceDocument(editor.document);
+
+        const [matchingUri, symbol] = await Promise.all([
+            getMatchingSourceFile(sourceDoc.uri),
+            sourceDoc.getSymbol(editor.selection.start)
+        ]);
+
+        if (!symbol?.isFunctionDefinition()) {
+            vscode.window.showErrorMessage(failure.noFunctionDefinition);
+            return;
+        } else if (!matchingUri) {
+            vscode.window.showErrorMessage(failure.noMatchingSourceFile);
+            return;
+        }
+
+        definition = symbol;
+        targetUri = matchingUri;
+        const declarationLocation = await definition.findDeclaration();
+        if (declarationLocation) {
+            declaration = await SourceFile.getSymbol(declarationLocation);
+        }
+    }
+
     const targetDoc = await SourceDocument.open(targetUri);
     const position = await getNewPosition(targetDoc, declaration);
 

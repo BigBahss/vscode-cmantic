@@ -47,6 +47,10 @@
         "title": "C-mantic: Add Definition in this file"
       },
       {
+        "command": "cmantic.moveDefinitionToMatchingSourceFile",
+        "title": "C-mantic: Move Definition to matching source file"
+      },
+      {
         "command": "cmantic.generateGetterSetter",
         "title": "C-mantic: Generate 'get' and 'set' methods"
       },
