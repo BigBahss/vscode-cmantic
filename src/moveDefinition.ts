@@ -31,7 +31,8 @@ export async function moveDefinitionToMatchingSourceFile(
     targetUri?: vscode.Uri,
     declaration?: SourceSymbol
 ): Promise<void> {
-    if (!definition || !targetUri) {    // Command was called from the command-palette
+    if (!definition || !targetUri) {
+        // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showErrorMessage(failure.noActiveTextEditor);
@@ -87,10 +88,10 @@ function getInsertText(
     position: ProposedPosition,
     targetDoc: vscode.TextDocument
 ): string {
-    let insertText = definition.text();
+    let insertText = definition.getFullText();
 
     // Remove the old indentation.
-    let line = definition.document.lineAt(definition.range.start);
+    let line = definition.document.lineAt(definition.getFullRange().start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
     insertText = insertText.replace(re_indentation, '');
@@ -102,12 +103,12 @@ function getInsertText(
 
 function getDeletionRange(definition: CSymbol): vscode.Range
 {
-    let deletionRange = definition.range;
-    if (definition.document.lineAt(definition.range.start.line - 1).isEmptyOrWhitespace) {
-        deletionRange = deletionRange.union(definition.document.lineAt(definition.range.start.line - 1).range);
+    let deletionRange = definition.getFullRange();
+    if (definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.start.line - 1).range);
     }
-    if (definition.document.lineAt(definition.range.end.line + 1).isEmptyOrWhitespace) {
-        deletionRange = deletionRange.union(definition.document.lineAt(definition.range.end.line + 1).range);
+    if (definition.document.lineAt(deletionRange.end.line + 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.end.line + 1).range);
     }
     return deletionRange;
 }
