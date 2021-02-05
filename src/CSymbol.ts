@@ -16,6 +16,7 @@ export class CSymbol extends SourceSymbol
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
     private trueStart?: vscode.Position;
+    private headerCommentStart?: vscode.Position;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
@@ -52,6 +53,11 @@ export class CSymbol extends SourceSymbol
      */
     getFullText(): string { return this.document.getText(this.getFullRange()); }
 
+    getTextIncludingHeaderComment(): string
+    {
+        return this.document.getText(this.getRangeIncludingHeaderComment());
+    }
+
     /**
      * Returns the text contained in this symbol that comes before this.selectionRange.
      */
@@ -73,6 +79,11 @@ export class CSymbol extends SourceSymbol
      * Returns the range of this symbol including potential template statement.
      */
     getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.range.end); }
+
+    getRangeIncludingHeaderComment(): vscode.Range
+    {
+        return new vscode.Range(this.getHeaderCommentStart(), this.range.end);
+    }
 
     isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
 
@@ -321,6 +332,42 @@ export class CSymbol extends SourceSymbol
 
         this.trueStart = this.document.positionAt(lastMatch.index);
         return this.trueStart;
+    }
+
+    private getHeaderCommentStart(): vscode.Position
+    {
+        if (this.headerCommentStart) {
+            return this.headerCommentStart;
+        }
+
+        const before = new vscode.Range(new vscode.Position(0, 0), this.getTrueStart());
+        const maskedText = util.maskComments(this.document.getText(before), true).trimEnd();
+        if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
+            this.headerCommentStart = this.getTrueStart();
+            return this.headerCommentStart;
+        }
+
+        if (maskedText.endsWith('*/')) {
+            const commentStartOffset = maskedText.lastIndexOf('/*');
+            if (commentStartOffset !== -1) {
+                this.headerCommentStart = this.document.positionAt(commentStartOffset);
+                return this.headerCommentStart;
+            }
+            this.headerCommentStart = this.getTrueStart();
+            return this.headerCommentStart;
+        }
+
+        for (let i = this.getTrueStart().line - 1; i >= 0; --i) {
+            const line = this.document.lineAt(i);
+            if (!line.text.trimStart().startsWith('//')) {
+                this.headerCommentStart = new vscode.Position(i + 1, line.text.indexOf('//'));
+                return this.headerCommentStart;
+            }
+        }
+
+        this.headerCommentStart = this.getTrueStart();
+        return this.headerCommentStart;
+
     }
 
     private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean
