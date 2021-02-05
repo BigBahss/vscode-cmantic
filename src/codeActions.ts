@@ -27,7 +27,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         ]);
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, rangeOrSelection.start, sourceDoc, matchingUri),
+            this.getRefactorings(symbol, rangeOrSelection, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
@@ -36,13 +36,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getRefactorings(
         symbol: CSymbol | undefined,
-        selectionStart: vscode.Position,
+        rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         if (symbol?.isFunctionDeclaration()) {
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(selectionStart)) {
+        } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(rangeOrSelection.start)) {
             return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
             return await this.getMemberVariableRefactorings(symbol, sourceDoc);
@@ -146,6 +146,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
         }
 
+        // Function is defined in class body, which we don't fully support moving of yet. So we disable it for now.
+        if (symbol.parent?.kind === vscode.SymbolKind.Class || symbol.parent?.kind === vscode.SymbolKind.Struct) {
+            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.inClassBody };
+        }
+
         return [{
             title: moveDefinitionToMatchingSourceFileTitle,
             kind: vscode.CodeActionKind.Refactor,
@@ -155,8 +160,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, matchingUri, declaration]
             },
             disabled: moveDefinitionToMatchingSourceFileDisabled
-        },
-        {
+        }/* , {
             title: moveDefinitionIntoOrOutOfClassTitle,
             kind: vscode.CodeActionKind.Refactor,
             command: {
@@ -165,7 +169,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 arguments: [symbol, sourceDoc.uri]
             },
             disabled: moveDefinitionIntoOrOutOfClassDisabled
-        }];
+        } */];
     }
 
     private async getMemberVariableRefactorings(

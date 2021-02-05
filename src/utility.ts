@@ -2,8 +2,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { ProposedPosition } from './ProposedPosition';
 
-
-// Returns the file extension without the dot.
+/**
+ * Returns the file extension without the dot.
+ */
 export function fileExtension(fsPath: string): string
 {
     const extension = path.extname(fsPath);
@@ -13,13 +14,17 @@ export function fileExtension(fsPath: string): string
     return extension;
 }
 
-// Strips the directory and extension from a file name.
+/**
+ * Strips the directory and extension from a file name.
+ */
 export function fileNameBase(fsPath: string): string
 {
     return path.basename(fsPath, path.extname(fsPath));
 }
 
-// Returns the amount of different directories between directoryPath_a and directoryPath_b.
+/**
+ * Returns the number of different directories between directoryPath_a and directoryPath_b.
+ */
 export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number
 {
     const a_segments = directoryPath_a.split(path.sep);
