@@ -27,7 +27,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         ]);
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, sourceDoc, matchingUri),
+            this.getRefactorings(symbol, rangeOrSelection.start, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
@@ -36,12 +36,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private async getRefactorings(
         symbol: CSymbol | undefined,
+        selectionStart: vscode.Position,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
         if (symbol?.isFunctionDeclaration()) {
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (symbol?.isFunctionDefinition()) {
+        } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(selectionStart)) {
             return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isMemberVariable()) {
             return await this.getMemberVariableRefactorings(symbol, sourceDoc);
@@ -54,16 +55,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
-        const existingDefinition = await symbol?.findDefinition();
+        const existingDefinition = await symbol.findDefinition();
 
         let addDefinitionInMatchingSourceFileTitle = addDefinitionTitle.matchingSourceFile;
         let addDefinitionInMatchingSourceFileDisabled: { readonly reason: string } | undefined;
         let addDefinitionInCurrentFileDisabled: { readonly reason: string } | undefined;
 
-        if (symbol?.isInline()) {
+        if (symbol.isInline()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isInline };
         }
-        if (symbol?.isConstexpr()) {
+        if (symbol.isConstexpr()) {
             addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isConstexpr };
         }
         if (existingDefinition) {
@@ -105,7 +106,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
-        const declarationLocation = await symbol?.findDeclaration();
+        const declarationLocation = await symbol.findDeclaration();
 
         let moveDefinitionToMatchingSourceFileTitle = moveDefinitionTitle.matchingSourceFile;
         let moveDefinitionToMatchingSourceFileDisabled: { readonly reason: string } | undefined;
@@ -114,11 +115,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
         let declaration: SourceSymbol | undefined;
         if (declarationLocation) {
-            let declarationFile = new SourceFile(declarationLocation.uri);
+            const declarationFile = new SourceFile(declarationLocation.uri);
             declaration = await declarationFile.getSymbol(declarationLocation.range.start);
             if (symbol.kind === vscode.SymbolKind.Method || declaration?.kind === vscode.SymbolKind.Method) {
-                if (declaration?.location.uri.fsPath === symbol.uri.fsPath
-                        && declaration.selectionRange.isEqual(symbol.selectionRange)) {
+                if (declaration?.location.uri.fsPath === symbol.uri.fsPath) {
                     moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
                 } else {
                     moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass;
@@ -129,14 +129,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         } else if (symbol.kind === vscode.SymbolKind.Method) {
             moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
         }
+
         if (sourceDoc.languageId !== 'cpp') {
             moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
         }
-
-        if (symbol?.isInline()) {
+        if (symbol.isInline()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
         }
-        if (symbol?.isConstexpr()) {
+        if (symbol.isConstexpr()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
         }
         if (matchingUri) {

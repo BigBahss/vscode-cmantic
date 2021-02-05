@@ -3,6 +3,7 @@ import * as path from 'path';
 import { ProposedPosition } from './ProposedPosition';
 
 
+// Returns the file extension without the dot.
 export function fileExtension(fsPath: string): string
 {
     const extension = path.extname(fsPath);

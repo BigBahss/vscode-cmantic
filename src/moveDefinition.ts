@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
@@ -25,57 +24,57 @@ export const failure = {
 };
 
 export async function moveDefinitionToMatchingSourceFile(
-    functionDefinition: CSymbol,
+    definition: CSymbol,
     targetUri: vscode.Uri,
-    functionDeclaration?: SourceSymbol
+    declaration?: SourceSymbol
 ): Promise<void> {
     const targetDoc = await SourceDocument.open(targetUri);
-    const position = await getNewPosition(targetDoc, functionDeclaration);
+    const position = await getNewPosition(targetDoc, declaration);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    const insertText = getInsertText(functionDefinition, position, targetDoc);
+    const insertText = getInsertText(definition, position, targetDoc);
     workspaceEdit.insert(targetDoc.uri, position, insertText);
-    const deletionRange = getDeletionRange(functionDefinition);
-    workspaceEdit.delete(functionDefinition.uri, deletionRange);
+    const deletionRange = getDeletionRange(definition);
+    workspaceEdit.delete(definition.uri, deletionRange);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
-async function getNewPosition(targetDoc: SourceDocument, functionDeclaration?: SourceSymbol): Promise<ProposedPosition>
+async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSymbol): Promise<ProposedPosition>
 {
-    if (!functionDeclaration) {
+    if (!declaration) {
         return targetDoc.findPositionForNewSymbol();
     }
 
-    const declarationDoc = await SourceDocument.open(functionDeclaration.uri);
-    return await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+    const declarationDoc = await SourceDocument.open(declaration.uri);
+    return await declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
 }
 
 function getInsertText(
-    functionDefinition: CSymbol,
+    definition: CSymbol,
     position: ProposedPosition,
-    targetDocument: vscode.TextDocument
+    targetDoc: vscode.TextDocument
 ): string {
-    let insertText = functionDefinition.text();
+    let insertText = definition.text();
 
     // Remove the old indentation.
-    let line = functionDefinition.document.lineAt(functionDefinition.range.start);
+    let line = definition.document.lineAt(definition.range.start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
     insertText = insertText.replace(re_indentation, '');
 
-    insertText = position.formatTextToInsert(insertText, targetDocument);
+    insertText = position.formatTextToInsert(insertText, targetDoc);
 
     return insertText;
 }
 
-function getDeletionRange(functionDefinition: CSymbol): vscode.Range
+function getDeletionRange(definition: CSymbol): vscode.Range
 {
-    let deletionRange = functionDefinition.range;
-    if (functionDefinition.document.lineAt(functionDefinition.range.start.line - 1).isEmptyOrWhitespace) {
-        deletionRange = deletionRange.union(functionDefinition.document.lineAt(functionDefinition.range.start.line - 1).range);
+    let deletionRange = definition.range;
+    if (definition.document.lineAt(definition.range.start.line - 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(definition.document.lineAt(definition.range.start.line - 1).range);
     }
-    if (functionDefinition.document.lineAt(functionDefinition.range.end.line + 1).isEmptyOrWhitespace) {
-        deletionRange = deletionRange.union(functionDefinition.document.lineAt(functionDefinition.range.end.line + 1).range);
+    if (definition.document.lineAt(definition.range.end.line + 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(definition.document.lineAt(definition.range.end.line + 1).range);
     }
     return deletionRange;
 }
