@@ -216,7 +216,7 @@ async function getTargetForAccessorDefinition(
         return { position: declarationPosition, sourceDoc: classDoc };
     case cfg.AccessorDefinitionLocation.SourceFile:
         // If the class is not in a header file then control will pass down to BelowClass.
-        if (cfg.headerExtensions().includes((util.fileExtension(classDoc.fileName)))) {
+        if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
             const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
             return {
