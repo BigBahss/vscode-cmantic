@@ -2,7 +2,7 @@
   "name": "cmantic",
   "displayName": "C-mantic",
   "description": "C/C++ refactorings: Add Definition, Generate Accessors, and more.",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "icon": "images/cmantic.png",
   "publisher": "tdennis4496",
   "author": {
@@ -27,9 +27,9 @@
   "keywords": [
     "c++",
     "refactor",
-    "code action",
     "generate definition",
-    "generate accessor"
+    "generate accessor",
+    "getter setter"
   ],
   "activationEvents": [
     "onLanguage:c",

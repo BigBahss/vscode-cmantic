@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.3.0] - February 05, 2021
 ### Added
 - Added `cmantic.moveDefinitionToMatchingSourceFile` command/code-action. (#3)
 
@@ -11,6 +11,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - Fixed generated getter/setter placement in the case that the relative declaration is multi-lined.
 - Fixed smart-placement of function definitions on Windows.
+- Fixed 'Auto' namespace body indentation for `Add Definition` in an empty namespace.
+- Fixed placement of new accessor declarations for `clangd` and `ccls`.
 
 ## [0.2.2] - February 02, 2021
 ### Added
@@ -20,7 +22,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Improved performance of `Add Definition` commands/code-actions.
-- Improved `Add Definition` sometimes not scrolling to the new definition. (This still happens occasionally, but far less often. It is unclear why.)
+- Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens occasionally, but less often. It is unclear why.)
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
 - Improve parameter parsing of `Add Definition`.
 - Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
