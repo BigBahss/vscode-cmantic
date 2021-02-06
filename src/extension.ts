@@ -13,14 +13,18 @@ import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
+import { Logger } from './logger';
 
 
 const disposables: vscode.Disposable[] = [];
-const headerSourceCache = new Map<string, vscode.Uri>();
+const headerSourceCache: Map<string, vscode.Uri> = new Map<string, vscode.Uri>();
 
+export const logger: Logger = new Logger();
 
-export function activate(context: vscode.ExtensionContext)
+export function activate(context: vscode.ExtensionContext): void
 {
+    disposables.push(logger);
+
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInSourceFile", addDefinitionInSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInCurrentFile", addDefinitionInCurrentFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinition", addDefinition));
@@ -52,7 +56,7 @@ export function activate(context: vscode.ExtensionContext)
     vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
 }
 
-export function deactivate()
+export function deactivate(): void
 {
     disposables.forEach(disposable => disposable.dispose());
 }

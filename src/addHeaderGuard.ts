@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as path from 'path';
 import { SourceDocument } from './SourceDocument';
+import { logger } from './extension';
 
 
 export const failure = {
@@ -15,16 +16,16 @@ export async function addHeaderGuard(): Promise<void>
 {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
-        vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        logger.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
     const fileName = path.basename(activeEditor.document.fileName);
     const headerDoc = new SourceDocument(activeEditor.document);
     if (!headerDoc.isHeader()) {
-        vscode.window.showErrorMessage(failure.notHeaderFile);
+        logger.showErrorMessage(failure.notHeaderFile);
         return;
     } else if (headerDoc.hasHeaderGuard()) {
-        vscode.window.showInformationMessage(failure.headerGuardExists);
+        logger.showInformationMessage(failure.headerGuardExists);
         return;
     }
 

@@ -3,7 +3,7 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile, logger } from './extension';
 import { SourceFile } from './SourceFile';
 
 
@@ -35,7 +35,7 @@ export async function moveDefinitionToMatchingSourceFile(
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showErrorMessage(failure.noActiveTextEditor);
+            logger.showErrorMessage(failure.noActiveTextEditor);
             return;
         }
 
@@ -47,10 +47,10 @@ export async function moveDefinitionToMatchingSourceFile(
         ]);
 
         if (!symbol?.isFunctionDefinition()) {
-            vscode.window.showErrorMessage(failure.noFunctionDefinition);
+            logger.showErrorMessage(failure.noFunctionDefinition);
             return;
         } else if (!matchingUri) {
-            vscode.window.showErrorMessage(failure.noMatchingSourceFile);
+            logger.showErrorMessage(failure.noMatchingSourceFile);
             return;
         }
 

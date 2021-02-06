@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile, logger } from './extension';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
@@ -28,13 +28,13 @@ export async function addDefinitionInSourceFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        logger.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     const headerDoc = new SourceDocument(editor.document);
     if (!headerDoc.isHeader()) {
-        vscode.window.showErrorMessage(failure.notHeaderFile);
+        logger.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
@@ -44,16 +44,16 @@ export async function addDefinitionInSourceFile(): Promise<void>
     ]);
 
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
+        logger.showErrorMessage(failure.noFunctionDeclaration);
         return;
     } else if (!matchingUri) {
-        vscode.window.showErrorMessage(failure.noMatchingSourceFile);
+        logger.showErrorMessage(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
-        vscode.window.showInformationMessage(failure.isConstexpr);
+        logger.showInformationMessage(failure.isConstexpr);
         return;
     } else if (symbol.isInline()) {
-        vscode.window.showInformationMessage(failure.isInline);
+        logger.showInformationMessage(failure.isInline);
         return;
     }
 
@@ -64,7 +64,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        logger.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
@@ -72,7 +72,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        vscode.window.showErrorMessage(failure.noFunctionDeclaration);
+        logger.showErrorMessage(failure.noFunctionDeclaration);
         return;
     }
 

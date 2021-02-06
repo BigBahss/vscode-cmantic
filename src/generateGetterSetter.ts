@@ -4,7 +4,7 @@ import * as util from './utility';
 import { ProposedPosition } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
 import { Accessor, CSymbol, Getter, Setter } from './CSymbol';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile, logger } from './extension';
 
 
 export const title = {
@@ -53,22 +53,22 @@ async function getCurrentSymbolAndCall(
 ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        logger.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     const sourceDoc = new SourceDocument(editor.document);
     if (sourceDoc.languageId !== 'cpp') {
-        vscode.window.showErrorMessage(failure.notCpp);
+        logger.showErrorMessage(failure.notCpp);
         return;
     } else if (!sourceDoc.isHeader()) {
-        vscode.window.showErrorMessage(failure.notHeaderFile);
+        logger.showErrorMessage(failure.notHeaderFile);
         return;
     }
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isMemberVariable()) {
-        vscode.window.showErrorMessage(failure.noMemberVariable);
+        logger.showErrorMessage(failure.noMemberVariable);
         return;
     }
 
@@ -82,28 +82,28 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 
     if (symbol.isConst()) {
         if (getter) {
-            vscode.window.showInformationMessage(failure.isConst + ' ' + failure.getterExists);
+            logger.showInformationMessage(failure.isConst + ' ' + failure.getterExists);
             return;
         }
-        vscode.window.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
+        logger.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
-        vscode.window.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
+        logger.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
         await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
-        vscode.window.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
+        logger.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
-        vscode.window.showInformationMessage(failure.getterAndSetterExists);
+        logger.showInformationMessage(failure.getterAndSetterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Both);
     if (!position) {
-        vscode.window.showErrorMessage(failure.positionNotFound);
+        logger.showErrorMessage(failure.positionNotFound);
         return;
     }
 
@@ -123,13 +123,13 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
 {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
-        vscode.window.showInformationMessage(failure.getterExists);
+        logger.showInformationMessage(failure.getterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Getter);
     if (!position) {
-        vscode.window.showErrorMessage(failure.positionNotFound);
+        logger.showErrorMessage(failure.positionNotFound);
         return;
     }
 
@@ -141,19 +141,19 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
 export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
 {
     if (symbol.isConst()) {
-        vscode.window.showInformationMessage(failure.isConst);
+        logger.showInformationMessage(failure.isConst);
         return;
     }
 
     const setter = symbol.parent?.findSetterFor(symbol);
     if (setter) {
-        vscode.window.showInformationMessage(failure.setterExists);
+        logger.showInformationMessage(failure.setterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Setter);
     if (!position) {
-        vscode.window.showErrorMessage(failure.positionNotFound);
+        logger.showErrorMessage(failure.positionNotFound);
         return;
     }
 

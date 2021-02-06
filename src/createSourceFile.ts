@@ -4,7 +4,7 @@ import * as util from './utility';
 import * as path from 'path';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile, logger } from './extension';
 import { CSymbol } from './CSymbol';
 
 
@@ -20,12 +20,12 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
-        vscode.window.showErrorMessage(failure.noActiveTextEditor);
+        logger.showErrorMessage(failure.noActiveTextEditor);
         return;
     }
 
     if (!vscode.workspace.workspaceFolders) {
-        vscode.window.showErrorMessage(failure.noWorkspaceFolder);
+        logger.showErrorMessage(failure.noWorkspaceFolder);
         return;
     }
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
@@ -36,10 +36,10 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const headerDoc = new SourceDocument(currentDocument);
     if (!headerDoc.isHeader()) {
-        vscode.window.showErrorMessage(failure.notHeaderFile);
+        logger.showErrorMessage(failure.notHeaderFile);
         return;
     } else if (await getMatchingSourceFile(headerDoc.uri)) {
-        vscode.window.showInformationMessage(failure.sourceFileExists);
+        logger.showInformationMessage(failure.sourceFileExists);
         return;
     }
 

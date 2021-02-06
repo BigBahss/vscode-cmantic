@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import * as util from './utility';
 import { SourceDocument } from "./SourceDocument";
+import { logger } from './extension';
 
 
 export async function addInclude(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        vscode.window.showErrorMessage('You must have a text editor open.');
+        logger.showErrorMessage('You must have a text editor open.');
         return;
     }
 
@@ -23,7 +24,7 @@ export async function addInclude(): Promise<void>
         } else if (value?.trim().match(/^#include\s*".+"/)) {
             editor.edit(edit => edit.insert(newIncludePosition.project, value + eol));
         } else if (value) {
-            vscode.window.showInformationMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
+            logger.showInformationMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
         }
     });
 }
