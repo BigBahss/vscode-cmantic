@@ -23,7 +23,7 @@ export const failure = {
     notMethod: 'Function is not a class method.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
-    inClassBody: 'Moving definitions into/out of class bodies isn\'t supoorted yet' // temporary
+    inClassBody: 'Moving definitions into/out of class bodies isn\'t supoorted yet.' // temporary
 };
 
 export async function moveDefinitionToMatchingSourceFile(
