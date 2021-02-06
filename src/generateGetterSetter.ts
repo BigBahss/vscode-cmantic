@@ -59,16 +59,16 @@ async function getCurrentSymbolAndCall(
 
     const sourceDoc = new SourceDocument(editor.document);
     if (sourceDoc.languageId !== 'cpp') {
-        logger.showErrorMessage(failure.notCpp);
+        logger.showWarningMessage(failure.notCpp);
         return;
     } else if (!sourceDoc.isHeader()) {
-        logger.showErrorMessage(failure.notHeaderFile);
+        logger.showWarningMessage(failure.notHeaderFile);
         return;
     }
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isMemberVariable()) {
-        logger.showErrorMessage(failure.noMemberVariable);
+        logger.showWarningMessage(failure.noMemberVariable);
         return;
     }
 

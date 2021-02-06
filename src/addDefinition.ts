@@ -34,7 +34,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
 
     const headerDoc = new SourceDocument(editor.document);
     if (!headerDoc.isHeader()) {
-        logger.showErrorMessage(failure.notHeaderFile);
+        logger.showWarningMessage(failure.notHeaderFile);
         return;
     }
 
@@ -44,10 +44,10 @@ export async function addDefinitionInSourceFile(): Promise<void>
     ]);
 
     if (!symbol?.isFunctionDeclaration()) {
-        logger.showErrorMessage(failure.noFunctionDeclaration);
+        logger.showWarningMessage(failure.noFunctionDeclaration);
         return;
     } else if (!matchingUri) {
-        logger.showErrorMessage(failure.noMatchingSourceFile);
+        logger.showWarningMessage(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
         logger.showInformationMessage(failure.isConstexpr);
@@ -72,7 +72,7 @@ export async function addDefinitionInCurrentFile(): Promise<void>
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        logger.showErrorMessage(failure.noFunctionDeclaration);
+        logger.showWarningMessage(failure.noFunctionDeclaration);
         return;
     }
 

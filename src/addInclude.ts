@@ -8,7 +8,7 @@ export async function addInclude(): Promise<void>
 {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        logger.showErrorMessage('You must have a text editor open.');
+        logger.showErrorMessage('No active text editor detected.');
         return;
     }
 

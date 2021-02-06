@@ -47,10 +47,10 @@ export async function moveDefinitionToMatchingSourceFile(
         ]);
 
         if (!symbol?.isFunctionDefinition()) {
-            logger.showErrorMessage(failure.noFunctionDefinition);
+            logger.showWarningMessage(failure.noFunctionDefinition);
             return;
         } else if (!matchingUri) {
-            logger.showErrorMessage(failure.noMatchingSourceFile);
+            logger.showWarningMessage(failure.noMatchingSourceFile);
             return;
         }
 

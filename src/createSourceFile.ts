@@ -25,7 +25,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     }
 
     if (!vscode.workspace.workspaceFolders) {
-        logger.showErrorMessage(failure.noWorkspaceFolder);
+        logger.showWarningMessage(failure.noWorkspaceFolder);
         return;
     }
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
@@ -36,7 +36,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const headerDoc = new SourceDocument(currentDocument);
     if (!headerDoc.isHeader()) {
-        logger.showErrorMessage(failure.notHeaderFile);
+        logger.showWarningMessage(failure.notHeaderFile);
         return;
     } else if (await getMatchingSourceFile(headerDoc.uri)) {
         logger.showInformationMessage(failure.sourceFileExists);

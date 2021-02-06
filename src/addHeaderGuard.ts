@@ -22,7 +22,7 @@ export async function addHeaderGuard(): Promise<void>
     const fileName = path.basename(activeEditor.document.fileName);
     const headerDoc = new SourceDocument(activeEditor.document);
     if (!headerDoc.isHeader()) {
-        logger.showErrorMessage(failure.notHeaderFile);
+        logger.showWarningMessage(failure.notHeaderFile);
         return;
     } else if (headerDoc.hasHeaderGuard()) {
         logger.showInformationMessage(failure.headerGuardExists);
