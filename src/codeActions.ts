@@ -147,7 +147,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         }
 
         // Function is defined in class body, which we don't fully support moving of yet. So we disable it for now.
-        if (symbol.parent?.kind === vscode.SymbolKind.Class || symbol.parent?.kind === vscode.SymbolKind.Struct) {
+        if (symbol.parent?.isClassOrStruct()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.inClassBody };
         }
 

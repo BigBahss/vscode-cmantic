@@ -125,8 +125,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     isMemberVariable(): boolean
     {
-        return this.kind === vscode.SymbolKind.Field
-                && (this.parent?.kind === vscode.SymbolKind.Class || this.parent?.kind === vscode.SymbolKind.Struct);
+        return this.kind === vscode.SymbolKind.Field && this.parent?.isClassOrStruct() === true;
     }
 
     isFunction(): boolean
@@ -163,6 +162,11 @@ export class SourceSymbol extends vscode.DocumentSymbol
         default:
             return false;
         }
+    }
+
+    isClassOrStruct(): boolean
+    {
+        return this.kind === vscode.SymbolKind.Class || this.kind === vscode.SymbolKind.Struct;
     }
 
     /**

@@ -111,7 +111,7 @@ export class CSymbol extends SourceSymbol
         relativeName?: string,
         memberVariable?: SourceSymbol
     ): ProposedPosition | undefined {
-        if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
+        if (!this.isClassOrStruct()) {
             return this.positionAfterLastChildOrUndefined();
         }
 
