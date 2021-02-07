@@ -66,7 +66,7 @@ export class SourceFile
                     continue;
                 }
 
-                if (sourceSymbol.children.length === 0) {
+                if (sourceSymbol.children.length === 0 || sourceSymbol.selectionRange.contains(position)) {
                     return sourceSymbol;
                 } else {
                     return searchSymbolTree(sourceSymbol.children);
