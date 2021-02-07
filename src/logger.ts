@@ -11,21 +11,27 @@ export class Logger extends vscode.Disposable
         this.output = vscode.window.createOutputChannel('C-mantic');
     }
 
+    logInfo(message: string): void { this.output.appendLine(`[${this.getTimeString()}  Info] ${message}`); }
+
+    logWarn(message: string): void { this.output.appendLine(`[${this.getTimeString()}  Warn] ${message}`); }
+
+    logError(message: string): void { this.output.appendLine(`[${this.getTimeString()} Error] ${message}`); }
+
     showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined>
     {
-        this.output.appendLine(`[${this.getTimeString()}  Info] ${message}`);
+        this.logInfo(message);
         return vscode.window.showInformationMessage(message, ...items);
     }
 
     showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined>
     {
-        this.output.appendLine(`[${this.getTimeString()}  Warn] ${message}`);
+        this.logWarn(message);
         return vscode.window.showWarningMessage(message, ...items);
     }
 
     showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined>
     {
-        this.output.appendLine(`[${this.getTimeString()} Error] ${message}`);
+        this.logError(message);
         return vscode.window.showErrorMessage(message, ...items);
     }
 
