@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Added
+- Added an Output channel to log info, warnings, and errors.
+
+### Changed
+- Changed the UI appearance of getter and setter commands and messages. This is to differentiate from languages that have 'get' and 'set' keywords.
+- Changed incorrect usage of 'method' to 'member function'. This is a semantic change in order to match the C++ standard.
+
 ## [0.3.0] - February 05, 2021
 ### Added
 - Added `cmantic.moveDefinitionToMatchingSourceFile` command/code-action. (#3)
