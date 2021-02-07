@@ -47,7 +47,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         });
 
         // Convert docSymbol.children to SourceSymbols to set the children property.
-        let convertedChildren: SourceSymbol[] = [];
+        const convertedChildren: SourceSymbol[] = [];
         docSymbol.children.forEach(child => {
             convertedChildren.push(new SourceSymbol(child, uri, this));
         });
@@ -170,7 +170,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
     }
 
     /**
-     * Checks for common naming schemes of private members and return the base name.
+     * Checks for common naming schemes of private members and returns the base name.
      */
     baseName(): string
     {
