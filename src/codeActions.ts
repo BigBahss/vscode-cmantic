@@ -124,7 +124,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                     moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass;
                 }
             } else {
-                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMethod };
+                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
             }
         } else if (symbol.kind === vscode.SymbolKind.Method) {
             moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;

@@ -20,7 +20,7 @@ export const failure = {
     noFunctionDefinition: 'No function definition detected.',
     noMatchingSourceFile: 'No matching source file was found.',
     notCpp: 'Detected language is not C++, cannot operate on classes.',
-    notMethod: 'Function is not a class method.',
+    notMemberFunction: 'Function is not a class member function.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
     inClassBody: 'Moving definitions into/out of class bodies isn\'t supoorted yet.' // temporary

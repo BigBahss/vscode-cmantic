@@ -103,12 +103,14 @@ export class CSymbol extends SourceSymbol
     }
 
     /**
-     * Finds a position for a new public method within this class or struct. Optionally provide a relativeName
-     * to look for a position next to. Optionally provide a memberVariable if the new method is an accessor.
-     * Returns undefined if this is not a class or struct, or when this.children.length === 0.
+     * Finds a position for a new public member function within this class or struct. Optionally provide a
+     * relativeName to look for a position next to. Optionally provide a memberVariable if the new member function
+     * is an accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
      */
-    findPositionForNewMethod(relativeName?: string, memberVariable?: SourceSymbol): ProposedPosition | undefined
-    {
+    findPositionForNewMemberFunction(
+        relativeName?: string,
+        memberVariable?: SourceSymbol
+    ): ProposedPosition | undefined {
         if (this.kind !== vscode.SymbolKind.Class && this.kind !== vscode.SymbolKind.Struct) {
             return this.positionAfterLastChildOrUndefined();
         }
@@ -159,8 +161,8 @@ export class CSymbol extends SourceSymbol
             return fallbackPosition;
         }
 
-        // If relativeName is a setterName, then ProposedPosition should be before, since the new method is a getter.
-        // This is to match the positioning of these methods when both are generated at the same time.
+        /* If relativeName is a setterName, then ProposedPosition should be before, since the new member function is
+         * a getter. This is to match the positioning of these members when both are generated at the same time. */
         const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
         for (let i = fallbackIndex; i >= 0; --i) {
@@ -401,7 +403,7 @@ export class CSymbol extends SourceSymbol
 
 
 /**
- * Represents a new accessor method for a member variable.
+ * Represents a new accessor member function for a member variable.
  */
 export interface Accessor {
     readonly memberVariable: CSymbol;
@@ -415,7 +417,7 @@ export interface Accessor {
 }
 
 /**
- * Represents a new 'get' method for a member variable.
+ * Represents a new getter member function for a member variable.
  */
 export class Getter implements Accessor
 {
@@ -452,7 +454,7 @@ export class Getter implements Accessor
 }
 
 /**
- * Represents a new 'set' method for a member variable.
+ * Represents a new setter member function for a member variable.
  */
 export class Setter implements Accessor
 {

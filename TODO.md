@@ -6,7 +6,7 @@ Things higher on the list generally correspond to higher priority.
 
 - Move a function definition into/out of a class body.
 
-- Resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating a 'set' method to determine if the parameter should be pass-by-value or pass-by-const-ref.
+- Resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating a setter to determine if the parameter should be pass-by-value or pass-by-const-ref.
 
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and syncrhonize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to syncrhonize the change across references for trivial changes, such as re-ordering parameters.
 

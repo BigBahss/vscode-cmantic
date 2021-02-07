@@ -16,7 +16,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [0.2.2] - February 02, 2021
 ### Added
-- Added configurations to customize where definitions of 'get' and 'set' methods are placed. (#1)
+- Added configurations to customize where definitions of getters and setters are placed. (#1)
 - Added `Auto` configuration for `Curly Brace Format: Namespace`.
 - Added configuration to control whether `Add Definition` reveals new definitions in the editor.
 
@@ -34,7 +34,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - `cmantic.createMatchingSourceFile` will now sort directory suggestions based on their similarity to the header file's directory. This means that the top directory in the list is most likely the directoy the user wants to put the new file in, and can just press enter.
 - `cmantic.createMatchingSourceFile` will now look at the file extensions in the selected directory and automatically pick one when there is only one type of source file extension found.
 - Invoking the `cmantic.addHeaderGuard` command directly now checks for an existing header guard.
-- Directly invoking commands to generate accessor methods now checks for existing accessor methods.
+- Directly invoking commands to generate accessor functions now checks for existing accessor functions.
 
 ### Fixed
 - Improved performance of `cmantic.switchHeaderSourceInWorkspace` by caching header/source pairs after they are found.
@@ -44,7 +44,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed `cmantic.addDefinitionInCurrentFile` placement for `ccls`. Certain macros within classes confuses `ccls`'s DocumentSymbols, such as Qt's Q_OBJECT macro.
 - Fixed `cmantic.addInclude` positioning for `ccls` and `clangd`.
 - Fixed `Add Definition` of `operator` overload functions for `ccls` and `clangd`.
-- Fixed `Add Definition` not recognizing static methods for `ccls`.
+- Fixed `Add Definition` not recognizing static member functions for `ccls`.
 
 ## [0.2.0] - January 22, 2021
 ### Added

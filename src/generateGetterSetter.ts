@@ -166,39 +166,39 @@ function getPositionForNewAccessorDeclaration(
     symbol: CSymbol,
     type: AccessorType
 ): ProposedPosition | undefined {
-    // If the new method is a getter, then we want to place it relative to the setter, and vice-versa.
+    // If the new accessor is a getter, then we want to place it relative to the setter, and vice-versa.
     switch (type) {
     case AccessorType.Getter:
-        return symbol.parent?.findPositionForNewMethod(symbol.setterName(), symbol);
+        return symbol.parent?.findPositionForNewMemberFunction(symbol.setterName(), symbol);
     case AccessorType.Setter:
-        return symbol.parent?.findPositionForNewMethod(symbol.getterName(), symbol);
+        return symbol.parent?.findPositionForNewMemberFunction(symbol.getterName(), symbol);
     case AccessorType.Both:
-        return symbol.parent?.findPositionForNewMethod();
+        return symbol.parent?.findPositionForNewMemberFunction();
     }
 }
 
 async function addNewAccessorToWorkspaceEdit(
     newAccessor: Accessor,
-    methodPosition: ProposedPosition,
+    memberFunctionPos: ProposedPosition,
     classDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit
 ): Promise<void> {
-    const target = await getTargetForAccessorDefinition(newAccessor, methodPosition, classDoc);
+    const target = await getTargetForAccessorDefinition(newAccessor, memberFunctionPos, classDoc);
 
-    if (target.position === methodPosition && target.sourceDoc === classDoc) {
+    if (target.position === memberFunctionPos && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = methodPosition.formatTextToInsert(inlineDefinition, classDoc);
+        const formattedInlineDefinition = memberFunctionPos.formatTextToInsert(inlineDefinition, classDoc);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition, formattedInlineDefinition);
+        workspaceEdit.insert(classDoc.uri, memberFunctionPos, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = methodPosition.formatTextToInsert(newAccessor.declaration + ';', classDoc);
+        const formattedDeclaration = memberFunctionPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
         const definition = await newAccessor.definition(
                 target.sourceDoc,
                 target.position,
                 cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
         const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
 
-        workspaceEdit.insert(classDoc.uri, methodPosition, formattedDeclaration);
+        workspaceEdit.insert(classDoc.uri, memberFunctionPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
     }
 }

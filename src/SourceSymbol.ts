@@ -35,7 +35,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         // ccls puts function signatures in the detail property.
         if (docSymbol.detail.includes(docSymbol.name + '(')) {
             this.signature = docSymbol.detail;
-            // ccls recognizes static methods as properties, so we set kind to Method.
+            // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
             if (docSymbol.kind === vscode.SymbolKind.Property) {
                 this.kind = vscode.SymbolKind.Method;
             }
