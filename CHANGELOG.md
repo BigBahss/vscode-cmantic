@@ -9,6 +9,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Changed the UI appearance of getter and setter commands and messages. This is to differentiate from languages that have 'get' and 'set' keywords.
 - Changed incorrect usage of 'method' to 'member function'. This is a semantic change in order to match the C++ standard.
 
+### Fixed
+- Fixed a bug where member variables having an inline-block-comment would be recognized as being a pointer, and thus would generate a setter with a const-ref parameter type.
+
 ## [0.3.0] - February 05, 2021
 ### Added
 - Added `cmantic.moveDefinitionToMatchingSourceFile` command/code-action. (#3)

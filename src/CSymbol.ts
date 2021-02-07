@@ -215,7 +215,7 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leadingText().includes('*');
+        return this.leadingText().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, '').includes('*');
     }
 
     isConst(): boolean
