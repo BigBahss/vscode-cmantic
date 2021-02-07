@@ -115,7 +115,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
-    await addNewAccessorToWorkspaceEdit(new Setter(symbol), setterPosition, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -158,7 +158,7 @@ export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocumen
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewAccessorToWorkspaceEdit(new Setter(symbol), position, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), position, classDoc, workspaceEdit);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 

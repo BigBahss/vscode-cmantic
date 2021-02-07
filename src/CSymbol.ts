@@ -5,7 +5,8 @@ import { ProposedPosition } from "./ProposedPosition";
 import { SourceFile } from "./SourceFile";
 import { SourceDocument } from './SourceDocument';
 
-const re_primitiveType = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
+const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
+const re_blockComments = /\/\*(\*(?=\/)|[^*])*\*\//g;
 
 
 /**
@@ -215,7 +216,7 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leadingText().replace(/\/\*(\*(?=\/)|[^*])*\*\//g, '').includes('*');
+        return this.leadingText().replace(re_blockComments, '').includes('*');
     }
 
     isConst(): boolean
@@ -226,26 +227,42 @@ export class CSymbol extends SourceSymbol
         return false;
     }
 
-    isPrimitive(): boolean
+    async isPrimitive(): Promise<boolean>
     {
-        // TODO: Resolve typedefs and using-declarations.
-        const leading = this.leadingText();
-        if (leading.match(re_primitiveType) && !leading.match(/[<>]/g)) {
+        // TODO: Resolve typedefs and type-aliases.
+        const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
+        if (leadingText.match(re_primitiveTypes) && !leadingText.match(/[<>]/g)) {
             return true;
         }
+
+        // Determine if the type is an enum.
+        const startOffset = this.document.offsetAt(this.range.start);
+        for (const match of leadingText.matchAll(/[\w_][\w\d_]*\b(?!::)/g)) {
+            if (match.index !== undefined && !match[0].match(/^(static|const|constexpr|inline|mutable)$/g)) {
+                const sourceFile = new SourceFile(this.uri);
+                const locations = await sourceFile.findDefintions(this.document.positionAt(startOffset + match.index));
+                if (locations.length > 0) {
+                    const type = await SourceFile.getSymbol(locations[0]);
+                    if (type?.kind === vscode.SymbolKind.Enum) {
+                        return true;
+                    }
+                }
+            }
+        }
+
         return false;
     }
 
     /**
      * Formats this function declaration for use as a definition (without curly braces).
      */
-    async newFunctionDefinition(target: SourceDocument, position?: vscode.Position): Promise<string>
+    async newFunctionDefinition(targetDoc: SourceDocument, position?: vscode.Position): Promise<string>
     {
         if (!this.isFunctionDeclaration()) {
             return '';
         }
 
-        const scopeString = await this.scopeString(target, position);
+        const scopeString = await this.scopeString(targetDoc, position);
 
         const declaration = this.getFullText().replace(/;$/, '');
         const maskedDeclaration = this.maskUnimportantText(declaration);
@@ -261,7 +278,7 @@ export class CSymbol extends SourceSymbol
         let leadingText = this.getFullLeadingText();
         const l = this.document.lineAt(this.range.start);
         const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(target.endOfLine);
+        const leadingLines = leadingText.split(targetDoc.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
@@ -465,18 +482,30 @@ export class Setter implements Accessor
     parameter: string;
     body: string;
 
-    constructor(memberVariable: CSymbol)
+    /**
+     * This builder method is necessary since CSymbol.isPrimitive() is asynchronous.
+     */
+    static async create(memberVariable: CSymbol): Promise<Setter>
     {
+        const setter = new Setter(memberVariable);
         const leadingText = memberVariable.leadingText();
         const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+        setter.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        setter.parameter = (!await memberVariable.isPrimitive() && !memberVariable.isPointer()
+            ? 'const ' + type + '&'
+            : type
+        ) + 'value';
+
+        return setter;
+    }
+
+    private constructor(memberVariable: CSymbol)
+    {
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();
-        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        this.isStatic = false;
         this.returnType = 'void ';
-        this.parameter = (!memberVariable.isPrimitive() && !memberVariable.isPointer() ?
-            'const ' + type + '&' :
-            type
-        ) + 'value';
+        this.parameter = '';
         this.body = memberVariable.name + ' = value;';
     }
 
