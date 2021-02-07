@@ -8,9 +8,9 @@ import { getMatchingSourceFile, logger } from './extension';
 
 
 export const title = {
-    getterSetter: 'Generate \'get\' and \'set\' methods',
-    getter: 'Generate \'get\' method',
-    setter: 'Generate \'set\' method'
+    getterSetter: 'Generate Getter and Setter Member Functions',
+    getter: 'Generate Getter Member Function',
+    setter: 'Generate Setter Member Function'
 };
 
 export const failure = {
@@ -18,11 +18,11 @@ export const failure = {
     notCpp: 'Detected language is not C++, cannot create a member function.',
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
-    positionNotFound: 'Could not find a position for new accessor method.',
-    getterOrSetterExists: 'There already exists a \'get\' or \'set\' method.',
-    getterAndSetterExists: 'There already exists \'get\' and \'set\' methods.',
-    getterExists: 'There already exists a \'get\' method.',
-    setterExists: 'There already exists a \'set\' method.',
+    positionNotFound: 'Could not find a position for a new accessor member function.',
+    getterOrSetterExists: 'There already exists a getter or setter member function.',
+    getterAndSetterExists: 'There already exists getter and setter member functions.',
+    getterExists: 'There already exists a getter member function.',
+    setterExists: 'There already exists a setter member function.',
     isConst: 'Const variables cannot be assigned after initialization.'
 };
 
@@ -85,15 +85,15 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
             logger.showInformationMessage(failure.isConst + ' ' + failure.getterExists);
             return;
         }
-        logger.showInformationMessage(failure.isConst + ' Only generating \'get\' method.');
+        logger.showInformationMessage(failure.isConst + ' Only generating a getter member function.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
-        logger.showInformationMessage(failure.getterExists + ' Only generating \'set\' method.');
+        logger.showInformationMessage(failure.getterExists + ' Only generating a setter member function.');
         await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
-        logger.showInformationMessage(failure.setterExists + ' Only generating \'get\' method.');
+        logger.showInformationMessage(failure.setterExists + ' Only generating a getter member function.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
