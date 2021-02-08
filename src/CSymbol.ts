@@ -239,8 +239,8 @@ export class CSymbol extends SourceSymbol
         const startOffset = this.document.offsetAt(this.range.start);
         for (const match of leadingText.matchAll(/[\w_][\w\d_]*\b(?!::)/g)) {
             if (match.index !== undefined && !match[0].match(/^(static|const|constexpr|inline|mutable)$/g)) {
-                const sourceFile = new SourceFile(this.uri);
-                const locations = await sourceFile.findDefintions(this.document.positionAt(startOffset + match.index));
+                const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
+                const locations = await sourceDoc.findDefintions(this.document.positionAt(startOffset + match.index));
                 if (locations.length > 0) {
                     const type = await SourceFile.getSymbol(locations[0]);
                     if (type?.kind === vscode.SymbolKind.Enum) {
