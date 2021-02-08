@@ -5,6 +5,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added an Output channel to log info, warnings, and errors.
 - Generating a setter will now recognize `enum` types and use a pass-by-value parameter type.
+- Generating a setter can now resolve `typedef`'s and `type-alias`'s in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference.
+- Added an opt-in setting to resolve `typedef`'s, `type-alias`'s, and `enum`'s when generating setters because this may impact the performance of the command.
 
 ### Changed
 - Changed the UI appearance of getter and setter commands and messages. This is to differentiate from languages that have 'get' and 'set' keywords.
@@ -12,6 +14,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed a bug where member variables having an inline-block-comment would be recognized as being a pointer, and thus would generate a setter with a pass-by-value parameter type.
+- Fixed a bug where having an `operator->` function defined/declared anywhere in the file would throw an exception (vscode notified of the error 'name must not be falsy').
 
 ## [0.3.0] - February 05, 2021
 ### Added
