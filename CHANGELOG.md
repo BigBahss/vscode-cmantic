@@ -18,6 +18,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed placement of getter/setter definitions on `clangd` and `ccls`.
 - Fixed a bug where a type with a pointer template parameter would generate a pass-by-value setter.
 - Fixed a bug where a type with a const template parameter wouldn't allow generating a setter, because the whole type was being recognized as const.
+- Fixed a bug where a type with a const template parameter would generate a getter with const stripped from the template parameters.
 
 ## [0.3.0] - February 05, 2021
 ### Added

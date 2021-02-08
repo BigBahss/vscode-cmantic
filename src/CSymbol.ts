@@ -523,8 +523,15 @@ export class Getter implements Accessor
         const leadingText = memberVariable.leadingText();
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
-        this.isStatic = leadingText.match(/\bstatic\b/) !== null;
-        this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+        const maskedLeadingText = leadingText.replace(re_blockComments, s => ' '.repeat(s.length));
+        this.isStatic = maskedLeadingText.match(/\bstatic\b/) !== null;
+        if (maskedLeadingText.includes('<')) {
+            const templateParamStart = maskedLeadingText.indexOf('<');
+            this.returnType = leadingText.substring(0, templateParamStart).replace(/\b(static|const|mutable)\b\s*/g, '')
+                    + leadingText.substring(templateParamStart);
+        } else {
+            this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+        }
         this.parameter = '';
         this.body = 'return ' + memberVariable.name + ';';
     }
