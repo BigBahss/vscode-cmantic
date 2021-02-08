@@ -170,6 +170,17 @@ export class SourceSymbol extends vscode.DocumentSymbol
     }
 
     /**
+     * This is a fuzzy test to see if the symbol might be a typedef or type-alias. This tells us that it
+     * is worth it to open the document cooresponding to this.uri to resolve the typedef/type-alias.
+     */
+    mightBeTypedefOrTypeAlias(): boolean
+    {
+        return this.kind === vscode.SymbolKind.Interface    // cpptools
+            || this.kind === vscode.SymbolKind.Class        // clangd
+            || this.kind === vscode.SymbolKind.Property;    // ccls
+    }
+
+    /**
      * Checks for common naming schemes of private members and returns the base name.
      */
     baseName(): string

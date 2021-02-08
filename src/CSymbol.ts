@@ -227,24 +227,52 @@ export class CSymbol extends SourceSymbol
         return false;
     }
 
+    isTypedef(): boolean
+    {
+        if (this.mightBeTypedefOrTypeAlias() && this.text().match(/\btypedef\b/)) {
+            return true;
+        }
+        return false;
+    }
+
+    isTypeAlias(): boolean
+    {
+        if (this.mightBeTypedefOrTypeAlias() && this.text().match(/\busing\b/)) {
+            return true;
+        }
+        return false;
+    }
+
     async isPrimitive(): Promise<boolean>
     {
-        // TODO: Resolve typedefs and type-aliases.
         const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
         if (leadingText.match(re_primitiveTypes) && !leadingText.match(/[<>]/g)) {
             return true;
         }
 
-        // Determine if the type is an enum.
+        // Attempt to resolve typedef, type-alias, and enum types.
+        // TODO: Support multiple levels of typedefs and type-aliases.
         const startOffset = this.document.offsetAt(this.range.start);
         for (const match of leadingText.matchAll(/[\w_][\w\d_]*\b(?!::)/g)) {
             if (match.index !== undefined && !match[0].match(/^(static|const|constexpr|inline|mutable)$/g)) {
                 const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
                 const locations = await sourceDoc.findDefintions(this.document.positionAt(startOffset + match.index));
+
                 if (locations.length > 0) {
-                    const type = await SourceFile.getSymbol(locations[0]);
-                    if (type?.kind === vscode.SymbolKind.Enum) {
+                    const typeFile = new SourceFile(locations[0].uri);
+                    const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+
+                    if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
                         return true;
+                    } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
+                        const typeDoc = await typeFile.openDocument();
+                        const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
+                        if (typeCSymbol.isTypedef() || typeCSymbol.isTypeAlias()) {
+                            const text = typeCSymbol.text();
+                            if (text.match(re_primitiveTypes) && !text.match(/[<>]/g)) {
+                                return true;
+                            }
+                        }
                     }
                 }
             }
