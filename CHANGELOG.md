@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.3.1] - February 08, 2021
 ### Added
 - Added an Output channel to log info, warnings, and errors.
 - Generating a setter will now recognize `enum` types and use a pass-by-value parameter type.
