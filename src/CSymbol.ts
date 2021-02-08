@@ -217,7 +217,7 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return this.leadingText().replace(re_blockComments, '').includes('*');
+        return util.maskTemplateParameters(this.leadingText().replace(re_blockComments, '')).includes('*');
     }
 
     isConst(): boolean
