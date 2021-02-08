@@ -39,22 +39,24 @@ const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 
+function configuration(): vscode.WorkspaceConfiguration
+{
+    return vscode.workspace.getConfiguration('C_mantic');
+}
 
 export function headerExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('extensions.headerFiles');
-    return extensions ? extensions : defaultHeaderExtensions;
+    return configuration().get<string[]>('extensions.headerFiles', defaultHeaderExtensions);
 }
 
 export function sourceExtensions(): string[]
 {
-    const extensions = vscode.workspace.getConfiguration('C_mantic').get<string[]>('extensions.sourceFiles');
-    return extensions ? extensions : defaultSourceExtensions;
+    return configuration().get<string[]>('extensions.sourceFiles', defaultSourceExtensions);
 }
 
 export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>(languageId + '.curlyBraceFormat.function');
+    const format = configuration().get<string>(languageId + '.curlyBraceFormat.function');
     switch (format) {
     case 'New line':
         return CurlyBraceFormat.NewLine;
@@ -69,7 +71,7 @@ export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat
 
 export function namespaceCurlyBraceFormat(): CurlyBraceFormat
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.curlyBraceFormat.namespace');
+    const format = configuration().get<string>('cpp.curlyBraceFormat.namespace');
     switch (format) {
     case 'Auto':
         return CurlyBraceFormat.Auto;
@@ -84,7 +86,7 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat
 
 export function indentNamespaceBody(): NamespaceIndentation
 {
-    const indent = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.indentation.namespace');
+    const indent = configuration().get<string>('cpp.indentation.namespace');
     switch (indent) {
     case 'Auto':
         return NamespaceIndentation.Auto;
@@ -99,16 +101,12 @@ export function indentNamespaceBody(): NamespaceIndentation
 
 export function shouldGenerateNamespaces(): boolean
 {
-    const shouldGenerate = vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.generateNamespaces');
-    if (shouldGenerate === undefined) {
-        return defaultGenerateNamespaces;
-    }
-    return shouldGenerate;
+    return configuration().get<boolean>('cpp.generateNamespaces', defaultGenerateNamespaces);
 }
 
 export function headerGuardStyle(): HeaderGuardStyle
 {
-    const style = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.style');
+    const style = configuration().get<string>('headerGuard.style');
     switch (style) {
     case 'Add both':
         return HeaderGuardStyle.Both;
@@ -122,8 +120,7 @@ export function headerGuardStyle(): HeaderGuardStyle
 
 export function headerGuardDefineFormat(): string
 {
-    const format = vscode.workspace.getConfiguration('C_mantic').get<string>('headerGuard.defineFormat');
-    return format ? format : defaultHeaderGuardDefineFormat;
+    return configuration().get<string>('headerGuard.defineFormat', defaultHeaderGuardDefineFormat);
 }
 
 const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
@@ -140,7 +137,7 @@ export function headerGuardDefine(fileName: string): string
 
 export function getterDefinitionLocation(): AccessorDefinitionLocation
 {
-    const location = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.accessor.getterDefinitionLocation');
+    const location = configuration().get<string>('cpp.accessor.getterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
         return AccessorDefinitionLocation.Inline;
@@ -155,7 +152,7 @@ export function getterDefinitionLocation(): AccessorDefinitionLocation
 
 export function setterDefinitionLocation(): AccessorDefinitionLocation
 {
-    const location = vscode.workspace.getConfiguration('C_mantic').get<string>('cpp.accessor.setterDefinitionLocation');
+    const location = configuration().get<string>('cpp.accessor.setterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
         return AccessorDefinitionLocation.Inline;
@@ -170,14 +167,10 @@ export function setterDefinitionLocation(): AccessorDefinitionLocation
 
 export function resolveTypes(): boolean
 {
-    return vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.resolveTypes', defaultResolveTypes);
+    return configuration().get<boolean>('cpp.resolveTypes', defaultResolveTypes);
 }
 
 export function revealNewDefinition(): boolean
 {
-    const shouldReveal = vscode.workspace.getConfiguration('C_mantic').get<boolean>('revealNewDefinition');
-    if (shouldReveal === undefined) {
-        return defaultRevealNewDefinition;
-    }
-    return shouldReveal;
+    return configuration().get<boolean>('revealNewDefinition', defaultRevealNewDefinition);
 }
