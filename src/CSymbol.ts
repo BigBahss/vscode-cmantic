@@ -222,7 +222,7 @@ export class CSymbol extends SourceSymbol
 
     isConst(): boolean
     {
-        if (this.leadingText().match(/\bconst\b/)) {
+        if (util.maskTemplateParameters(this.leadingText().replace(re_blockComments, '')).match(/\bconst\b/)) {
             return true;
         }
         return false;

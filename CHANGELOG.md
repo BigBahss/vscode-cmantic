@@ -17,6 +17,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed a bug where having an `operator->` function defined/declared anywhere in the file would throw an exception (vscode notified of the error '`name must not be falsy`'). This bug also prevented code-actions from being provided for that file.
 - Fixed placement of getter/setter definitions on `clangd` and `ccls`.
 - Fixed a bug where a type with a pointer template parameter would generate a pass-by-value setter.
+- Fixed a bug where a type with a const template parameter wouldn't allow generating a setter, because the whole type was being recognized as const.
 
 ## [0.3.0] - February 05, 2021
 ### Added
