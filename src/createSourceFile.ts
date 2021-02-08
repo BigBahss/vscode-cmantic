@@ -159,8 +159,7 @@ function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: Sourc
     const curlyFormat = cfg.namespaceCurlyBraceFormat();
     if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
         const namespace = new CSymbol(namespaces[0], headerDoc);
-        const namespaceText = util.maskComments(namespace.text());
-        if (namespaceText.match(/^\s*namespace\s+[\w\d_]+[ \t]*{/)) {
+        if (namespace.parsableText.match(/^\s*namespace\s+[\w\d_]+[ \t]*{/)) {
             return ' ';
         }
         return headerDoc.endOfLine;

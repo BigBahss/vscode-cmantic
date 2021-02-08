@@ -51,6 +51,19 @@ export class CSymbol extends SourceSymbol
     text(): string { return this.document.getText(this.range); }
 
     /**
+     * Returns the text contained in this symbol with comments masked with spaces.
+     */
+    get parsableText(): string
+    {
+        if (this._parsableText) {
+            return this._parsableText;
+        }
+        this._parsableText = util.maskComments(this.text(), false);
+        return this._parsableText;
+    }
+    private _parsableText?: string;
+
+    /**
      * Returns the text of this symbol including potential template statement.
      */
     getFullText(): string { return this.document.getText(this.getFullRange()); }
@@ -117,9 +130,8 @@ export class CSymbol extends SourceSymbol
             return this.positionAfterLastChildOrUndefined();
         }
 
-        const text = this.text();
         const startOffset = this.document.offsetAt(this.range.start);
-        let publicSpecifierOffset = /\bpublic\s*:/g.exec(text)?.index;
+        let publicSpecifierOffset = /\bpublic\s*:/g.exec(this.parsableText)?.index;
 
         if (!publicSpecifierOffset) {
             return this.positionAfterLastChildOrUndefined();
@@ -127,7 +139,7 @@ export class CSymbol extends SourceSymbol
         publicSpecifierOffset += startOffset;
 
         let nextAccessSpecifierOffset: number | undefined;
-        for (const match of text.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
+        for (const match of this.parsableText.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
             if (!match.index) {
                 continue;
             }
@@ -137,7 +149,7 @@ export class CSymbol extends SourceSymbol
             }
         }
 
-        if (!nextAccessSpecifierOffset) {
+        if (nextAccessSpecifierOffset === undefined) {
             nextAccessSpecifierOffset = this.document.offsetAt(this.range.end);
         } else {
             nextAccessSpecifierOffset += startOffset;
@@ -191,7 +203,7 @@ export class CSymbol extends SourceSymbol
 
     isFunctionDeclaration(): boolean
     {
-        return this.isFunction() && (this.detail === 'declaration' || !this.text().endsWith('}'));
+        return this.isFunction() && (this.detail === 'declaration' || !this.parsableText.endsWith('}'));
     }
 
     isFunctionDefinition(): boolean
@@ -230,14 +242,13 @@ export class CSymbol extends SourceSymbol
 
     isTypedef(): boolean
     {
-        return this.mightBeTypedefOrTypeAlias() && this.text().match(/\btypedef\b/) !== null;
+        return this.mightBeTypedefOrTypeAlias() && this.parsableText.match(/\btypedef\b/) !== null;
     }
 
     isTypeAlias(): boolean
     {
         if (this.mightBeTypedefOrTypeAlias()) {
-            const text = this.text();
-            return text.match(/\busing\b/) !== null && text.includes('=');
+            return this.parsableText.match(/\busing\b/) !== null && this.parsableText.includes('=');
         }
         return false;
     }
@@ -259,38 +270,36 @@ export class CSymbol extends SourceSymbol
                 return await this.resolveThisType(startOffset + match.index);
             }
         } else if (this.isTypedef()) {
-            const text = this.text().replace(re_blockComments, s => ' '.repeat(s.length));
-            if (this.matchesPrimitiveType(text)) {
+            if (this.matchesPrimitiveType(this.parsableText)) {
                 return true;
-            } else if (text.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+            } else if (this.parsableText.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
                 return false;
             } else if (!cfg.resolveTypes()) {
                 return false;
             }
 
             const startOffset = this.document.offsetAt(this.range.start);
-            const maskedText = text.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
+            const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
             const match = maskedText.match(/[\w_][\w\d_]*\b(?!::)/);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(startOffset + match.index);
             }
         } else if (this.isTypeAlias()) {
-            const text = this.text().replace(re_blockComments, s => ' '.repeat(s.length));
-            if (this.matchesPrimitiveType(text)) {
+            if (this.matchesPrimitiveType(this.parsableText)) {
                 return true;
-            } else if (text.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+            } else if (this.parsableText.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
                 return false;
             } else if (!cfg.resolveTypes()) {
                 return false;
             }
 
-            const indexOfEquals = text.indexOf('=');
+            const indexOfEquals = this.parsableText.indexOf('=');
             if (indexOfEquals === -1) {
                 return false;
             }
 
             const startOffset = this.document.offsetAt(this.range.start) + indexOfEquals + 1;
-            const type = text.substring(indexOfEquals + 1);
+            const type = this.parsableText.substring(indexOfEquals + 1);
             const match = type.match(/[\w_][\w\d_]*\b(?!::)/);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(startOffset + match.index);
