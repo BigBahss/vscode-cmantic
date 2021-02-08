@@ -114,7 +114,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
      */
     scopes(): SourceSymbol[]
     {
-        let scopes: SourceSymbol[] = [];
+        const scopes: SourceSymbol[] = [];
         let symbol: SourceSymbol = this;
         while (symbol.parent) {
             scopes.push(symbol.parent);
