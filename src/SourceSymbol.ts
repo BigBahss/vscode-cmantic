@@ -27,8 +27,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
         if (name.includes('(')) {
             name = name.substring(0, name.indexOf('('));
         }
-        if (name.endsWith('>')) {
-            name = name.substring(0, name.lastIndexOf('<'));
+        if (name.endsWith('>') && name.includes('<')) {
+            name = name.substring(0, name.indexOf('<'));
         }
         this.name = name;
 
@@ -126,6 +126,11 @@ export class SourceSymbol extends vscode.DocumentSymbol
     isMemberVariable(): boolean
     {
         return this.kind === vscode.SymbolKind.Field && this.parent?.isClassOrStruct() === true;
+    }
+
+    isVariable(): boolean
+    {
+        return this.kind === vscode.SymbolKind.Variable || this.isMemberVariable();
     }
 
     isFunction(): boolean

@@ -230,56 +230,70 @@ export class CSymbol extends SourceSymbol
 
     isTypedef(): boolean
     {
-        if (this.mightBeTypedefOrTypeAlias() && this.text().match(/\btypedef\b/)) {
-            return true;
-        }
-        return false;
+        return this.mightBeTypedefOrTypeAlias() && this.text().match(/\btypedef\b/) !== null;
     }
 
     isTypeAlias(): boolean
     {
-        if (this.mightBeTypedefOrTypeAlias() && this.text().match(/\busing\b/)) {
-            return true;
+        if (this.mightBeTypedefOrTypeAlias()) {
+            const text = this.text();
+            return text.match(/\busing\b/) !== null && text.includes('=');
         }
         return false;
     }
 
     async isPrimitive(): Promise<boolean>
     {
-        const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
-        if (leadingText.match(re_primitiveTypes) && !leadingText.match(/[<>]/g)) {
-            return true;
-        }
+        if (this.isVariable()) {
+            const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
+            if (this.matchesPrimitiveType(leadingText)) {
+                return true;
+            } else if (!cfg.resolveTypes()) {
+                return false;
+            }
 
-        if (!cfg.resolveTypes()) {
-            return false;
-        }
+            const startOffset = this.document.offsetAt(this.range.start);
+            const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, s => ' '.repeat(s.length));
+            const match = type.match(/[\w_][\w\d_]*\b(?!::)/);
+            if (match?.index !== undefined) {
+                return await this.resolveThisType(startOffset + match.index);
+            }
+        } else if (this.isTypedef()) {
+            const text = this.text().replace(re_blockComments, s => ' '.repeat(s.length));
+            if (this.matchesPrimitiveType(text)) {
+                return true;
+            } else if (text.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+                return false;
+            } else if (!cfg.resolveTypes()) {
+                return false;
+            }
 
-        // Attempt to resolve typedef, type-alias, and enum types.
-        // TODO: Support multiple levels of typedefs and type-aliases.
-        const startOffset = this.document.offsetAt(this.range.start);
-        for (const match of leadingText.matchAll(/[\w_][\w\d_]*\b(?!::)/g)) {
-            if (match.index !== undefined && !match[0].match(/^(static|const|constexpr|inline|mutable)$/g)) {
-                const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
-                const locations = await sourceDoc.findDefintions(this.document.positionAt(startOffset + match.index));
+            const startOffset = this.document.offsetAt(this.range.start);
+            const maskedText = text.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
+            const match = maskedText.match(/[\w_][\w\d_]*\b(?!::)/);
+            if (match?.index !== undefined) {
+                return await this.resolveThisType(startOffset + match.index);
+            }
+        } else if (this.isTypeAlias()) {
+            const text = this.text().replace(re_blockComments, s => ' '.repeat(s.length));
+            if (this.matchesPrimitiveType(text)) {
+                return true;
+            } else if (text.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+                return false;
+            } else if (!cfg.resolveTypes()) {
+                return false;
+            }
 
-                if (locations.length > 0) {
-                    const typeFile = new SourceFile(locations[0].uri);
-                    const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+            const indexOfEquals = text.indexOf('=');
+            if (indexOfEquals === -1) {
+                return false;
+            }
 
-                    if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
-                        return true;
-                    } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
-                        const typeDoc = await typeFile.openDocument();
-                        const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                        if (typeCSymbol.isTypedef() || typeCSymbol.isTypeAlias()) {
-                            const text = typeCSymbol.text();
-                            if (text.match(re_primitiveTypes) && !text.match(/[<>]/g)) {
-                                return true;
-                            }
-                        }
-                    }
-                }
+            const startOffset = this.document.offsetAt(this.range.start) + indexOfEquals + 1;
+            const type = text.substring(indexOfEquals + 1);
+            const match = type.match(/[\w_][\w\d_]*\b(?!::)/);
+            if (match?.index !== undefined) {
+                return await this.resolveThisType(startOffset + match.index);
             }
         }
 
@@ -448,6 +462,32 @@ export class CSymbol extends SourceSymbol
     private getEndOfStatement(): vscode.Position
     {
         return util.getEndOfStatement(this.document, this.range.end);
+    }
+
+    private matchesPrimitiveType(text: string): boolean
+    {
+        return text.match(re_primitiveTypes) !== null && text.match(/[<>]/g) === null;
+    }
+
+    private async resolveThisType(offset: number): Promise<boolean>
+    {
+        const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
+        const locations = await sourceDoc.findDefintions(this.document.positionAt(offset));
+
+        if (locations.length > 0) {
+            const typeFile = new SourceFile(locations[0].uri);
+            const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+
+            if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
+                return true;
+            } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
+                const typeDoc = await typeFile.openDocument();
+                const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
+                return await typeCSymbol.isPrimitive();
+            }
+        }
+
+        return false;
     }
 }
 
