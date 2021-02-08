@@ -121,8 +121,15 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        const declaration = (declarationOrPosition instanceof SourceSymbol) ?
-                declarationOrPosition : await this.getSymbol(declarationOrPosition);
+        let declaration: SourceSymbol | undefined;
+        if (declarationOrPosition instanceof ProposedPosition) {
+            declaration = declarationOrPosition.options.relativeTo !== undefined
+                    ? await this.getSymbol(declarationOrPosition.options.relativeTo.start)
+                    : await this.getSymbol(declarationOrPosition);
+        } else {
+            declaration = declarationOrPosition;
+        }
+
         if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration?.parent && this.symbols.length === 0)) {
             return new ProposedPosition();
         }
