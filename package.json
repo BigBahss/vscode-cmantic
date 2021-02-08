@@ -177,6 +177,11 @@
             "default": "Generate definition inline",
             "description": "Controls where the definitions of new setter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
           },
+          "C_mantic.cpp.resolveTypes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may decrease the performance of the generating setters."
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,

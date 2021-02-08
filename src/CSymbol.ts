@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from "./ProposedPosition";
@@ -248,6 +249,10 @@ export class CSymbol extends SourceSymbol
         const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
         if (leadingText.match(re_primitiveTypes) && !leadingText.match(/[<>]/g)) {
             return true;
+        }
+
+        if (!cfg.resolveTypes()) {
+            return false;
         }
 
         // Attempt to resolve typedef, type-alias, and enum types.

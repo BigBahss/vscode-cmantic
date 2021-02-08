@@ -36,6 +36,7 @@ const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
 const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
+const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 
 
@@ -165,6 +166,11 @@ export function setterDefinitionLocation(): AccessorDefinitionLocation
     default:
         return defaultAccessorDefinitionLocation;
     }
+}
+
+export function resolveTypes(): boolean
+{
+    return vscode.workspace.getConfiguration('C_mantic').get<boolean>('cpp.resolveTypes', defaultResolveTypes);
 }
 
 export function revealNewDefinition(): boolean
