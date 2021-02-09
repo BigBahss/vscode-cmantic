@@ -66,6 +66,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     /**
      * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
+     * Returns undefined if the most likely definition is this SourceSymbol.
      */
     async findDefinition(): Promise<vscode.Location | undefined>
     {
@@ -80,7 +81,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
+                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
                 return location;
             }
         }
@@ -88,6 +90,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     /**
      * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
+     * Returns undefined if the most likely declaration is this SourceSymbol.
      */
     async findDeclaration(): Promise<vscode.Location | undefined>
     {
@@ -102,7 +105,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
+                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
                 return location;
             }
         }
