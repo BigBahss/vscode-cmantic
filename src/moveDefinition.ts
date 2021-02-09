@@ -9,8 +9,8 @@ import { SourceFile } from './SourceFile';
 
 export const title = {
     matchingSourceFile: 'Move Definition to matching source file',
-    outOfClass: 'Move Definition out of class body',
-    intoClass: 'Move Definition into class body',
+    outOfClass: 'Move Definition below class body',
+    intoClass: 'Move Definition into class',
     intoOrOutOfClassPlaceholder: 'Move Definition into or out of class body'
 };
 

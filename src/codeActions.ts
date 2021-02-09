@@ -102,53 +102,51 @@ export class CodeActionProvider implements vscode.CodeActionProvider
     }
 
     private async getFunctionDefinitionRefactorings(
-        symbol: CSymbol,
+        definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<vscode.CodeAction[]> {
-        const declarationLocation = await symbol.findDeclaration();
-
         let moveDefinitionToMatchingSourceFileTitle = moveDefinitionTitle.matchingSourceFile;
         let moveDefinitionToMatchingSourceFileDisabled: { readonly reason: string } | undefined;
         let moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoOrOutOfClassPlaceholder;
         let moveDefinitionIntoOrOutOfClassDisabled: { readonly reason: string } | undefined;
 
         let declaration: SourceSymbol | undefined;
-        if (declarationLocation) {
-            const declarationFile = new SourceFile(declarationLocation.uri);
-            declaration = await declarationFile.getSymbol(declarationLocation.range.start);
-            if (symbol.kind === vscode.SymbolKind.Method || declaration?.kind === vscode.SymbolKind.Method) {
-                if (declaration?.location.uri.fsPath === symbol.uri.fsPath) {
-                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
-                } else {
-                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass;
-                }
-            } else {
-                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
-            }
-        } else if (symbol.kind === vscode.SymbolKind.Method) {
+        let declarationDoc: SourceDocument | undefined;
+
+        if (definition.parent?.isClassOrStruct()) {
             moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+        } else {
+            const declarationLocation = await definition.findDeclaration();
+            if (declarationLocation !== undefined
+                    && (declarationLocation?.uri.fsPath === definition.uri.fsPath
+                    || declarationLocation?.uri.fsPath === matchingUri?.fsPath)) {
+                declarationDoc = declarationLocation.uri.fsPath === sourceDoc.fileName
+                        ? sourceDoc
+                        : await SourceDocument.open(declarationLocation.uri);
+                declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
+
+                if (declaration?.parent?.isClassOrStruct()) {
+                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass + ' ' + declaration.parent.name;
+                } else {
+                    moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
+                }
+            }
         }
 
         if (sourceDoc.languageId !== 'cpp') {
             moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
-        }
-        if (symbol.isInline()) {
+        } else if (definition.isInline()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
-        }
-        if (symbol.isConstexpr()) {
+        } else if (definition.isConstexpr()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
         }
+
         if (matchingUri) {
             const displayPath = this.formatPathToDisplay(matchingUri);
             moveDefinitionToMatchingSourceFileTitle = `Move Definition to "${displayPath}"`;
         } else {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
-        }
-
-        // Function is defined in class body, which we don't fully support moving of yet. So we disable it for now.
-        if (symbol.parent?.isClassOrStruct()) {
-            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.inClassBody };
         }
 
         return [{
@@ -157,19 +155,19 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: moveDefinitionToMatchingSourceFileTitle,
                 command: 'cmantic.moveDefinitionToMatchingSourceFile',
-                arguments: [symbol, matchingUri, declaration]
+                arguments: [definition, matchingUri, declaration]
             },
             disabled: moveDefinitionToMatchingSourceFileDisabled
-        }/* , {
+        }, {
             title: moveDefinitionIntoOrOutOfClassTitle,
             kind: vscode.CodeActionKind.Refactor,
             command: {
                 title: moveDefinitionIntoOrOutOfClassTitle,
-                command: 'cmantic.moveDefinitionIntoOrOutOfClass',  // Placeholder, for now.
-                arguments: [symbol, sourceDoc.uri]
+                command: 'cmantic.moveDefinitionIntoOrOutOfClass',
+                arguments: [definition, sourceDoc.uri]
             },
             disabled: moveDefinitionIntoOrOutOfClassDisabled
-        } */];
+        }];
     }
 
     private async getMemberVariableRefactorings(
