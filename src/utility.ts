@@ -108,7 +108,7 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp
 {
-    const line = symbol.document.lineAt(symbol.getRangeIncludingHeaderComment().start);
+    const line = symbol.document.lineAt(symbol.getRangeWithLeadingComment().start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     return new RegExp('^' + oldIndentation, 'gm');
 }
@@ -149,10 +149,18 @@ export function maskStringLiterals(sourceText: string, keepEnclosingChars: boole
     return sourceText;
 }
 
-export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskParameters(sourceText: string, keepEnclosingChars: boolean = true): string
 {
     if (keepEnclosingChars) {
         return sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, masker);
     }
     return sourceText.replace(/<(>(?=>)|[^>])*>/g, masker);
+}
+
+export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+{
+    if (keepEnclosingChars) {
+        return sourceText.replace(/(?<=\()(\)(?=\))|[^\)])*(?=\))/g, masker);
+    }
+    return sourceText.replace(/\((\)(?=\))|[^\)])*\)/g, masker);
 }

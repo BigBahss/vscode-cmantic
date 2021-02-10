@@ -127,8 +127,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
 
-                if (declaration?.parent?.isClassOrStruct()) {
-                    moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoClass + ' ' + declaration.parent.name;
+                if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
+                    moveDefinitionIntoOrOutOfClassTitle = `Move Definition into class "${declaration.parent.name}"`;
+                } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
+                    moveDefinitionIntoOrOutOfClassTitle = `Move Definition into struct "${declaration.parent.name}"`;
                 } else {
                     moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
                 }

@@ -71,9 +71,9 @@ export class CSymbol extends SourceSymbol
      */
     getFullText(): string { return this.document.getText(this.getFullRange()); }
 
-    getTextIncludingHeaderComment(): string
+    getTextWithLeadingComment(): string
     {
-        return this.document.getText(this.getRangeIncludingHeaderComment());
+        return this.document.getText(this.getRangeWithLeadingComment());
     }
 
     async getTextForTargetPosition(
@@ -82,7 +82,13 @@ export class CSymbol extends SourceSymbol
         const scopeString = declaration !== undefined
                 ? await declaration.scopeString(target, position)
                 : await this.scopeString(target, position);
-        return this.document.getText(new vscode.Range(this.getHeaderCommentStart(), this.scopeStringStart()))
+        if (!declaration && SourceFile.isHeader(this.uri)
+                && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
+            return this.document.getText(new vscode.Range(this.getTrueStart(), this.scopeStringStart()))
+                    + scopeString
+                    + this.document.getText(new vscode.Range(this.selectionRange.start, this.getEndOfStatement()));
+        }
+        return this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.scopeStringStart()))
                 + scopeString
                 + this.document.getText(new vscode.Range(this.selectionRange.start, this.getEndOfStatement()));
 
@@ -110,9 +116,9 @@ export class CSymbol extends SourceSymbol
      */
     getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.getEndOfStatement()); }
 
-    getRangeIncludingHeaderComment(): vscode.Range
+    getRangeWithLeadingComment(): vscode.Range
     {
-        return new vscode.Range(this.getHeaderCommentStart(), this.range.end);
+        return new vscode.Range(this.getLeadingCommentStart(), this.range.end);
     }
 
     startOffset(): number { return this.document.offsetAt(this.range.start); }
@@ -189,7 +195,7 @@ export class CSymbol extends SourceSymbol
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
                     && symbol.name === relativeName) {
                 if (isGetter) {
-                    return new ProposedPosition(symbol.getHeaderCommentStart(), {
+                    return new ProposedPosition(symbol.getLeadingCommentStart(), {
                         relativeTo: symbol.range,
                         before: true,
                         nextTo: true
@@ -387,6 +393,14 @@ export class CSymbol extends SourceSymbol
         const line = this.document.lineAt(this.range.start);
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
 
+        if (!this.hasLeadingComment()) {
+            const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.getTrueStart());
+            const leadingComment = definition.document.getText(leadingCommentRange);
+            return leadingComment.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation)
+                    + this.getFullText().replace(/\s*;$/, '')
+                    + body.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation);
+        }
+
         return this.getFullText().replace(/\s*;$/, '') + body.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation);
     }
 
@@ -422,7 +436,7 @@ export class CSymbol extends SourceSymbol
     private bodyStart(declaration?: CSymbol): vscode.Position
     {
         let maskedText = util.maskStringLiterals(this.parsableText);
-        maskedText = maskedText.replace(/(?<=\()(\)(?=\))|[^\)])*(?=\))/g, util.masker);
+        maskedText = util.maskParameters(maskedText, true);
         const startOffset = this.document.offsetAt(this.range.start);
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
         const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
@@ -492,7 +506,15 @@ export class CSymbol extends SourceSymbol
         return this.document.positionAt(this.startOffset() + lastMatch.index);
     }
 
-    private getHeaderCommentStart(): vscode.Position
+    hasLeadingComment(): boolean
+    {
+        if (this.getLeadingCommentStart().isEqual(this.getTrueStart())) {
+            return false;
+        }
+        return true;
+    }
+
+    getLeadingCommentStart(): vscode.Position
     {
         if (this.headerCommentStart) {
             return this.headerCommentStart;
