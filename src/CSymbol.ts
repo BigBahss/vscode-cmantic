@@ -102,9 +102,13 @@ export class CSymbol extends SourceSymbol
         return new vscode.Range(this.getHeaderCommentStart(), this.range.end);
     }
 
-    isBefore(offset: number): boolean { return this.document.offsetAt(this.range.end) < offset; }
+    startOffset(): number { return this.document.offsetAt(this.range.start); }
 
-    isAfter(offset: number): boolean { return this.document.offsetAt(this.range.start) > offset; }
+    endOffset(): number { return this.document.offsetAt(this.range.end); }
+
+    isBefore(offset: number): boolean { return this.endOffset() < offset; }
+
+    isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
     async scopeString(target: SourceFile, position?: vscode.Position): Promise<string>
     {
@@ -132,7 +136,7 @@ export class CSymbol extends SourceSymbol
             return this.positionAfterLastChildOrUndefined();
         }
 
-        const startOffset = this.document.offsetAt(this.range.start);
+        const startOffset = this.startOffset();
         let publicSpecifierOffset = /\bpublic\s*:/g.exec(this.parsableText)?.index;
 
         if (!publicSpecifierOffset) {
@@ -152,7 +156,7 @@ export class CSymbol extends SourceSymbol
         }
 
         if (nextAccessSpecifierOffset === undefined) {
-            nextAccessSpecifierOffset = this.document.offsetAt(this.range.end);
+            nextAccessSpecifierOffset = this.endOffset();
         } else {
             nextAccessSpecifierOffset += startOffset;
         }
@@ -265,11 +269,10 @@ export class CSymbol extends SourceSymbol
                 return false;
             }
 
-            const startOffset = this.document.offsetAt(this.range.start);
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, s => ' '.repeat(s.length));
             const match = type.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
-                return await this.resolveThisType(startOffset + match.index);
+                return await this.resolveThisType(this.startOffset() + match.index);
             }
         } else if (this.isTypedef()) {
             if (this.matchesPrimitiveType(this.parsableText)) {
@@ -280,11 +283,10 @@ export class CSymbol extends SourceSymbol
                 return false;
             }
 
-            const startOffset = this.document.offsetAt(this.range.start);
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
             const match = maskedText.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
-                return await this.resolveThisType(startOffset + match.index);
+                return await this.resolveThisType(this.startOffset() + match.index);
             }
         } else if (this.isTypeAlias()) {
             if (this.matchesPrimitiveType(this.parsableText)) {
@@ -300,11 +302,31 @@ export class CSymbol extends SourceSymbol
                 return false;
             }
 
-            const startOffset = this.document.offsetAt(this.range.start) + indexOfEquals + 1;
             const type = this.parsableText.substring(indexOfEquals + 1);
             const match = type.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
-                return await this.resolveThisType(startOffset + match.index);
+                return await this.resolveThisType(this.startOffset() + match.index);
+            }
+        }
+
+        return false;
+    }
+
+    private async resolveThisType(offset: number): Promise<boolean>
+    {
+        const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
+        const locations = await sourceDoc.findDefintions(this.document.positionAt(offset));
+
+        if (locations.length > 0) {
+            const typeFile = new SourceFile(locations[0].uri);
+            const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+
+            if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
+                return true;
+            } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
+                const typeDoc = await typeFile.openDocument();
+                const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
+                return await typeCSymbol.isPrimitive();
             }
         }
 
