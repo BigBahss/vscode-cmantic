@@ -10,6 +10,7 @@ const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|i
 const re_blockComments = /\/\*(\*(?=\/)|[^*])*\*\//g;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
+const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 
 
 /**
@@ -75,6 +76,18 @@ export class CSymbol extends SourceSymbol
         return this.document.getText(this.getRangeIncludingHeaderComment());
     }
 
+    async getTextForTargetPosition(
+        target: SourceFile, position: vscode.Position, declaration?: SourceSymbol
+    ): Promise<string> {
+        const scopeString = declaration !== undefined
+                ? await declaration.scopeString(target, position)
+                : await this.scopeString(target, position);
+        return this.document.getText(new vscode.Range(this.getHeaderCommentStart(), this.scopeStringStart()))
+                + scopeString
+                + this.document.getText(new vscode.Range(this.selectionRange.start, this.getEndOfStatement()));
+
+    }
+
     /**
      * Returns the text contained in this symbol that comes before this.selectionRange.
      */
@@ -110,27 +123,13 @@ export class CSymbol extends SourceSymbol
 
     isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
-    async scopeString(target: SourceFile, position?: vscode.Position): Promise<string>
-    {
-        let scopeString = '';
-        for (const scope of this.scopes()) {
-            const targetScope = await target.findMatchingSymbol(scope);
-            // Check if position exists inside of a namespace block. If so, omit that scope.id().
-            if (!targetScope || (position && !targetScope.range.contains(position))) {
-                scopeString += scope.name + '::';
-            }
-        }
-        return scopeString;
-    }
-
     /**
      * Finds a position for a new public member function within this class or struct. Optionally provide a
      * relativeName to look for a position next to. Optionally provide a memberVariable if the new member function
      * is an accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
      */
     findPositionForNewMemberFunction(
-        relativeName?: string,
-        memberVariable?: SourceSymbol
+        relativeName?: string, memberVariable?: SourceSymbol
     ): ProposedPosition | undefined {
         if (!this.isClassOrStruct()) {
             return this.positionAfterLastChildOrUndefined();
@@ -336,7 +335,7 @@ export class CSymbol extends SourceSymbol
     /**
      * Formats this function declaration for use as a definition (without curly braces).
      */
-    async newFunctionDefinition(targetDoc: SourceDocument, position?: vscode.Position): Promise<string>
+    async newFunctionDefinition(targetDoc: SourceDocument, position: vscode.Position): Promise<string>
     {
         if (!this.isFunctionDeclaration()) {
             return '';
@@ -402,6 +401,24 @@ export class CSymbol extends SourceSymbol
         }
 
         return strippedParameters.substring(0, strippedParameters.length - 1);
+    }
+
+    private scopeStringStart(): vscode.Position
+    {
+        const maskedLeadingText = util.maskComments(this.leadingText()).trimEnd();
+        if (!maskedLeadingText.endsWith('::')) {
+            return this.selectionRange.start;
+        }
+
+        let lastMatch: RegExpMatchArray | undefined;
+        for (const match of maskedLeadingText.matchAll(re_beginingOfScopeString)) {
+            lastMatch = match;
+        }
+        if (!lastMatch?.index) {
+            return this.selectionRange.start;
+        }
+
+        return this.document.positionAt(this.startOffset() + lastMatch.index);
     }
 
     /**
@@ -500,27 +517,6 @@ export class CSymbol extends SourceSymbol
     private matchesPrimitiveType(text: string): boolean
     {
         return text.match(re_primitiveTypes) !== null && text.match(/[<>]/g) === null;
-    }
-
-    private async resolveThisType(offset: number): Promise<boolean>
-    {
-        const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
-        const locations = await sourceDoc.findDefintions(this.document.positionAt(offset));
-
-        if (locations.length > 0) {
-            const typeFile = new SourceFile(locations[0].uri);
-            const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
-
-            if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
-                return true;
-            } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
-                const typeDoc = await typeFile.openDocument();
-                const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                return await typeCSymbol.isPrimitive();
-            }
-        }
-
-        return false;
     }
 }
 

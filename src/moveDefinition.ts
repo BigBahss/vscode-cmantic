@@ -22,8 +22,7 @@ export const failure = {
     notCpp: 'Detected language is not C++, cannot operate on classes.',
     notMemberFunction: 'Function is not a class member function.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
-    isInline: 'Inline functions must be defined in the file that they are declared.',
-    inClassBody: 'Moving definitions into/out of class bodies isn\'t supoorted yet.' // temporary
+    isInline: 'Inline functions must be defined in the file that they are declared.'
 };
 
 export async function moveDefinitionToMatchingSourceFile(
@@ -66,7 +65,7 @@ export async function moveDefinitionToMatchingSourceFile(
     const position = await getNewPosition(targetDoc, declaration);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    const insertText = getInsertText(definition, position, targetDoc);
+    const insertText = await getInsertText(definition, position, targetDoc, declaration);
     workspaceEdit.insert(targetDoc.uri, position, insertText);
     const deletionRange = getDeletionRange(definition);
     workspaceEdit.delete(definition.uri, deletionRange);
@@ -83,22 +82,26 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
     return await declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
 }
 
-function getInsertText(
+async function getInsertText(
     definition: CSymbol,
     position: ProposedPosition,
-    targetDoc: vscode.TextDocument
-): string {
-    let insertText = definition.getTextIncludingHeaderComment();
+    targetDoc: SourceDocument,
+    declaration?: SourceSymbol
+): Promise<string> {
+    const p_insertText = definition.getTextForTargetPosition(targetDoc, position, declaration);
 
     // Remove the old indentation.
-    let line = definition.document.lineAt(definition.getRangeIncludingHeaderComment().start);
+    const line = definition.document.lineAt(definition.getRangeIncludingHeaderComment().start);
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     const re_indentation = new RegExp('^' + oldIndentation, 'gm');
-    insertText = insertText.replace(re_indentation, '');
 
-    insertText = position.formatTextToInsert(insertText, targetDoc);
-
-    return insertText;
+    return new Promise((resolve) => {
+        p_insertText.then(insertText => {
+            insertText = insertText.replace(re_indentation, '');
+            insertText = position.formatTextToInsert(insertText, targetDoc);
+            resolve(insertText);
+        });
+    });
 }
 
 function getDeletionRange(definition: CSymbol): vscode.Range

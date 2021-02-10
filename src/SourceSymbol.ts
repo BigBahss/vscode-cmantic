@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { SourceFile } from './SourceFile';
 import * as util from './utility';
 
 
@@ -125,6 +126,19 @@ export class SourceSymbol extends vscode.DocumentSymbol
             symbol = symbol.parent;
         }
         return scopes.reverse();
+    }
+
+    async scopeString(target: SourceFile, position: vscode.Position): Promise<string>
+    {
+        let scopeString = '';
+        for (const scope of this.scopes()) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a namespace block. If so, omit that scope.id().
+            if (!targetScope || !targetScope.range.contains(position)) {
+                scopeString += scope.name + '::';
+            }
+        }
+        return scopeString;
     }
 
     isMemberVariable(): boolean
