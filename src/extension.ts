@@ -3,7 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import * as path from 'path';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
-import { moveDefinitionToMatchingSourceFile } from './moveDefinition';
+import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
@@ -30,6 +30,7 @@ export function activate(context: vscode.ExtensionContext): void
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinition", addDefinition));
 
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionToMatchingSourceFile", moveDefinitionToMatchingSourceFile));
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionIntoOrOutOfClass", moveDefinitionIntoOrOutOfClass));
 
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetter", generateGetterSetter));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetter", generateGetter));

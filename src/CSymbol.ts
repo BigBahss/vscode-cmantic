@@ -108,7 +108,7 @@ export class CSymbol extends SourceSymbol
     /**
      * Returns the range of this symbol including potential template statement.
      */
-    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.range.end); }
+    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.getEndOfStatement()); }
 
     getRangeIncludingHeaderComment(): vscode.Range
     {
@@ -261,14 +261,14 @@ export class CSymbol extends SourceSymbol
     async isPrimitive(): Promise<boolean>
     {
         if (this.isVariable()) {
-            const leadingText = this.leadingText().replace(re_blockComments, s => ' '.repeat(s.length));
+            const leadingText = this.leadingText().replace(re_blockComments, util.masker);
             if (this.matchesPrimitiveType(leadingText)) {
                 return true;
             } else if (!cfg.resolveTypes()) {
                 return false;
             }
 
-            const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, s => ' '.repeat(s.length));
+            const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, util.masker);
             const match = type.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(this.startOffset() + match.index);
@@ -282,7 +282,7 @@ export class CSymbol extends SourceSymbol
                 return false;
             }
 
-            const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
+            const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, util.masker);
             const match = maskedText.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(this.startOffset() + match.index);
@@ -349,14 +349,15 @@ export class CSymbol extends SourceSymbol
         const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
         const lastParen = maskedDeclaration.lastIndexOf(')');
         const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
-        const paramEnd = (trailingReturnOperator === -1) ?
-                lastParen : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
+        const paramEnd = (trailingReturnOperator === -1)
+                ? lastParen
+                : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
         const parameters = this.stripDefaultValues(declaration.substring(paramStart, paramEnd));
 
         // Intelligently align the definition in the case of a multi-line declaration.
         let leadingText = this.getFullLeadingText();
-        const l = this.document.lineAt(this.range.start);
-        const leadingIndent = l.text.substring(0, l.firstNonWhitespaceCharacterIndex).length;
+        const line = this.document.lineAt(this.range.start);
+        const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(targetDoc.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
@@ -369,6 +370,76 @@ export class CSymbol extends SourceSymbol
         definition = definition.replace(/\s*\b(override|final)\b/g, '');
 
         return definition;
+    }
+
+    newFunctionDeclaration(): string
+    {
+        if (!this.isFunctionDefinition()) {
+            return '';
+        }
+        return this.document.getText(new vscode.Range(this.getTrueStart(), this.bodyStart())).trimEnd() + ';';
+    }
+
+    combineDefinition(definition: CSymbol): string
+    {
+        const body = definition.document.getText(new vscode.Range(definition.bodyStart(this), definition.range.end));
+        const re_oldIndentation = util.getIndentationRegExp(definition);
+        const line = this.document.lineAt(this.range.start);
+        const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+
+        return this.getFullText().replace(/\s*;$/, '') + body.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation);
+    }
+
+    /**
+     * clangd and ccls don't include template statements in provided DocumentSymbols.
+     */
+    getTrueStart(): vscode.Position
+    {
+        if (this.trueStart) {
+            return this.trueStart;
+        }
+
+        const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
+        let maskedText = util.maskComments(this.document.getText(before), false);
+        maskedText = util.maskStringLiterals(maskedText, false);
+        maskedText = util.maskTemplateParameters(maskedText, true).trimEnd();
+        if (!maskedText.endsWith('>')) {
+            return this.range.start;
+        }
+
+        let lastMatch: RegExpMatchArray | undefined;
+        for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
+            lastMatch = match;
+        }
+        if (!lastMatch?.index) {
+            return this.range.start;
+        }
+
+        this.trueStart = this.document.positionAt(lastMatch.index);
+        return this.trueStart;
+    }
+
+    private bodyStart(declaration?: CSymbol): vscode.Position
+    {
+        let maskedText = util.maskStringLiterals(this.parsableText);
+        maskedText = maskedText.replace(/(?<=\()(\)(?=\))|[^\)])*(?=\))/g, util.masker);
+        const startOffset = this.document.offsetAt(this.range.start);
+        const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
+        const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
+        if (!bodyStartIndex) {
+            return this.range.end;
+        }
+
+        if (!this.isConstructor() && !declaration?.isConstructor()) {
+            return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
+        }
+
+        // Get the start of the constructor's member initializer list, if one is present.
+        const initializerIndex = maskedText.substring(nameEndIndex, bodyStartIndex + nameEndIndex).match(/\s*:(?!:)/)?.index;
+        if (!initializerIndex) {
+            return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
+        }
+        return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
     }
 
     /**
@@ -386,7 +457,7 @@ export class CSymbol extends SourceSymbol
     private stripDefaultValues(parameters: string): string
     {
         let maskedParameters = this.maskUnimportantText(parameters, false);
-        maskedParameters = maskedParameters.replace(/[^\w\s]=/g, match => ' '.repeat(match.length));
+        maskedParameters = maskedParameters.replace(/[^\w\s_]=/g, util.masker);
 
         let splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
@@ -414,40 +485,11 @@ export class CSymbol extends SourceSymbol
         for (const match of maskedLeadingText.matchAll(re_beginingOfScopeString)) {
             lastMatch = match;
         }
-        if (!lastMatch?.index) {
+        if (lastMatch?.index === undefined) {
             return this.selectionRange.start;
         }
 
         return this.document.positionAt(this.startOffset() + lastMatch.index);
-    }
-
-    /**
-     * clangd and ccls don't include template statements in provided DocumentSymbols.
-     */
-    private getTrueStart(): vscode.Position
-    {
-        if (this.trueStart) {
-            return this.trueStart;
-        }
-
-        const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
-        let maskedText = util.maskComments(this.document.getText(before), false);
-        maskedText = util.maskStringLiterals(maskedText, false);
-        maskedText = util.maskTemplateParameters(maskedText, true).trimEnd();
-        if (!maskedText.endsWith('>')) {
-            return this.range.start;
-        }
-
-        let lastMatch: RegExpMatchArray | undefined;
-        for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
-            lastMatch = match;
-        }
-        if (!lastMatch?.index) {
-            return this.range.start;
-        }
-
-        this.trueStart = this.document.positionAt(lastMatch.index);
-        return this.trueStart;
     }
 
     private getHeaderCommentStart(): vscode.Position

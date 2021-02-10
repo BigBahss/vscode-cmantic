@@ -121,9 +121,11 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    isHeader(): boolean
+    isHeader(): boolean { return SourceFile.isHeader(this.uri); }
+
+    static isHeader(uri: vscode.Uri): boolean
     {
-        return cfg.headerExtensions().includes(util.fileExtension(this.fileName));
+        return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
     }
 
     /**

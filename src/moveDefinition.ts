@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
@@ -16,8 +17,8 @@ export const title = {
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
-    noDocumentSymbol: 'No document symbol detected.',
     noFunctionDefinition: 'No function definition detected.',
+    noFunctionDeclaration: 'No declaration found for this function definition.',
     noMatchingSourceFile: 'No matching source file was found.',
     notCpp: 'Detected language is not C++, cannot operate on classes.',
     notMemberFunction: 'Function is not a class member function.',
@@ -29,13 +30,13 @@ export async function moveDefinitionToMatchingSourceFile(
     definition?: CSymbol,
     targetUri?: vscode.Uri,
     declaration?: SourceSymbol
-): Promise<void> {
+): Promise<boolean> {
     if (!definition || !targetUri) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             logger.showErrorMessage(failure.noActiveTextEditor);
-            return;
+            return false;
         }
 
         const sourceDoc = new SourceDocument(editor.document);
@@ -47,10 +48,10 @@ export async function moveDefinitionToMatchingSourceFile(
 
         if (!symbol?.isFunctionDefinition()) {
             logger.showWarningMessage(failure.noFunctionDefinition);
-            return;
+            return false;
         } else if (!matchingUri) {
             logger.showWarningMessage(failure.noMatchingSourceFile);
-            return;
+            return false;
         }
 
         definition = symbol;
@@ -67,9 +68,47 @@ export async function moveDefinitionToMatchingSourceFile(
     const workspaceEdit = new vscode.WorkspaceEdit();
     const insertText = await getInsertText(definition, position, targetDoc, declaration);
     workspaceEdit.insert(targetDoc.uri, position, insertText);
-    const deletionRange = getDeletionRange(definition);
-    workspaceEdit.delete(definition.uri, deletionRange);
-    await vscode.workspace.applyEdit(workspaceEdit);
+    if (!declaration && SourceFile.isHeader(definition.uri)
+            && (definition.parent?.isClassOrStruct() || definition.parent?.kind === vscode.SymbolKind.Namespace)) {
+        const newDeclaration = definition.newFunctionDeclaration();
+        workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
+    } else {
+        const deletionRange = getDeletionRange(definition);
+        workspaceEdit.delete(definition.uri, deletionRange);
+    }
+    return vscode.workspace.applyEdit(workspaceEdit);
+}
+
+export async function moveDefinitionIntoOrOutOfClass(
+    definition?: CSymbol,
+    classDoc?: SourceDocument,
+    declaration?: CSymbol
+): Promise<boolean> {
+    if (!definition || !classDoc) {
+        return false;
+    }
+
+    if (definition.parent?.isClassOrStruct()) {
+        const position = await getNewPosition(classDoc, definition);
+
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        const insertText = await getInsertText(definition, position, classDoc);
+        workspaceEdit.insert(classDoc.uri, position, insertText);
+        const newDeclaration = definition.newFunctionDeclaration();
+        workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
+        return vscode.workspace.applyEdit(workspaceEdit);
+    } else if (declaration) {
+        const combinedDefinition = declaration.combineDefinition(definition);
+
+        const workspaceEdit = new vscode.WorkspaceEdit();
+        workspaceEdit.replace(declaration.uri, declaration.getFullRange(), combinedDefinition);
+        const deletionRange = getDeletionRange(definition);
+        workspaceEdit.delete(definition.uri, deletionRange);
+        return vscode.workspace.applyEdit(workspaceEdit);
+    }
+
+    logger.showWarningMessage(failure.noFunctionDeclaration);
+    return false;
 }
 
 async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSymbol): Promise<ProposedPosition>
@@ -89,17 +128,12 @@ async function getInsertText(
     declaration?: SourceSymbol
 ): Promise<string> {
     const p_insertText = definition.getTextForTargetPosition(targetDoc, position, declaration);
-
-    // Remove the old indentation.
-    const line = definition.document.lineAt(definition.getRangeIncludingHeaderComment().start);
-    const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
-    const re_indentation = new RegExp('^' + oldIndentation, 'gm');
+    const re_indentation = util.getIndentationRegExp(definition);
 
     return new Promise((resolve) => {
         p_insertText.then(insertText => {
             insertText = insertText.replace(re_indentation, '');
-            insertText = position.formatTextToInsert(insertText, targetDoc);
-            resolve(insertText);
+            resolve(position.formatTextToInsert(insertText, targetDoc));
         });
     });
 }

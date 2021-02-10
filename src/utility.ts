@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { ProposedPosition } from './ProposedPosition';
+import { CSymbol } from './CSymbol';
 
 /**
  * Returns the file extension without the dot.
@@ -105,6 +106,13 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
     return position;
 }
 
+export function getIndentationRegExp(symbol: CSymbol): RegExp
+{
+    const line = symbol.document.lineAt(symbol.getRangeIncludingHeaderComment().start);
+    const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    return new RegExp('^' + oldIndentation, 'gm');
+}
+
 export function firstCharToUpper(str: string): string
 {
     return str.charAt(0).toUpperCase() + str.slice(1);
@@ -115,7 +123,7 @@ export function is_snake_case(label: string): boolean
     return label.match(/[\w\d]_[\w\d]/) !== null;
 }
 
-function masker(match: string): string { return ' '.repeat(match.length); }
+export function masker(match: string): string { return ' '.repeat(match.length); }
 
 export function maskComments(sourceText: string, keepEnclosingChars: boolean = true): string
 {

@@ -111,11 +111,12 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoOrOutOfClassPlaceholder;
         let moveDefinitionIntoOrOutOfClassDisabled: { readonly reason: string } | undefined;
 
-        let declaration: SourceSymbol | undefined;
+        let declaration: CSymbol | undefined;
         let declarationDoc: SourceDocument | undefined;
 
         if (definition.parent?.isClassOrStruct()) {
             moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+            declarationDoc = sourceDoc;
         } else {
             const declarationLocation = await definition.findDeclaration();
             if (declarationLocation !== undefined
@@ -164,7 +165,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             command: {
                 title: moveDefinitionIntoOrOutOfClassTitle,
                 command: 'cmantic.moveDefinitionIntoOrOutOfClass',
-                arguments: [definition, sourceDoc.uri]
+                arguments: [definition, declarationDoc, declaration]
             },
             disabled: moveDefinitionIntoOrOutOfClassDisabled
         }];
