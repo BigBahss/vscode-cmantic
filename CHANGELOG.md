@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed a bug when determing the scope of a new function definition. Definitions were sometimes generated with namespaces prepended to their scope-string (namespace::class::functionName) even if the definition was being placed within the cooresponding namespace block.
+
 ## [0.3.1] - February 08, 2021
 ### Added
 - Added an Output channel to log info, warnings, and errors.

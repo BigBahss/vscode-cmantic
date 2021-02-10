@@ -109,8 +109,11 @@ export class SourceFile
             for (const sourceSymbol of sourceSymbols) {
                 if (sourceSymbol.name === target.name) {
                     return sourceSymbol;
-                } else {
-                    return searchSymbolTree(sourceSymbol.children);
+                }
+
+                const foundSymbol = searchSymbolTree(sourceSymbol.children);
+                if (foundSymbol) {
+                    return foundSymbol;
                 }
             }
         };
@@ -133,7 +136,7 @@ export class SourceFile
         }
 
         const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol[] => {
-            let namespaces: SourceSymbol[] = [];
+            const namespaces: SourceSymbol[] = [];
             for (const sourceSymbol of sourceSymbols) {
                 if (sourceSymbol.kind === vscode.SymbolKind.Namespace) {
                     const namespace = new SourceSymbol(sourceSymbol, this.uri, sourceSymbol.parent);
