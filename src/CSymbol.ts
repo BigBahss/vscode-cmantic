@@ -8,6 +8,8 @@ import { SourceDocument } from './SourceDocument';
 
 const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
 const re_blockComments = /\/\*(\*(?=\/)|[^*])*\*\//g;
+// Only matches identifiers that are not folowed by a scope resolution operator (::).
+const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 
 
 /**
@@ -265,7 +267,7 @@ export class CSymbol extends SourceSymbol
 
             const startOffset = this.document.offsetAt(this.range.start);
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, s => ' '.repeat(s.length));
-            const match = type.match(/[\w_][\w\d_]*\b(?!::)/);
+            const match = type.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(startOffset + match.index);
             }
@@ -280,7 +282,7 @@ export class CSymbol extends SourceSymbol
 
             const startOffset = this.document.offsetAt(this.range.start);
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, s => ' '.repeat(s.length));
-            const match = maskedText.match(/[\w_][\w\d_]*\b(?!::)/);
+            const match = maskedText.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(startOffset + match.index);
             }
@@ -300,7 +302,7 @@ export class CSymbol extends SourceSymbol
 
             const startOffset = this.document.offsetAt(this.range.start) + indexOfEquals + 1;
             const type = this.parsableText.substring(indexOfEquals + 1);
-            const match = type.match(/[\w_][\w\d_]*\b(?!::)/);
+            const match = type.match(re_scopeResolvedIdentifier);
             if (match?.index !== undefined) {
                 return await this.resolveThisType(startOffset + match.index);
             }

@@ -173,7 +173,7 @@ export class SourceFile
             return [];
         }
 
-        let locations: vscode.Location[] = [];
+        const locations: vscode.Location[] = [];
         for (const element of input) {
             const location = (element instanceof vscode.Location) ?
                     element : new vscode.Location(element.targetUri, element.targetRange);
