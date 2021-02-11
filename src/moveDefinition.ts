@@ -63,7 +63,9 @@ export async function moveDefinitionToMatchingSourceFile(
     }
 
     const targetDoc = await SourceDocument.open(targetUri);
-    const position = await getNewPosition(targetDoc, declaration);
+    const position = (declaration !== undefined)
+            ? await getNewPosition(targetDoc, declaration)
+            : await getNewPosition(targetDoc, definition);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     const insertText = await getInsertText(definition, position, targetDoc, declaration);
