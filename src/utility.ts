@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as xregexp from 'xregexp';
 import { ProposedPosition } from './ProposedPosition';
 import { CSymbol } from './CSymbol';
 
@@ -125,42 +126,73 @@ export function is_snake_case(label: string): boolean
 
 export function masker(match: string): string { return ' '.repeat(match.length); }
 
-export function maskComments(sourceText: string, keepEnclosingChars: boolean = true): string
+/**
+ * Performs a balanced mask of text between left and right, accounting for depth.
+ */
+export function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true)
+{
+    xregexp.matchRecursive(text, left, right, 'gm', {
+        valueNames: ['outer', 'left', 'inner', 'right'],
+        escapeChar: '\\'
+    }).forEach(match => {
+        if (match.name === 'inner') {
+            if (keepEnclosingChars) {
+                text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
+            } else {
+                text = text.substring(0, match.start - left.length)
+                        + masker(left.length + match.value + right.length)
+                        + text.substring(match.end + right.length);
+            }
+        }
+    });
+    return text;
+}
+
+export function maskComments(text: string, keepEnclosingChars: boolean = true): string
 {
     if (keepEnclosingChars) {
-        sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, masker);
-        sourceText = sourceText.replace(/(?<=\/\/).*/g, masker);
+        text = text.replace(/(?<=\/\/).*/gm, masker);
+        text = text.replace(/(?<=\/\*)(\*(?!\/)|[^*])*(?=\*\/)/gm, masker);
     } else {
-        sourceText = sourceText.replace(/\/\*(\*(?=\/)|[^*])*\*\//g, masker);
-        sourceText = sourceText.replace(/\/\/.*/g, masker);
+        text = text.replace(/\/\/.*/gm, masker);
+        text = text.replace(/\/\*(\*(?!\/)|[^*])*\*\//gm, masker);
     }
-    return sourceText;
+    return text;
 }
 
-export function maskStringLiterals(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskQuotes(text: string, keepEnclosingChars: boolean = true): string
 {
     if (keepEnclosingChars) {
-        sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, masker);
-        sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+        text = text.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+        text = text.replace(/(?<=").*(?=")(?<!\\)/g, masker);
     } else {
-        sourceText = sourceText.replace(/".*"(?<!\\)/g, masker);
-        sourceText = sourceText.replace(/'.*'(?<!\\)/g, masker);
+        text = text.replace(/'.*'(?<!\\)/g, masker);
+        text = text.replace(/".*"(?<!\\)/g, masker);
     }
-    return sourceText;
+    return text;
 }
 
-export function maskParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string
 {
-    if (keepEnclosingChars) {
-        return sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, masker);
-    }
-    return sourceText.replace(/<(>(?=>)|[^>])*>/g, masker);
+    return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
+};
+
+export function maskBraces(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '{', '}', keepEnclosingChars);
 }
 
-export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskBrackets(text: string, keepEnclosingChars: boolean = true): string
 {
-    if (keepEnclosingChars) {
-        return sourceText.replace(/(?<=\()(\)(?=\))|[^\)])*(?=\))/g, masker);
-    }
-    return sourceText.replace(/\((\)(?=\))|[^\)])*\)/g, masker);
+    return maskBalanced(text, '\\[', '\\]', keepEnclosingChars);
+}
+
+export function maskAngleBrackets(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '\\<', '\\>', keepEnclosingChars);
+}
+
+export function maskComparisonOperators(text: string): string
+{
+    return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }

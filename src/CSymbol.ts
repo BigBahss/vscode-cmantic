@@ -7,7 +7,7 @@ import { SourceFile } from "./SourceFile";
 import { SourceDocument } from './SourceDocument';
 
 const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
-const re_blockComments = /\/\*(\*(?=\/)|[^*])*\*\//g;
+const re_blockComments = /\/\*(\*(?!\/)|[^*])*\*\//gm;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
@@ -77,21 +77,27 @@ export class CSymbol extends SourceSymbol
     }
 
     async getTextForTargetPosition(
-        target: SourceFile, position: vscode.Position, declaration?: SourceSymbol
+        target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
     ): Promise<string> {
         const scopeString = declaration !== undefined
                 ? await declaration.scopeString(target, position)
                 : await this.scopeString(target, position);
+
+        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.getEndOfStatement());
+        const nameToEndText = this.document.getText(nameToEndRange);
+
         if (!declaration && SourceFile.isHeader(this.uri)
                 && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
-            return this.document.getText(new vscode.Range(this.getTrueStart(), this.scopeStringStart()))
-                    + scopeString
-                    + this.document.getText(new vscode.Range(this.selectionRange.start, this.getEndOfStatement()));
+            const bodyRange = new vscode.Range(this.bodyStart(), this.getEndOfStatement());
+            const bodyText = this.document.getText(bodyRange);
+            // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
+            return await this.formatDeclarationForNewDefinition(target, position) + bodyText;
         }
-        return this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.scopeStringStart()))
-                + scopeString
-                + this.document.getText(new vscode.Range(this.selectionRange.start, this.getEndOfStatement()));
 
+        const leadingRange = new vscode.Range(this.getLeadingCommentStart(), this.scopeStringStart());
+        const leadingText = this.document.getText(leadingRange);
+
+        return leadingText + scopeString + nameToEndText;
     }
 
     /**
@@ -240,12 +246,12 @@ export class CSymbol extends SourceSymbol
 
     isPointer(): boolean
     {
-        return util.maskTemplateParameters(this.leadingText().replace(re_blockComments, '')).includes('*');
+        return util.maskAngleBrackets(this.leadingText().replace(re_blockComments, '')).includes('*');
     }
 
     isConst(): boolean
     {
-        if (util.maskTemplateParameters(this.leadingText().replace(re_blockComments, '')).match(/\bconst\b/)) {
+        if (util.maskAngleBrackets(this.leadingText().replace(re_blockComments, '')).match(/\bconst\b/)) {
             return true;
         }
         return false;
@@ -346,22 +352,30 @@ export class CSymbol extends SourceSymbol
         if (!this.isFunctionDeclaration()) {
             return '';
         }
+        return this.formatDeclarationForNewDefinition(targetDoc, position);
+    }
 
-        const scopeString = await this.scopeString(targetDoc, position);
+    private async formatDeclarationForNewDefinition(
+        targetDoc: SourceDocument, position: vscode.Position
+    ): Promise<string> {
+        const p_scopeString = this.scopeString(targetDoc, position);
 
-        const declaration = this.getFullText().replace(/;$/, '');
-        const maskedDeclaration = this.maskUnimportantText(declaration);
+        const declarationRange = new vscode.Range(this.getTrueStart(), this.bodyStart());
+        const declaration = this.document.getText(declarationRange).replace(/;$/, '');
+        let maskedDeclaration = util.maskComments(declaration, false);
+        maskedDeclaration = util.maskQuotes(maskedDeclaration);
+        maskedDeclaration = util.maskParentheses(maskedDeclaration);
 
-        const paramStart = maskedDeclaration.indexOf('(', maskedDeclaration.indexOf(this.name) + this.name.length) + 1;
-        const lastParen = maskedDeclaration.lastIndexOf(')');
-        const trailingReturnOperator = maskedDeclaration.substring(paramStart, lastParen).indexOf('->');
-        const paramEnd = (trailingReturnOperator === -1)
-                ? lastParen
-                : maskedDeclaration.substring(paramStart, trailingReturnOperator).lastIndexOf(')');
-        const parameters = this.stripDefaultValues(declaration.substring(paramStart, paramEnd));
+        const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.getTrueStart());
+        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex) + 1;
+        const paramEndIndex = maskedDeclaration.indexOf(')');
+        if (paramStartIndex === -1 || paramEndIndex === -1) {
+            return '';
+        }
+        const parameters = this.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = this.getFullLeadingText();
+        let leadingText = this.document.getText(new vscode.Range(this.getTrueStart(), this.scopeStringStart()));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(targetDoc.endOfLine);
@@ -369,13 +383,15 @@ export class CSymbol extends SourceSymbol
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
         leadingText = leadingText.replace(/^\s+/gm, '');
-        let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEnd + 1);
-        definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
+        let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
-        definition = leadingText + scopeString + definition;
-        definition = definition.replace(/\s*\b(override|final)\b/g, '');
-
-        return definition;
+        return new Promise(resolve => {
+            p_scopeString.then(scopeString => {
+                definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
+                definition = leadingText + scopeString + definition;
+                resolve(definition.replace(/\s*\b(override|final)\b/g, ''));
+            });
+        });
     }
 
     newFunctionDeclaration(): string
@@ -415,8 +431,8 @@ export class CSymbol extends SourceSymbol
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = util.maskComments(this.document.getText(before), false);
-        maskedText = util.maskStringLiterals(maskedText, false);
-        maskedText = util.maskTemplateParameters(maskedText, true).trimEnd();
+        maskedText = util.maskQuotes(maskedText, false);
+        maskedText = util.maskAngleBrackets(maskedText, true).trimEnd();
         if (!maskedText.endsWith('>')) {
             return this.range.start;
         }
@@ -435,8 +451,8 @@ export class CSymbol extends SourceSymbol
 
     private bodyStart(declaration?: CSymbol): vscode.Position
     {
-        let maskedText = util.maskStringLiterals(this.parsableText);
-        maskedText = util.maskParameters(maskedText, true);
+        let maskedText = util.maskQuotes(this.parsableText);
+        maskedText = util.maskParentheses(maskedText, true);
         const startOffset = this.document.offsetAt(this.range.start);
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
         const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
@@ -456,22 +472,16 @@ export class CSymbol extends SourceSymbol
         return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
     }
 
-    /**
-     * Masks comments, strings/chars, and template parameters in order to make parsing easier.
-     */
-    private maskUnimportantText(sourceText: string, keepEnclosingChars: boolean = true): string
-    {
-        sourceText = util.maskComments(sourceText, keepEnclosingChars);
-        sourceText = util.maskStringLiterals(sourceText, keepEnclosingChars);
-        sourceText = util.maskTemplateParameters(sourceText, keepEnclosingChars);
-
-        return sourceText;
-    }
-
     private stripDefaultValues(parameters: string): string
     {
-        let maskedParameters = this.maskUnimportantText(parameters, false);
-        maskedParameters = maskedParameters.replace(/[^\w\s_]=/g, util.masker);
+        // Mask anything that might contain commas or equals-signs.
+        let maskedParameters = util.maskComments(parameters);
+        maskedParameters = util.maskQuotes(maskedParameters);
+        maskedParameters = util.maskParentheses(maskedParameters);
+        maskedParameters = util.maskAngleBrackets(maskedParameters);
+        maskedParameters = util.maskBraces(maskedParameters);
+        maskedParameters = util.maskBrackets(maskedParameters);
+        maskedParameters = util.maskComparisonOperators(maskedParameters);
 
         let splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
