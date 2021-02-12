@@ -21,7 +21,7 @@ export class CSymbol extends SourceSymbol
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
     private trueStart?: vscode.Position;
-    private headerCommentStart?: vscode.Position;
+    private leadingCommentStart?: vscode.Position;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
@@ -437,7 +437,8 @@ export class CSymbol extends SourceSymbol
         maskedText = util.maskQuotes(maskedText, false);
         maskedText = util.maskAngleBrackets(maskedText, true).trimEnd();
         if (!maskedText.endsWith('>')) {
-            return this.range.start;
+            this.trueStart = this.range.start;
+            return this.trueStart;
         }
 
         let lastMatch: RegExpMatchArray | undefined;
@@ -445,7 +446,8 @@ export class CSymbol extends SourceSymbol
             lastMatch = match;
         }
         if (!lastMatch?.index) {
-            return this.range.start;
+            this.trueStart = this.range.start;
+            return this.trueStart;
         }
 
         this.trueStart = this.document.positionAt(lastMatch.index);
@@ -532,25 +534,25 @@ export class CSymbol extends SourceSymbol
 
     getLeadingCommentStart(): vscode.Position
     {
-        if (this.headerCommentStart) {
-            return this.headerCommentStart;
+        if (this.leadingCommentStart) {
+            return this.leadingCommentStart;
         }
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.getTrueStart());
         const maskedText = util.maskComments(this.document.getText(before), true).trimEnd();
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
-            this.headerCommentStart = this.getTrueStart();
-            return this.headerCommentStart;
+            this.leadingCommentStart = this.getTrueStart();
+            return this.leadingCommentStart;
         }
 
         if (maskedText.endsWith('*/')) {
             const commentStartOffset = maskedText.lastIndexOf('/*');
             if (commentStartOffset !== -1) {
-                this.headerCommentStart = this.document.positionAt(commentStartOffset);
-                return this.headerCommentStart;
+                this.leadingCommentStart = this.document.positionAt(commentStartOffset);
+                return this.leadingCommentStart;
             }
-            this.headerCommentStart = this.getTrueStart();
-            return this.headerCommentStart;
+            this.leadingCommentStart = this.getTrueStart();
+            return this.leadingCommentStart;
         }
 
         for (let i = this.getTrueStart().line - 1; i >= 0; --i) {
@@ -560,13 +562,13 @@ export class CSymbol extends SourceSymbol
                 if (indexOfComment === -1) {
                     break;  // This shouldn't happen, but just in-case.
                 }
-                this.headerCommentStart = new vscode.Position(i + 1, indexOfComment);
-                return this.headerCommentStart;
+                this.leadingCommentStart = new vscode.Position(i + 1, indexOfComment);
+                return this.leadingCommentStart;
             }
         }
 
-        this.headerCommentStart = this.getTrueStart();
-        return this.headerCommentStart;
+        this.leadingCommentStart = this.getTrueStart();
+        return this.leadingCommentStart;
 
     }
 
