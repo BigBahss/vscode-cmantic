@@ -4,8 +4,6 @@ Things higher on the list generally correspond to higher priority.
 
 ## Ideas/Plans for features and improvements
 
-- Move a function definition into/out of a class body.
-
 - Generate all definitions from a header file. Additionally, add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
 
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and syncrhonize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to syncrhonize the change across references for trivial changes, such as re-ordering parameters.

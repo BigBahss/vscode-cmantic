@@ -2,8 +2,16 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Added `cmantic.moveDefinitionIntoOrOutOfClass` command/code-action. Additionally, definitions within classes can be moved to a matching source file. (#7)
+
+### Changed
+- `Add Definition` will no longer reveal existing definitions if `Reveal New Definitions` is turned off in the settings.
+
 ### Fixed
 - Fixed a bug when determing the scope of a new function definition. Definitions were sometimes generated with namespaces prepended to their scope-string (namespace::class::functionName) even if the definition was being placed within the cooresponding namespace block.
+- Fixed `Move Definition` not accounting for changes in scope at the target position. (#6)
+- Parsing has been improved to accurately find matching parentheses, brackets, etc.
 
 ## [0.3.1] - February 08, 2021
 ### Added
