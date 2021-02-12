@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
-import { ProposedPosition } from "./ProposedPosition";
-import { SourceFile } from "./SourceFile";
+import { ProposedPosition } from './ProposedPosition';
+import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
 
 const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
@@ -36,6 +36,8 @@ export class CSymbol extends SourceSymbol
         } else {
             this.parent = parent;
         }
+
+        this.range = this.range.with(this.range.start, util.getEndOfStatement(this.document, this.range.end));
     }
 
     findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined
@@ -83,12 +85,12 @@ export class CSymbol extends SourceSymbol
                 ? await declaration.scopeString(target, position)
                 : await this.scopeString(target, position);
 
-        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.getEndOfStatement());
+        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.range.end);
         const nameToEndText = this.document.getText(nameToEndRange);
 
         if (!declaration && SourceFile.isHeader(this.uri)
                 && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
-            const bodyRange = new vscode.Range(this.bodyStart(), this.getEndOfStatement());
+            const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
             const bodyText = this.document.getText(bodyRange);
             // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
             return await this.formatDeclarationForNewDefinition(target, position) + bodyText;
@@ -120,7 +122,7 @@ export class CSymbol extends SourceSymbol
     /**
      * Returns the range of this symbol including potential template statement.
      */
-    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.getEndOfStatement()); }
+    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.range.end); }
 
     getRangeWithLeadingComment(): vscode.Range
     {
@@ -177,7 +179,7 @@ export class CSymbol extends SourceSymbol
         for (let i = this.children.length - 1; i >= 0; --i) {
             const symbol = new CSymbol(this.children[i], this.document, this);
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = new ProposedPosition(symbol.getEndOfStatement(), {
+                fallbackPosition = new ProposedPosition(symbol.range.end, {
                     relativeTo: symbol.range,
                     after: true
                 });
@@ -207,7 +209,7 @@ export class CSymbol extends SourceSymbol
                         nextTo: true
                     });
                 }
-                return new ProposedPosition(symbol.getEndOfStatement(), {
+                return new ProposedPosition(symbol.range.end, {
                     relativeTo: symbol.range,
                     after: true,
                     nextTo: true
@@ -449,6 +451,9 @@ export class CSymbol extends SourceSymbol
         return this.trueStart;
     }
 
+    /**
+     * Less of the body start, and more of "the end of the declaration part of the definition", but that's really long.
+     */
     private bodyStart(declaration?: CSymbol): vscode.Position
     {
         let maskedText = util.maskQuotes(this.parsableText);
@@ -576,16 +581,11 @@ export class CSymbol extends SourceSymbol
     {
         if (this.children.length > 0) {
             const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
-            return new ProposedPosition(lastChild.getEndOfStatement(), {
+            return new ProposedPosition(lastChild.range.end, {
                 relativeTo: this.children[this.children.length - 1].range,
                 after: true
             });
         }
-    }
-
-    private getEndOfStatement(): vscode.Position
-    {
-        return util.getEndOfStatement(this.document, this.range.end);
     }
 
     private matchesPrimitiveType(text: string): boolean
