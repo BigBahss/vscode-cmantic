@@ -81,13 +81,6 @@ export class CSymbol extends SourceSymbol
     async getTextForTargetPosition(
         target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
     ): Promise<string> {
-        const scopeString = declaration !== undefined
-                ? await declaration.scopeString(target, position)
-                : await this.scopeString(target, position);
-
-        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.range.end);
-        const nameToEndText = this.document.getText(nameToEndRange);
-
         if (!declaration && SourceFile.isHeader(this.uri)
                 && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
             const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
@@ -95,6 +88,13 @@ export class CSymbol extends SourceSymbol
             // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
             return await this.formatDeclarationForNewDefinition(target, position) + bodyText;
         }
+
+        const scopeString = declaration !== undefined
+                ? await declaration.scopeString(target, position)
+                : await this.scopeString(target, position);
+
+        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.range.end);
+        const nameToEndText = this.document.getText(nameToEndRange);
 
         const leadingRange = new vscode.Range(this.getLeadingCommentStart(), this.scopeStringStart());
         const leadingText = this.document.getText(leadingRange);
