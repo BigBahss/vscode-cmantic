@@ -80,50 +80,7 @@ export async function moveDefinitionToMatchingSourceFile(
     }
     return vscode.workspace.applyEdit(workspaceEdit);
 }
-// Command was called from the command-palette
-// const editor = vscode.window.activeTextEditor;
-// if (!editor) {
-//     logger.showErrorMessage(failure.noActiveTextEditor);
-//     return false;
-// }
 
-// const sourceDoc = new SourceDocument(editor.document);
-
-// const [matchingUri, symbol] = await Promise.all([
-//     getMatchingSourceFile(sourceDoc.uri),
-//     sourceDoc.getSymbol(editor.selection.start)
-// ]);
-
-// if (!symbol?.isFunctionDefinition()) {
-//     logger.showWarningMessage(failure.noFunctionDefinition);
-//     return false;
-// } else if (!matchingUri) {
-//     logger.showWarningMessage(failure.noMatchingSourceFile);
-//     return false;
-// }
-
-// definition = symbol;
-// const declarationLocation = await definition.findDeclaration();
-// if (declarationLocation) {
-//     if (declarationLocation.uri.fsPath === definition.uri.fsPath) {
-//         if (definition.document instanceof SourceDocument) {
-//             classDoc = definition.document;
-//         } else {
-//             classDoc = new SourceDocument(definition.document);
-//         }
-//     } else {
-//         classDoc = await SourceDocument.open(declarationLocation.uri);
-//     }
-//     declaration = await classDoc.getSymbol(declarationLocation.range.start);
-// } else if (definition.parent?.isClassOrStruct()) {
-//     if (definition.document instanceof SourceDocument) {
-//         classDoc = definition.document;
-//     } else {
-//         classDoc = new SourceDocument(definition.document);
-//     }
-// } else {
-//     return false;
-// }
 export async function moveDefinitionIntoOrOutOfClass(
     definition?: CSymbol,
     classDoc?: SourceDocument,
