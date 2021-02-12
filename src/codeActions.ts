@@ -122,7 +122,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             if (declarationLocation !== undefined
                     && (declarationLocation?.uri.fsPath === definition.uri.fsPath
                     || declarationLocation?.uri.fsPath === matchingUri?.fsPath)) {
-                declarationDoc = declarationLocation.uri.fsPath === sourceDoc.fileName
+                declarationDoc = declarationLocation.uri.fsPath === sourceDoc.uri.fsPath
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
