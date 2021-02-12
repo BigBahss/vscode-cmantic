@@ -99,12 +99,12 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
  */
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position
 {
-    let nextPosition = position.translate(0, 1);
-    while (document.getText(new vscode.Range(position, nextPosition)) === ';') {
-        position = nextPosition;
-        nextPosition = position.translate(0, 1);
+    const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
+    const match = text.match(/(?<=^\s*);/);
+    if (match?.index === undefined) {
+        return position;
     }
-    return position;
+    return document.positionAt(document.offsetAt(position) + match.index + 1);
 }
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp
