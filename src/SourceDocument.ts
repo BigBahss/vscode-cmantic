@@ -77,13 +77,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         let maskedText = util.maskComments(this.getText());
         maskedText = util.maskQuotes(maskedText);
 
-        const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
+        const pragmaOnceMatch = maskedText.match(/^\s*#\s*pragma\s+once\b/);
         if (pragmaOnceMatch) {
             offset = pragmaOnceMatch.index;
         }
 
         const headerGuardDefine = cfg.headerGuardDefine(path.basename(this.fileName));
-        const re_headerGuardDefine = new RegExp('^\\s*#define\\s+' + headerGuardDefine + '\\b', 'm');
+        const re_headerGuardDefine = new RegExp(`^\\s*#\\s*define\\s+${headerGuardDefine}\\b`, 'm');
         const defineMatch = maskedText.match(re_headerGuardDefine);
         if (defineMatch) {
             offset = defineMatch.index;
@@ -255,7 +255,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         let largestProjectIncludeBlock: vscode.Range | undefined;
         for (let i = 0; i < this.lineCount; ++i) {
             const line = this.lineAt(i);
-            if (!line.text.trim().match(/^#include\s*(<.+>)|(".+")$/)) {
+            if (!line.text.match(/^\s*#\s*include\s*(<.+>)|(".+")/)) {
                 if (systemIncludeStart) {
                     largestSystemIncludeBlock = largestBlock(line, systemIncludeStart, largestSystemIncludeBlock);
                     systemIncludeStart = undefined;
