@@ -154,14 +154,13 @@ export class CSymbol extends SourceSymbol
         const startOffset = this.startOffset();
         let publicSpecifierOffset = /\bpublic\s*:/g.exec(this.parsableText)?.index;
 
-        if (!publicSpecifierOffset) {
+        if (publicSpecifierOffset === undefined) {
             return this.positionAfterLastChildOrUndefined();
         }
-        publicSpecifierOffset += startOffset;
 
         let nextAccessSpecifierOffset: number | undefined;
-        for (const match of this.parsableText.matchAll(/\w[\w\d]*\s*:(?!:)/g)) {
-            if (!match.index) {
+        for (const match of this.parsableText.matchAll(/(?<!\b(class|struct)\s+)\b[\w_][\w\d_]*\s*:(?!:)/g)) {
+            if (match.index === undefined) {
                 continue;
             }
             if (match.index > publicSpecifierOffset) {
@@ -175,6 +174,7 @@ export class CSymbol extends SourceSymbol
         } else {
             nextAccessSpecifierOffset += startOffset;
         }
+        publicSpecifierOffset += startOffset;
 
         let fallbackPosition: ProposedPosition | undefined;
         let fallbackIndex: number | undefined;
