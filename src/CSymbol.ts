@@ -64,6 +64,8 @@ export class CSymbol extends SourceSymbol
             return this._parsableText;
         }
         this._parsableText = util.maskComments(this.text(), false);
+        this._parsableText = util.maskRawStringLiterals(this._parsableText);
+        this._parsableText = util.maskQuotes(this._parsableText);
         return this._parsableText;
     }
     private _parsableText?: string;
@@ -365,6 +367,7 @@ export class CSymbol extends SourceSymbol
         const declarationRange = new vscode.Range(this.getTrueStart(), this.bodyStart());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
         let maskedDeclaration = util.maskComments(declaration, false);
+        maskedDeclaration = util.maskRawStringLiterals(maskedDeclaration);
         maskedDeclaration = util.maskQuotes(maskedDeclaration);
         maskedDeclaration = util.maskParentheses(maskedDeclaration);
 
@@ -434,8 +437,7 @@ export class CSymbol extends SourceSymbol
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = util.maskComments(this.document.getText(before), false);
-        maskedText = util.maskQuotes(maskedText, false);
-        maskedText = util.maskAngleBrackets(maskedText, true).trimEnd();
+        maskedText = util.maskAngleBrackets(maskedText).trimEnd();
         if (!maskedText.endsWith('>')) {
             this.trueStart = this.range.start;
             return this.trueStart;
@@ -459,8 +461,7 @@ export class CSymbol extends SourceSymbol
      */
     private bodyStart(declaration?: CSymbol): vscode.Position
     {
-        let maskedText = util.maskQuotes(this.parsableText);
-        maskedText = util.maskParentheses(maskedText, true);
+        const maskedText = util.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
         const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
@@ -483,7 +484,8 @@ export class CSymbol extends SourceSymbol
     private stripDefaultValues(parameters: string): string
     {
         // Mask anything that might contain commas or equals-signs.
-        let maskedParameters = util.maskComments(parameters);
+        let maskedParameters = util.maskComments(parameters, false);
+        maskedParameters = util.maskRawStringLiterals(maskedParameters);
         maskedParameters = util.maskQuotes(maskedParameters);
         maskedParameters = util.maskParentheses(maskedParameters);
         maskedParameters = util.maskAngleBrackets(maskedParameters);
@@ -491,7 +493,7 @@ export class CSymbol extends SourceSymbol
         maskedParameters = util.maskBrackets(maskedParameters);
         maskedParameters = util.maskComparisonOperators(maskedParameters);
 
-        let splitParameters = maskedParameters.split(',');
+        const splitParameters = maskedParameters.split(',');
         let strippedParameters = '';
         let charPos = 0;
         for (const parameter of splitParameters) {
@@ -508,7 +510,7 @@ export class CSymbol extends SourceSymbol
 
     private scopeStringStart(): vscode.Position
     {
-        const maskedLeadingText = util.maskComments(this.leadingText()).trimEnd();
+        const maskedLeadingText = util.maskComments(this.leadingText(), false).trimEnd();
         if (!maskedLeadingText.endsWith('::')) {
             return this.selectionRange.start;
         }
@@ -539,7 +541,7 @@ export class CSymbol extends SourceSymbol
         }
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.getTrueStart());
-        const maskedText = util.maskComments(this.document.getText(before), true).trimEnd();
+        const maskedText = util.maskComments(this.document.getText(before)).trimEnd();
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
             this.leadingCommentStart = this.getTrueStart();
             return this.leadingCommentStart;

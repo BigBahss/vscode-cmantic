@@ -131,7 +131,7 @@ export function masker(match: string): string { return ' '.repeat(match.length);
  * Performs a balanced mask of text between left and right, accounting for depth.
  * Should only be used with single characters.
  */
-function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true): string
+function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean): string
 {
     try {
         xregexp.matchRecursive(text, left, right, 'gm', {
@@ -175,6 +175,14 @@ export function maskComments(text: string, keepEnclosingChars: boolean = true): 
         text = text.replace(/\/\*(\*(?!\/)|[^*])*\*\//gm, masker);
     }
     return text;
+}
+
+export function maskRawStringLiterals(text: string, keepEnclosingChars: boolean = true): string
+{
+    if (keepEnclosingChars) {
+        return text.replace(/(?<=R")(?<delimiter>.*)\(.*\)\k<delimiter>(?=")/gs, masker);
+    }
+    return text.replace(/R"(?<delimiter>.*)\(.*\)\k<delimiter>"/gs, masker);
 }
 
 export function maskQuotes(text: string, keepEnclosingChars: boolean = true): string
