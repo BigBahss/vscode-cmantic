@@ -109,7 +109,7 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp
 {
-    const line = symbol.document.lineAt(symbol.getRangeWithLeadingComment().start);
+    const line = symbol.document.lineAt(symbol.getTrueStart());
     const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     return new RegExp('^' + oldIndentation, 'gm');
 }
@@ -129,23 +129,35 @@ export function masker(match: string): string { return ' '.repeat(match.length);
 /**
  * Performs a balanced mask of text between left and right, accounting for depth.
  */
-export function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true)
+function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true): string
 {
-    xregexp.matchRecursive(text, left, right, 'gm', {
-        valueNames: ['outer', 'left', 'inner', 'right'],
-        escapeChar: '\\'
-    }).forEach(match => {
-        if (match.name === 'inner') {
-            if (keepEnclosingChars) {
-                text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
-            } else {
-                text = text.substring(0, match.start - left.length)
-                        + masker(left.length + match.value + right.length)
-                        + text.substring(match.end + right.length);
+    try {
+        xregexp.matchRecursive(text, left, right, 'gm', {
+            valueNames: ['outer', 'left', 'inner', 'right'],
+            escapeChar: '\\'
+        }).forEach(match => {
+            if (match.name === 'inner') {
+                if (keepEnclosingChars) {
+                    text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
+                } else {
+                    text = text.substring(0, match.start - left.length)
+                            + masker(left.length + match.value + right.length)
+                            + text.substring(match.end + right.length);
+                }
             }
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : error as string;
+        const unbalancedIndexMatch = message.match(/\d+$/);
+        if (unbalancedIndexMatch !== null) {
+            // There is an unbalanced delimiter, so we mask it and try again.
+            const unbalancedIndex: number = +unbalancedIndexMatch[0];
+            text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
+            text = maskBalanced(text, left, right, keepEnclosingChars);
         }
-    });
-    return text;
+    } finally {
+        return text;
+    }
 }
 
 export function maskComments(text: string, keepEnclosingChars: boolean = true): string
