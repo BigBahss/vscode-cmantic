@@ -12,6 +12,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed a bug when determing the scope of a new function definition. Definitions were sometimes generated with namespaces prepended to their scope-string (namespace::class::functionName) even if the definition was being placed within the cooresponding namespace block.
 - Fixed `Move Definition` not accounting for changes in scope at the target position. (#6)
 - Parsing has been improved to accurately find matching parentheses, brackets, etc.
+- Improved parsing of preprocessor directives.
+- Raw string literals are now accounted for. This may have caused parsing issues before. (#8)
+- Improved parsing of access specifiers when looking for a location for new getters and setters. Under some conditions, getters and setters may have been placed in non-public access.
 
 ## [0.3.1] - February 08, 2021
 ### Added
@@ -53,7 +56,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Improved performance of `Add Definition` commands/code-actions.
-- Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens occasionally, but less often. It is unclear why.)
+- Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens, but less often. It is unclear why.)
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
 - Improve parameter parsing of `Add Definition`.
 - Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
