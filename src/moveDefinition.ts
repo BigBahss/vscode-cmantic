@@ -75,8 +75,7 @@ export async function moveDefinitionToMatchingSourceFile(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, position, insertText);
-    if (!declaration && SourceFile.isHeader(definition.uri)
-            && (definition.parent?.isClassOrStruct() || definition.parent?.kind === vscode.SymbolKind.Namespace)) {
+    if (!declaration && SourceFile.isHeader(definition.uri)) {
         const newDeclaration = definition.newFunctionDeclaration();
         workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
     } else {

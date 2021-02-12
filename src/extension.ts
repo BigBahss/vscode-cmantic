@@ -144,7 +144,7 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
 async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void>
 {
     if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
-        cacheMatchingSourceFile(document.uri);
+        return cacheMatchingSourceFile(document.uri);
     }
 }
 
@@ -153,7 +153,7 @@ async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void>
     event.files.forEach(async (uri) => {
         const ext = util.fileExtension(uri.fsPath);
         if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
-            cacheMatchingSourceFile(uri);
+            return cacheMatchingSourceFile(uri);
         }
     });
 }
