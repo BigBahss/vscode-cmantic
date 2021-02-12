@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { SourceFile } from './SourceFile';
 import * as util from './utility';
 
 
@@ -66,6 +67,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     /**
      * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
+     * Returns undefined if the most likely definition is this SourceSymbol.
      */
     async findDefinition(): Promise<vscode.Location | undefined>
     {
@@ -80,7 +82,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
+                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
                 return location;
             }
         }
@@ -88,6 +91,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     /**
      * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
+     * Returns undefined if the most likely declaration is this SourceSymbol.
      */
     async findDeclaration(): Promise<vscode.Location | undefined>
     {
@@ -102,7 +106,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
             const location = (result instanceof vscode.Location) ?
                     result : new vscode.Location(result.targetUri, result.targetRange);
 
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase && !this.range.contains(location.range)) {
+            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
+                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
                 return location;
             }
         }
@@ -121,6 +126,19 @@ export class SourceSymbol extends vscode.DocumentSymbol
             symbol = symbol.parent;
         }
         return scopes.reverse();
+    }
+
+    async scopeString(target: SourceFile, position: vscode.Position): Promise<string>
+    {
+        let scopeString = '';
+        for (const scope of this.scopes()) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
+            if (!targetScope || targetScope.range.start.isBeforeOrEqual(position) || targetScope.range.end.isAfterOrEqual(position)) {
+                scopeString += scope.name + '::';
+            }
+        }
+        return scopeString;
     }
 
     isMemberVariable(): boolean

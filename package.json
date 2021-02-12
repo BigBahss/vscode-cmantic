@@ -21,6 +21,10 @@
   "engines": {
     "vscode": "^1.3.0"
   },
+  "dependencies": {
+    "@types/xregexp": "^4.3.0",
+    "xregexp": "^5.0.1"
+  },
   "categories": [
     "Programming Languages"
   ],
@@ -49,6 +53,10 @@
       {
         "command": "cmantic.moveDefinitionToMatchingSourceFile",
         "title": "C-mantic: Move Definition to matching source file"
+      },
+      {
+        "command": "cmantic.moveDefinitionIntoOrOutOfClass",
+        "title": "C-mantic: Move Definition into/out-of class body"
       },
       {
         "command": "cmantic.generateGetterSetter",
@@ -205,7 +213,7 @@
           "C_mantic.revealNewDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether 'Add Definition' reveals new definitions in the editor."
+            "description": "Controls whether 'Add Definition' reveals the new definition in the editor."
           }
         }
       }

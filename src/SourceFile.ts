@@ -121,9 +121,11 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    isHeader(): boolean
+    isHeader(): boolean { return SourceFile.isHeader(this.uri); }
+
+    static isHeader(uri: vscode.Uri): boolean
     {
-        return cfg.headerExtensions().includes(util.fileExtension(this.fileName));
+        return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
     }
 
     /**
@@ -159,7 +161,7 @@ export class SourceFile
         for (const symbol of this.symbols) {
             if (symbol.kind === vscode.SymbolKind.Namespace) {
                 for (const child of symbol.children) {
-                    return child.range.start.character > 0;
+                    return child.range.start.character > symbol.range.start.character;
                 }
             }
         }
@@ -173,7 +175,7 @@ export class SourceFile
             return [];
         }
 
-        let locations: vscode.Location[] = [];
+        const locations: vscode.Location[] = [];
         for (const element of input) {
             const location = (element instanceof vscode.Location) ?
                     element : new vscode.Location(element.targetUri, element.targetRange);

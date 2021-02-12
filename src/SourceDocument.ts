@@ -75,7 +75,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
     {
         let offset: number | undefined;
         let maskedText = util.maskComments(this.getText());
-        maskedText = util.maskStringLiterals(maskedText);
+        maskedText = util.maskQuotes(maskedText);
 
         const pragmaOnceMatch = maskedText.match(/^\s*#pragma\s+once\b/);
         if (pragmaOnceMatch) {

@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as xregexp from 'xregexp';
 import { ProposedPosition } from './ProposedPosition';
+import { CSymbol } from './CSymbol';
+import { logger } from './extension';
 
 /**
  * Returns the file extension without the dot.
@@ -97,12 +100,19 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
  */
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position
 {
-    let nextPosition = position.translate(0, 1);
-    while (document.getText(new vscode.Range(position, nextPosition)) === ';') {
-        position = nextPosition;
-        nextPosition = position.translate(0, 1);
+    const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
+    const match = text.match(/(?<=^\s*);/);
+    if (match?.index === undefined) {
+        return position;
     }
-    return position;
+    return document.positionAt(document.offsetAt(position) + match.index + 1);
+}
+
+export function getIndentationRegExp(symbol: CSymbol): RegExp
+{
+    const line = symbol.document.lineAt(symbol.getTrueStart());
+    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    return new RegExp('^' + indentation, 'gm');
 }
 
 export function firstCharToUpper(str: string): string
@@ -115,36 +125,91 @@ export function is_snake_case(label: string): boolean
     return label.match(/[\w\d]_[\w\d]/) !== null;
 }
 
-function masker(match: string): string { return ' '.repeat(match.length); }
+export function masker(match: string): string { return ' '.repeat(match.length); }
 
-export function maskComments(sourceText: string, keepEnclosingChars: boolean = true): string
+/**
+ * Performs a balanced mask of text between left and right, accounting for depth.
+ * Should only be used with single characters.
+ */
+function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true): string
 {
-    if (keepEnclosingChars) {
-        sourceText = sourceText.replace(/(?<=\/\*)(\*(?=\/)|[^*])*(?=\*\/)/g, masker);
-        sourceText = sourceText.replace(/(?<=\/\/).*/g, masker);
-    } else {
-        sourceText = sourceText.replace(/\/\*(\*(?=\/)|[^*])*\*\//g, masker);
-        sourceText = sourceText.replace(/\/\/.*/g, masker);
+    try {
+        xregexp.matchRecursive(text, left, right, 'gm', {
+            valueNames: ['outer', 'left', 'inner', 'right'],
+            escapeChar: '\\'
+        }).forEach(match => {
+            if (match.name === 'inner') {
+                if (keepEnclosingChars) {
+                    text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
+                } else {
+                    text = text.substring(0, match.start - left.length)
+                            + masker(left.length + match.value + right.length)
+                            + text.substring(match.end + right.length);
+                }
+            }
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : error as string;
+        const unbalancedIndexMatch = message.match(/\d+/);
+        if (unbalancedIndexMatch !== null) {
+            // There is an unbalanced delimiter, so we mask it and try again.
+            const unbalancedIndex: number = +unbalancedIndexMatch[0];
+            text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
+            text = maskBalanced(text, left, right, keepEnclosingChars);
+        } else {
+            // This shouldn't happen, but log the error just in case.
+            logger.showErrorMessage(`Unknown parsing error: ${message}`);
+        }
+    } finally {
+        return text;
     }
-    return sourceText;
 }
 
-export function maskStringLiterals(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskComments(text: string, keepEnclosingChars: boolean = true): string
 {
     if (keepEnclosingChars) {
-        sourceText = sourceText.replace(/(?<=").*(?=")(?<!\\)/g, masker);
-        sourceText = sourceText.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+        text = text.replace(/(?<=\/\/).*/gm, masker);
+        text = text.replace(/(?<=\/\*)(\*(?!\/)|[^*])*(?=\*\/)/gm, masker);
     } else {
-        sourceText = sourceText.replace(/".*"(?<!\\)/g, masker);
-        sourceText = sourceText.replace(/'.*'(?<!\\)/g, masker);
+        text = text.replace(/\/\/.*/gm, masker);
+        text = text.replace(/\/\*(\*(?!\/)|[^*])*\*\//gm, masker);
     }
-    return sourceText;
+    return text;
 }
 
-export function maskTemplateParameters(sourceText: string, keepEnclosingChars: boolean = true): string
+export function maskQuotes(text: string, keepEnclosingChars: boolean = true): string
 {
     if (keepEnclosingChars) {
-        return sourceText.replace(/(?<=<)(>(?=>)|[^>])*(?=>)/g, masker);
+        text = text.replace(/(?<=').*(?=')(?<!\\)/g, masker);
+        text = text.replace(/(?<=").*(?=")(?<!\\)/g, masker);
+    } else {
+        text = text.replace(/'.*'(?<!\\)/g, masker);
+        text = text.replace(/".*"(?<!\\)/g, masker);
     }
-    return sourceText.replace(/<(>(?=>)|[^>])*>/g, masker);
+    return text;
+}
+
+export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
+};
+
+export function maskBraces(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '{', '}', keepEnclosingChars);
+}
+
+export function maskBrackets(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '\\[', '\\]', keepEnclosingChars);
+}
+
+export function maskAngleBrackets(text: string, keepEnclosingChars: boolean = true): string
+{
+    return maskBalanced(text, '\\<', '\\>', keepEnclosingChars);
+}
+
+export function maskComparisonOperators(text: string): string
+{
+    return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }

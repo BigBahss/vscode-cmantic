@@ -84,9 +84,13 @@ export async function addDefinition(
     declarationDoc: SourceDocument,
     targetUri: vscode.Uri
 ): Promise<void> {
-    // Check for an existing definition. If one exists, reveal it and return.
+    const shouldReveal = cfg.revealNewDefinition();
     const existingDefinition = await functionDeclaration.findDefinition();
     if (existingDefinition) {
+        if (!shouldReveal) {
+            logger.showInformationMessage(failure.definitionExists);
+            return;
+        }
         const editor = await vscode.window.showTextDocument(existingDefinition.uri);
         editor.revealRange(existingDefinition.range, vscode.TextEditorRevealType.InCenter);
         return;
@@ -100,7 +104,6 @@ export async function addDefinition(
     const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos);
 
     let editor: vscode.TextEditor | undefined;
-    const shouldReveal = cfg.revealNewDefinition();
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
         const revealRange = new vscode.Range(targetPos, targetPos.translate(util.lineCount(functionSkeleton)));
