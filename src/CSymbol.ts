@@ -445,7 +445,7 @@ export class CSymbol extends SourceSymbol
         for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
             lastMatch = match;
         }
-        if (!lastMatch?.index) {
+        if (lastMatch?.index === undefined) {
             this.trueStart = this.range.start;
             return this.trueStart;
         }
@@ -461,10 +461,10 @@ export class CSymbol extends SourceSymbol
     {
         let maskedText = util.maskQuotes(this.parsableText);
         maskedText = util.maskParentheses(maskedText, true);
-        const startOffset = this.document.offsetAt(this.range.start);
+        const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
         const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
-        if (!bodyStartIndex) {
+        if (bodyStartIndex === undefined) {
             return this.range.end;
         }
 
@@ -474,7 +474,7 @@ export class CSymbol extends SourceSymbol
 
         // Get the start of the constructor's member initializer list, if one is present.
         const initializerIndex = maskedText.substring(nameEndIndex, bodyStartIndex + nameEndIndex).match(/\s*:(?!:)/)?.index;
-        if (!initializerIndex) {
+        if (initializerIndex === undefined) {
             return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
         }
         return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
@@ -569,7 +569,6 @@ export class CSymbol extends SourceSymbol
 
         this.leadingCommentStart = this.getTrueStart();
         return this.leadingCommentStart;
-
     }
 
     private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean
