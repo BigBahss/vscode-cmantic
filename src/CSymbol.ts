@@ -383,7 +383,7 @@ export class CSymbol extends SourceSymbol
         const leadingLines = leadingText.split(targetDoc.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
-        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
+        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\s*/g, '');
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
@@ -391,7 +391,7 @@ export class CSymbol extends SourceSymbol
             p_scopeString.then(scopeString => {
                 definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
                 definition = leadingText + scopeString + definition;
-                resolve(definition.replace(/\s*\b(override|final)\b/g, ''));
+                resolve(definition.replace(/\s*(override|final)\b/g, ''));
             });
         });
     }
@@ -411,6 +411,7 @@ export class CSymbol extends SourceSymbol
         const line = this.document.lineAt(this.range.start);
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
 
+        // If this CSymbol (declaration) doesn't have a comment, then we want to pull the comment from the definition.
         if (!this.hasLeadingComment()) {
             const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.getTrueStart());
             const leadingComment = definition.document.getText(leadingCommentRange);
@@ -630,10 +631,10 @@ export class Getter implements Accessor
         this.isStatic = maskedLeadingText.match(/\bstatic\b/) !== null;
         if (maskedLeadingText.includes('<')) {
             const templateParamStart = maskedLeadingText.indexOf('<');
-            this.returnType = leadingText.substring(0, templateParamStart).replace(/\b(static|const|mutable)\b\s*/g, '')
+            this.returnType = leadingText.substring(0, templateParamStart).replace(/\b(static|const|mutable)\s*/g, '')
                     + leadingText.substring(templateParamStart);
         } else {
-            this.returnType = leadingText.replace(/\b(static|const|mutable)\b\s*/g, '');
+            this.returnType = leadingText.replace(/\b(static|const|mutable)\s*/g, '');
         }
         this.parameter = '';
         this.body = 'return ' + memberVariable.name + ';';
@@ -672,7 +673,7 @@ export class Setter implements Accessor
     {
         const setter = new Setter(memberVariable);
         const leadingText = memberVariable.leadingText();
-        const type = leadingText.replace(/\b(static|mutable)\b\s*/g, '');
+        const type = leadingText.replace(/\b(static|mutable)\s*/g, '');
         setter.isStatic = leadingText.match(/\bstatic\b/) !== null;
         setter.parameter = (!await memberVariable.isPrimitive() && !memberVariable.isPointer()
             ? 'const ' + type + '&'
