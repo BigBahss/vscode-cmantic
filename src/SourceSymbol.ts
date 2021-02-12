@@ -134,7 +134,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a namespace block. If so, omit that scope.id().
-            if (!targetScope || !targetScope.range.contains(position)) {
+            if (!targetScope || targetScope.range.start.isBeforeOrEqual(position) || targetScope.range.end.isAfterOrEqual(position)) {
                 scopeString += scope.name + '::';
             }
         }
