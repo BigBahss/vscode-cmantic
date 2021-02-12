@@ -111,8 +111,8 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
 export function getIndentationRegExp(symbol: CSymbol): RegExp
 {
     const line = symbol.document.lineAt(symbol.getTrueStart());
-    const oldIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
-    return new RegExp('^' + oldIndentation, 'gm');
+    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    return new RegExp('^' + indentation, 'gm');
 }
 
 export function firstCharToUpper(str: string): string

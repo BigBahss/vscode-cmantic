@@ -84,7 +84,7 @@ export class CSymbol extends SourceSymbol
         if (!declaration && SourceFile.isHeader(this.uri)
                 && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
             const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
-            const bodyText = this.document.getText(bodyRange);
+            const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
             // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
             return await this.formatDeclarationForNewDefinition(target, position) + bodyText;
         }
@@ -384,7 +384,7 @@ export class CSymbol extends SourceSymbol
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
-        leadingText = leadingText.replace(/^\s+/gm, '');
+        leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
         return new Promise(resolve => {

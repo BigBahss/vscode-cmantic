@@ -67,8 +67,11 @@ export async function moveDefinitionToMatchingSourceFile(
             ? await getNewPosition(targetDoc, declaration)
             : await getNewPosition(targetDoc, definition);
 
+    let insertText = await definition.getTextForTargetPosition(targetDoc, position, declaration);
+    insertText = insertText.replace(util.getIndentationRegExp(definition), '');
+    insertText = position.formatTextToInsert(insertText, targetDoc);
+
     const workspaceEdit = new vscode.WorkspaceEdit();
-    const insertText = await getInsertText(definition, position, targetDoc, declaration);
     workspaceEdit.insert(targetDoc.uri, position, insertText);
     if (!declaration && SourceFile.isHeader(definition.uri)
             && (definition.parent?.isClassOrStruct() || definition.parent?.kind === vscode.SymbolKind.Namespace)) {
@@ -130,8 +133,10 @@ export async function moveDefinitionIntoOrOutOfClass(
     if (definition.parent?.isClassOrStruct()) {
         const position = await getNewPosition(classDoc, definition);
 
+        let insertText = await definition.getTextForTargetPosition(classDoc, position, declaration);
+        insertText = position.formatTextToInsert(insertText, classDoc);
+
         const workspaceEdit = new vscode.WorkspaceEdit();
-        const insertText = await getInsertText(definition, position, classDoc);
         workspaceEdit.insert(classDoc.uri, position, insertText);
         const newDeclaration = definition.newFunctionDeclaration();
         workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
@@ -158,23 +163,6 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
 
     const declarationDoc = await SourceDocument.open(declaration.uri);
     return await declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
-}
-
-async function getInsertText(
-    definition: CSymbol,
-    position: ProposedPosition,
-    targetDoc: SourceDocument,
-    declaration?: SourceSymbol
-): Promise<string> {
-    const p_insertText = definition.getTextForTargetPosition(targetDoc, position, declaration);
-    const re_indentation = util.getIndentationRegExp(definition);
-
-    return new Promise((resolve) => {
-        p_insertText.then(insertText => {
-            insertText = insertText.replace(re_indentation, '');
-            resolve(position.formatTextToInsert(insertText, targetDoc));
-        });
-    });
 }
 
 function getDeletionRange(definition: CSymbol): vscode.Range
