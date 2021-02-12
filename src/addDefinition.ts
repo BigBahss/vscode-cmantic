@@ -85,7 +85,6 @@ export async function addDefinition(
     targetUri: vscode.Uri
 ): Promise<void> {
     const shouldReveal = cfg.revealNewDefinition();
-    // Check for an existing definition. If one exists, reveal it and return.
     const existingDefinition = await functionDeclaration.findDefinition();
     if (existingDefinition) {
         if (!shouldReveal) {

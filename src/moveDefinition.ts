@@ -11,7 +11,9 @@ import { SourceFile } from './SourceFile';
 export const title = {
     matchingSourceFile: 'Move Definition to matching source file',
     outOfClass: 'Move Definition below class body',
-    intoClass: 'Move Definition into class body',
+    outOfStruct: 'Move Definition below struct body',
+    intoClass: 'Move Definition into class',
+    intoStruct: 'Move Definition into struct',
     intoOrOutOfClassPlaceholder: 'Move Definition into/out-of class body'
 };
 

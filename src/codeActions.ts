@@ -115,7 +115,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         let declarationDoc: SourceDocument | undefined;
 
         if (definition.parent?.isClassOrStruct()) {
-            moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+            if (definition.parent.kind === vscode.SymbolKind.Class) {
+                moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+            } else {
+                moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfStruct;
+            }
             declarationDoc = sourceDoc;
         } else {
             const declarationLocation = await definition.findDeclaration();
@@ -128,9 +132,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
-                    moveDefinitionIntoOrOutOfClassTitle = `Move Definition into class "${declaration.parent.name}"`;
+                    moveDefinitionIntoOrOutOfClassTitle = `${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`;
                 } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
-                    moveDefinitionIntoOrOutOfClassTitle = `Move Definition into struct "${declaration.parent.name}"`;
+                    moveDefinitionIntoOrOutOfClassTitle = `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`;
                 } else {
                     moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
                 }
@@ -139,7 +143,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
         if (sourceDoc.languageId !== 'cpp') {
             moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
-        } else if (definition.isInline()) {
+        }
+
+        if (definition.isInline()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
         } else if (definition.isConstexpr()) {
             moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
