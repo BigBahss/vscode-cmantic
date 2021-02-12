@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as xregexp from 'xregexp';
 import { ProposedPosition } from './ProposedPosition';
 import { CSymbol } from './CSymbol';
+import { logger } from './extension';
 
 /**
  * Returns the file extension without the dot.
@@ -128,6 +129,7 @@ export function masker(match: string): string { return ' '.repeat(match.length);
 
 /**
  * Performs a balanced mask of text between left and right, accounting for depth.
+ * Should only be used with single characters.
  */
 function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean = true): string
 {
@@ -148,12 +150,15 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
         });
     } catch (error) {
         const message = error instanceof Error ? error.message : error as string;
-        const unbalancedIndexMatch = message.match(/\d+$/);
+        const unbalancedIndexMatch = message.match(/\d+/);
         if (unbalancedIndexMatch !== null) {
             // There is an unbalanced delimiter, so we mask it and try again.
             const unbalancedIndex: number = +unbalancedIndexMatch[0];
             text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
             text = maskBalanced(text, left, right, keepEnclosingChars);
+        } else {
+            // This shouldn't happen, but log the error just in case.
+            logger.showErrorMessage(`Unknown parsing error: ${message}`);
         }
     } finally {
         return text;
