@@ -402,12 +402,11 @@ export class CSymbol extends SourceSymbol
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
 
         // If this CSymbol (declaration) doesn't have a comment, then we want to pull the comment from the definition.
-        if (!this.hasLeadingComment()) {
+        if (!this.hasLeadingComment() && definition.hasLeadingComment()) {
             const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.getTrueStart());
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
-                    + newIndentation
-                    + this.getFullText().replace(/\s*;$/, '')
+                    + newIndentation + this.getFullText().replace(/\s*;$/, '')
                     + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
         }
 

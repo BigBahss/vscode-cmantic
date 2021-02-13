@@ -241,9 +241,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
     findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
     {
         // TODO: Clean up this mess.
-        const largestBlock = (
+        function largestBlock (
             line: vscode.TextLine, start: vscode.Position, largest: vscode.Range | undefined
-        ): vscode.Range => {
+        ): vscode.Range {
             const r = new vscode.Range(start, line.range.start);
             return (!largest || r > largest) ? r : largest;
         };
