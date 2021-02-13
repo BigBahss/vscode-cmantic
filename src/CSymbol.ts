@@ -331,8 +331,16 @@ export class CSymbol extends SourceSymbol
         const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
         const scopeString = await declaration?.scopeString(target, position);
 
+        let comment: string;
+        if (cfg.alwaysMoveComments()) {
+            comment = this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.getTrueStart()));
+            comment = comment.replace(util.getIndentationRegExp(this), '');
+        } else {
+            comment = '';
+        }
+
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        return await this.formatDeclarationForNewDefinition(target, position, scopeString) + bodyText;
+        return comment + await this.formatDeclarationForNewDefinition(target, position, scopeString) + bodyText;
     }
 
     /**

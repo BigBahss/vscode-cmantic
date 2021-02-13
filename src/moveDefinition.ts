@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as util from './utility';
+import * as cfg from './configuration';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
@@ -76,7 +76,10 @@ export async function moveDefinitionToMatchingSourceFile(
     workspaceEdit.insert(targetDoc.uri, position, insertText);
     if (!declaration && SourceFile.isHeader(definition.uri)) {
         const newDeclaration = definition.newFunctionDeclaration();
-        workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
+        const replaceRange = cfg.alwaysMoveComments()
+                ? definition.getRangeWithLeadingComment()
+                : definition.getFullRange();
+        workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);
     } else {
         const deletionRange = getDeletionRange(definition);
         workspaceEdit.delete(definition.uri, deletionRange);
@@ -139,7 +142,10 @@ export async function moveDefinitionIntoOrOutOfClass(
         const workspaceEdit = new vscode.WorkspaceEdit();
         workspaceEdit.insert(classDoc.uri, position, insertText);
         const newDeclaration = definition.newFunctionDeclaration();
-        workspaceEdit.replace(definition.uri, definition.getFullRange(), newDeclaration);
+        const replaceRange = cfg.alwaysMoveComments()
+                ? definition.getRangeWithLeadingComment()
+                : definition.getFullRange();
+        workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);
         return vscode.workspace.applyEdit(workspaceEdit);
     } else if (declaration) {
         const combinedDefinition = declaration.combineDefinition(definition);
