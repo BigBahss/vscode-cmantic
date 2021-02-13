@@ -138,6 +138,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 } else {
                     moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
                 }
+            } else {
+                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
             }
         }
 
