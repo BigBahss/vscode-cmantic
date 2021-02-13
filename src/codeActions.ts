@@ -280,7 +280,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
 
     private formatPathToDisplay(uri: vscode.Uri): string
     {
-        const relativePath = vscode.workspace.asRelativePath(uri, false);
+        const relativePath = vscode.workspace.asRelativePath(uri);
         // Arbitrary limit, as to not display a path that's running all the way across the screen.
         if (relativePath.length > 60) {
             const length = relativePath.length;

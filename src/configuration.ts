@@ -38,6 +38,7 @@ const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
 const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
+const defaultAlwaysMoveComments = false;
 
 function configuration(): vscode.WorkspaceConfiguration
 {
@@ -173,4 +174,9 @@ export function resolveTypes(): boolean
 export function revealNewDefinition(): boolean
 {
     return configuration().get<boolean>('revealNewDefinition', defaultRevealNewDefinition);
+}
+
+export function alwaysMoveComments(): boolean
+{
+    return configuration().get<boolean>('alwaysMoveComments', defaultAlwaysMoveComments);
 }

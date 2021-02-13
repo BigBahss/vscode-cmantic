@@ -214,6 +214,11 @@
             "type": "boolean",
             "default": true,
             "description": "Controls whether 'Add Definition' reveals the new definition in the editor."
+          },
+          "C_mantic.alwaysMoveComments": {
+            "type": "boolean",
+            "default": false,
+            "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place."
           }
         }
       }
