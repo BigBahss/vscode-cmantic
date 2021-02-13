@@ -42,11 +42,13 @@ The `cmantic.addDefinitionInCurrentFile` command/code-action creates an empty de
 
 ![Move Definition](./images/move_definition.gif)
 
-Selecting the name of a function definition will suggest the following code-action in the light-bulb menu.
+Selecting the name of a function definition will suggest the following code-actions in the light-bulb menu.
 
 The `cmantic.moveDefinitionToMatchingSourceFile` command/code-action will move a function definition to a matching header/source file.
 
-`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Moving a definition will also move any comments associated with that function. Moving a definition into/out of a class body is currently not supported, this is a [planned feature](#planned-features).
+The `cmantic.moveDefinitionIntoOrOutOfClass` command/code-action will move a member function definition into/out-of a class body.
+
+`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Also, when moving a definition from a header file that does not contain a declaration for that function, or when moving from a class body, a declaration will be left behind in its place. Moving definitions will also move leading comments, unless a declaration is being left behind. If you want leading comments to always get moved, enable `Always Move Comments` in the settings.
 
 ### **Generate Getter and Setter Member Functions**
 
@@ -88,11 +90,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works w
 
 ## **Planned Features**
 
-The next features being worked on are:
-- Move a function definition into/out of a class body.
-- Generate all definitions from a header file.
-
-A complete list of planned features/ideas can be found [here](https://github.com/BigBahss/vscode-cmantic/blob/master/TODO.md). I'd love to here ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. And of course, if you'd like to contribute, feel free to open a pull-request.
+The list of planned features/ideas can be found [here](https://github.com/BigBahss/vscode-cmantic/blob/master/TODO.md). I'd love to here ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. And of course, if you'd like to contribute, feel free to open a pull-request.
 
 ## **License**
 
