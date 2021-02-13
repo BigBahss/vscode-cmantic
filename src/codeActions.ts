@@ -1,14 +1,12 @@
 import * as vscode from 'vscode';
-import { SourceDocument } from "./SourceDocument";
-import { CSymbol } from "./CSymbol";
+import { SourceDocument } from './SourceDocument';
+import { CSymbol } from './CSymbol';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile } from './extension';
-import { SourceSymbol } from './SourceSymbol';
-import { SourceFile } from './SourceFile';
 
 
 export class CodeActionProvider implements vscode.CodeActionProvider
