@@ -31,6 +31,9 @@ export class SourceSymbol extends vscode.DocumentSymbol
         if (name.endsWith('>') && name.includes('<')) {
             name = name.substring(0, name.indexOf('<'));
         }
+        if (name.includes('::')) {
+            name = name.substring(name.lastIndexOf('::') + 2);
+        }
         this.name = name;
 
         // ccls puts function signatures in the detail property.

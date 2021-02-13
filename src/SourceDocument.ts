@@ -178,9 +178,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
 
             const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                const endPosition = targetDoc.getEndOfStatement(definition.range.end);
-                return new ProposedPosition(endPosition, {
-                    relativeTo: new vscode.Range(definition.range.start, endPosition),
+                return new ProposedPosition(definition.range.end, {
+                    relativeTo: definition.range,
                     after: true
                 });
             }
@@ -193,9 +192,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
 
             const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                const endPosition = targetDoc.getEndOfStatement(definition.range.end);
-                return new ProposedPosition(definition.range.start, {
-                    relativeTo: new vscode.Range(definition.range.start, endPosition),
+                const leadingCommentStart = definition.getLeadingCommentStart();
+                return new ProposedPosition(leadingCommentStart, {
+                    relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
                     before: true
                 });
             }
