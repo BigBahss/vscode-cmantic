@@ -15,6 +15,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Improved parsing of preprocessor directives.
 - Raw string literals are now accounted for. This may have caused parsing issues before. (#8)
 - Improved parsing of access specifiers when looking for a location for new getters and setters. Under some conditions, getters and setters may have been placed in non-public access.
+- Improved smart-placement of function definitions.
+- Implemented a workaround for `Add Definition` sometimes not revealing the new definition in the editor. (#2)
 
 ## [0.3.1] - February 08, 2021
 ### Added
