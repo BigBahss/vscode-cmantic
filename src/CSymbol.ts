@@ -405,12 +405,14 @@ export class CSymbol extends SourceSymbol
         if (!this.hasLeadingComment()) {
             const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.getTrueStart());
             const leadingComment = definition.document.getText(leadingCommentRange);
-            return leadingComment.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation)
+            return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
+                    + newIndentation
                     + this.getFullText().replace(/\s*;$/, '')
-                    + body.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation);
+                    + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
         }
 
-        return this.getFullText().replace(/\s*;$/, '') + body.replace(re_oldIndentation, '').replace(/\n/gm, '\n' + newIndentation);
+        return this.getFullText().replace(/\s*;$/, '')
+                + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
     }
 
     /**
