@@ -70,7 +70,6 @@ export async function moveDefinitionToMatchingSourceFile(
             : await getNewPosition(targetDoc, definition);
 
     let insertText = await definition.getTextForTargetPosition(targetDoc, position, declaration);
-    insertText = insertText.replace(util.getIndentationRegExp(definition), '');
     insertText = position.formatTextToInsert(insertText, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();

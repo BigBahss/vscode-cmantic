@@ -80,30 +80,6 @@ export class CSymbol extends SourceSymbol
         return this.document.getText(this.getRangeWithLeadingComment());
     }
 
-    async getTextForTargetPosition(
-        target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
-    ): Promise<string> {
-        if (!declaration && SourceFile.isHeader(this.uri)
-                && (this.parent?.isClassOrStruct() || this.parent?.kind === vscode.SymbolKind.Namespace)) {
-            const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
-            const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
-            // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-            return await this.formatDeclarationForNewDefinition(target, position) + bodyText;
-        }
-
-        const scopeString = declaration !== undefined
-                ? await declaration.scopeString(target, position)
-                : await this.scopeString(target, position);
-
-        const nameToEndRange = new vscode.Range(this.selectionRange.start, this.range.end);
-        const nameToEndText = this.document.getText(nameToEndRange);
-
-        const leadingRange = new vscode.Range(this.getLeadingCommentStart(), this.scopeStringStart());
-        const leadingText = this.document.getText(leadingRange);
-
-        return leadingText + scopeString + nameToEndText;
-    }
-
     /**
      * Returns the text contained in this symbol that comes before this.selectionRange.
      */
@@ -348,6 +324,17 @@ export class CSymbol extends SourceSymbol
         return false;
     }
 
+    async getTextForTargetPosition(
+        target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
+    ): Promise<string> {
+        const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
+        const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
+        const scopeString = await declaration?.scopeString(target, position);
+
+        // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
+        return await this.formatDeclarationForNewDefinition(target, position, scopeString) + bodyText;
+    }
+
     /**
      * Formats this function declaration for use as a definition (without curly braces).
      */
@@ -360,9 +347,11 @@ export class CSymbol extends SourceSymbol
     }
 
     private async formatDeclarationForNewDefinition(
-        targetDoc: SourceDocument, position: vscode.Position
+        targetDoc: SourceDocument, position: vscode.Position, scopeString?: string
     ): Promise<string> {
-        const p_scopeString = this.scopeString(targetDoc, position);
+        if (scopeString === undefined) {
+            scopeString = await this.scopeString(targetDoc, position);
+        }
 
         const declarationRange = new vscode.Range(this.getTrueStart(), this.bodyStart());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
@@ -380,23 +369,21 @@ export class CSymbol extends SourceSymbol
         const parameters = this.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
 
         // Intelligently align the definition in the case of a multi-line declaration.
-        let leadingText = this.document.getText(new vscode.Range(this.getTrueStart(), this.scopeStringStart()));
+        const scopeStringStart = this.scopeStringStart();
+        let leadingText = this.document.getText(new vscode.Range(this.getTrueStart(), scopeStringStart));
+        const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(targetDoc.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].length;
-        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength), 'gm');
+        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\s*/g, '');
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
-        return new Promise(resolve => {
-            p_scopeString.then(scopeString => {
-                definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
-                definition = leadingText + scopeString + definition;
-                resolve(definition.replace(/\s*(override|final)\b/g, ''));
-            });
-        });
+        definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
+        definition = leadingText + scopeString + definition;
+        return definition.replace(/\s*(override|final)\b/g, '');
     }
 
     newFunctionDeclaration(): string
