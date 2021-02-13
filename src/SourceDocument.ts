@@ -146,18 +146,17 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
 
         // Get the first 5 symbols that come before and after declaration.
         // We look for definitions of these symbols in targetDoc and return a position relative to the closest one.
-        const siblingSymbols = declaration.parent ? declaration.parent.children : this.symbols;
-        let relativeSymbolIndex = 0;
-        for (const symbol of siblingSymbols) {
-            if (symbol.range.isEqual(declaration.range)) {
-                break;
-            }
-            ++relativeSymbolIndex;
-        }
-        const start = Math.max(relativeSymbolIndex - 5, 0);
-        const end = Math.min(relativeSymbolIndex + 6, siblingSymbols.length);
-        const before = siblingSymbols.slice(start, relativeSymbolIndex);
-        const after = siblingSymbols.slice(relativeSymbolIndex + 1, end);
+        const siblingFunctions = (declaration.parent ? declaration.parent.children : this.symbols).filter(symbol => {
+            return symbol.isFunction();
+        });
+        const declarationSelectionRange = declaration.selectionRange;
+        const declarationIndex = siblingFunctions.findIndex(symbol => {
+            return symbol.selectionRange.isEqual(declarationSelectionRange);
+        });
+        const start = Math.max(declarationIndex - 5, 0);
+        const end = Math.min(declarationIndex + 6, siblingFunctions.length);
+        const before = siblingFunctions.slice(start, declarationIndex);
+        const after = siblingFunctions.slice(declarationIndex + 1, end);
         if (declarationOrPosition instanceof ProposedPosition) {
             const position = declarationOrPosition;
             if (position.options.after) {
