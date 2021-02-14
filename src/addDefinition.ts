@@ -97,8 +97,8 @@ export async function addDefinition(
     }
 
     // Find the position for the new function definition.
-    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath) ?
-            declarationDoc : await SourceDocument.open(targetUri);
+    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
+            ? declarationDoc : await SourceDocument.open(targetUri);
     const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos);
@@ -113,9 +113,14 @@ export async function addDefinition(
         // Waiting a bit and re-executing seems to work around this issue. (BigBahss/vscode-cmantic#2)
         setTimeout(() => {
             if (editor && revealRange) {
+                for (const visibleRange of editor.visibleRanges) {
+                    if (visibleRange.contains(revealRange)) {
+                        return;
+                    }
+                }
                 editor.revealRange(revealRange, vscode.TextEditorRevealType.InCenter);
             }
-        }, 250);
+        }, 500);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
