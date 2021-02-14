@@ -200,17 +200,24 @@ export class CSymbol extends SourceSymbol
 
     isFunctionDeclaration(): boolean
     {
-        return this.isFunction() && !this.parsableText.endsWith('}') && !this.isDeletedOrDefaulted();
+        return this.isFunction() && !this.parsableText.endsWith('}')
+                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isFunctionDefinition(): boolean
     {
-        return this.isFunction() && this.parsableText.endsWith('}') && !this.isDeletedOrDefaulted();
+        return this.isFunction() && this.parsableText.endsWith('}')
+                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isDeletedOrDefaulted(): boolean
     {
         return this.parsableText.match(/\s*=\s*(delete|default)\s*;?$/) !== null;
+    }
+
+    isPureVirtual(): boolean
+    {
+        return this.parsableText.match(/\s*=\s*0\s*;?$/) !== null;
     }
 
     isConstexpr(): boolean

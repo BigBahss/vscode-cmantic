@@ -17,7 +17,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Improved parsing of access specifiers when looking for a location for new getters and setters. Under some conditions, getters and setters may have been placed in non-public access.
 - Improved smart-placement of function definitions.
 - Implemented a workaround for `Add Definition` sometimes not revealing the new definition in the editor. (#2)
-- Code-actions will no longer be suggested for deleted and defaulted functions.
+- Code-actions will no longer be suggested for deleted, defaulted, and pure virtual functions.
 
 ## [0.3.1] - February 08, 2021
 ### Added
