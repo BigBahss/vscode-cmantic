@@ -48,7 +48,7 @@ The `cmantic.moveDefinitionToMatchingSourceFile` command/code-action will move a
 
 The `cmantic.moveDefinitionIntoOrOutOfClass` command/code-action will move a member function definition into/out-of a class body.
 
-`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Also, when moving a definition from a header file that does not contain a declaration for that function, or when moving from a class body, a declaration will be left behind in its place. Moving definitions will also move leading comments, unless a declaration is being left behind. If you want leading comments to always get moved, enable `Always Move Comments` in the settings.
+`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Also, when moving a definition from a header file that does not contain a declaration for that function, or when moving from a class body, a declaration will be left behind in its place. Moving definitions will also move leading comments. If you don't want leading comments to be moved when a declaration is being left behind, disable `Always Move Comments` in the settings.
 
 ### **Generate Getter and Setter Member Functions**
 

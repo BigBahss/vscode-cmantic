@@ -217,7 +217,7 @@
           },
           "C_mantic.alwaysMoveComments": {
             "type": "boolean",
-            "default": false,
+            "default": true,
             "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place."
           }
         }
