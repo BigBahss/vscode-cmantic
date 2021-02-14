@@ -70,6 +70,12 @@ export class CSymbol extends SourceSymbol
     }
     private _parsableText?: string;
 
+    get parsableLeadingText(): string
+    {
+        const endIndex = this.document.offsetAt(this.selectionRange.start) - this.startOffset();
+        return this.parsableText.substring(0, endIndex);
+    }
+
     /**
      * Returns the text of this symbol including potential template statement.
      */
@@ -217,36 +223,28 @@ export class CSymbol extends SourceSymbol
 
     isPureVirtual(): boolean
     {
-        return this.parsableText.match(/\s*=\s*0\s*;?$/) !== null;
+        return this.parsableLeadingText.match(/\bvirtual\b/) !== null
+                && this.parsableText.match(/\s*=\s*0\s*;?$/) !== null;
     }
 
     isConstexpr(): boolean
     {
-        if (this.leadingText().match(/\bconstexpr\b/)) {
-            return true;
-        }
-        return false;
+        return this.parsableLeadingText.match(/\bconstexpr\b/) !== null;
     }
 
     isInline(): boolean
     {
-        if (this.leadingText().match(/\binline\b/)) {
-            return true;
-        }
-        return false;
+        return this.parsableLeadingText.match(/\binline\b/) !== null;
     }
 
     isPointer(): boolean
     {
-        return util.maskAngleBrackets(this.leadingText().replace(re_blockComments, '')).includes('*');
+        return util.maskAngleBrackets(this.parsableLeadingText).includes('*');
     }
 
     isConst(): boolean
     {
-        if (util.maskAngleBrackets(this.leadingText().replace(re_blockComments, '')).match(/\bconst\b/)) {
-            return true;
-        }
-        return false;
+        return util.maskAngleBrackets(this.parsableLeadingText).match(/\bconst\b/) !== null;
     }
 
     isTypedef(): boolean
@@ -256,16 +254,14 @@ export class CSymbol extends SourceSymbol
 
     isTypeAlias(): boolean
     {
-        if (this.mightBeTypedefOrTypeAlias()) {
-            return this.parsableText.match(/\busing\b/) !== null && this.parsableText.includes('=');
-        }
-        return false;
+        return this.mightBeTypedefOrTypeAlias()
+                && this.parsableText.match(/\busing\b/) !== null && this.parsableText.includes('=');
     }
 
     async isPrimitive(): Promise<boolean>
     {
         if (this.isVariable()) {
-            const leadingText = this.leadingText().replace(re_blockComments, util.masker);
+            const leadingText = this.parsableLeadingText;
             if (this.matchesPrimitiveType(leadingText)) {
                 return true;
             } else if (!cfg.resolveTypes()) {
@@ -518,13 +514,13 @@ export class CSymbol extends SourceSymbol
 
     private scopeStringStart(): vscode.Position
     {
-        const maskedLeadingText = util.maskComments(this.leadingText(), false).trimEnd();
-        if (!maskedLeadingText.endsWith('::')) {
+        const trimmedLeadingText = this.parsableLeadingText.trimEnd();
+        if (!trimmedLeadingText.endsWith('::')) {
             return this.selectionRange.start;
         }
 
         let lastMatch: RegExpMatchArray | undefined;
-        for (const match of maskedLeadingText.matchAll(re_beginingOfScopeString)) {
+        for (const match of trimmedLeadingText.matchAll(re_beginingOfScopeString)) {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {
