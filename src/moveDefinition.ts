@@ -14,7 +14,7 @@ export const title = {
     outOfStruct: 'Move Definition below struct body',
     intoClass: 'Move Definition into class',
     intoStruct: 'Move Definition into struct',
-    intoOrOutOfClassPlaceholder: 'Move Definition into/out-of class body'
+    intoOrOutOfClass: 'Move Definition into/out-of class body'
 };
 
 export const failure = {

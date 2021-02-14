@@ -9,13 +9,75 @@ import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile } from './extension';
 
 
+export class CodeAction implements vscode.CodeAction
+{
+    title: string;
+    edit?: vscode.WorkspaceEdit;
+    diagnostics?: vscode.Diagnostic[];
+    command?: vscode.Command;
+    kind?: vscode.CodeActionKind;
+    isPreferred?: boolean;
+    disabled?: { readonly reason: string };
+
+    constructor(kind: vscode.CodeActionKind, title: string, command?: string)
+    {
+        this.kind = kind;
+        this.title = title;
+        if (command) {
+            this.command = { title: title, command: command };
+        }
+    }
+
+    setTitle(title: string): void
+    {
+        this.title = title;
+        if (this.command) {
+            this.command.title = title;
+        }
+    }
+
+    setCommand(command: string): void
+    {
+        if (!this.command) {
+            this.command = { title: this.title, command: command };
+        } else {
+            this.command.command = command;
+        }
+    }
+
+    setArguments(...args: any[]): void
+    {
+        if (this.command) {
+            this.command.arguments = args;
+        }
+    }
+
+    disable(reason: string): void { this.disabled = { reason: reason }; }
+}
+
+export class RefactorAction extends CodeAction
+{
+    constructor(title: string, command?: string)
+    {
+        super(vscode.CodeActionKind.Refactor, title, command);
+    }
+}
+
+export class SourceAction extends CodeAction
+{
+    constructor(title: string, command?: string)
+    {
+        super(vscode.CodeActionKind.Source, title, command);
+    }
+}
+
 export class CodeActionProvider implements vscode.CodeActionProvider
 {
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
-        context: vscode.CodeActionContext,
-        token: vscode.CancellationToken
+        _context: vscode.CodeActionContext,
+        _token: vscode.CancellationToken
     ): Promise<vscode.CodeAction[]> {
         const sourceDoc = new SourceDocument(document);
 
@@ -37,7 +99,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<vscode.CodeAction[]> {
+    ): Promise<RefactorAction[]> {
         if (symbol?.isFunctionDeclaration()) {
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(rangeOrSelection.start)) {
@@ -49,74 +111,60 @@ export class CodeActionProvider implements vscode.CodeActionProvider
     }
 
     private async getFunctionDeclarationRefactorings(
-        symbol: CSymbol,
+        declaration: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<vscode.CodeAction[]> {
-        const existingDefinition = await symbol.findDefinition();
+    ): Promise<RefactorAction[]> {
+        const existingDefinition = await declaration.findDefinition();
 
-        let addDefinitionInMatchingSourceFileTitle = addDefinitionTitle.matchingSourceFile;
-        let addDefinitionInMatchingSourceFileDisabled: { readonly reason: string } | undefined;
-        let addDefinitionInCurrentFileDisabled: { readonly reason: string } | undefined;
+        const addDefinitionInMatchingSourceFile = new RefactorAction(addDefinitionTitle.matchingSourceFile);
+        const addDefinitionInCurrentFile = new RefactorAction(addDefinitionTitle.currentFile);
+        addDefinitionInMatchingSourceFile.setCommand('cmantic.addDefinition');
+        addDefinitionInCurrentFile.setCommand('cmantic.addDefinition');
+        addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
+        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, matchingUri);
 
-        if (symbol.isInline()) {
-            addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isInline };
+        if (declaration.isInline()) {
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isInline);
+        } else if (declaration.isConstexpr()) {
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isConstexpr);
         }
-        if (symbol.isConstexpr()) {
-            addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.isConstexpr };
-        }
+
         if (existingDefinition) {
-            addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.definitionExists };
-            addDefinitionInCurrentFileDisabled = addDefinitionInMatchingSourceFileDisabled;
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.definitionExists);
+            addDefinitionInCurrentFile.disable(addDefinitionFailure.definitionExists);
         }
+
         if (!sourceDoc.isHeader()) {
-            addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.notHeaderFile };
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.notHeaderFile);
         } else if (matchingUri) {
             const displayPath = this.formatPathToDisplay(matchingUri);
-            addDefinitionInMatchingSourceFileTitle = `Add Definition in "${displayPath}"`;
+            addDefinitionInMatchingSourceFile.setTitle(`Add Definition in "${displayPath}"`);
         } else {
-            addDefinitionInMatchingSourceFileDisabled = { reason: addDefinitionFailure.noMatchingSourceFile };
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.noMatchingSourceFile);
         }
 
-        return [{
-            title: addDefinitionInMatchingSourceFileTitle,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: addDefinitionInMatchingSourceFileTitle,
-                command: 'cmantic.addDefinition',
-                arguments: [symbol, sourceDoc, matchingUri]
-            },
-            disabled: addDefinitionInMatchingSourceFileDisabled
-        }, {
-            title: addDefinitionTitle.currentFile,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: addDefinitionTitle.currentFile,
-                command: 'cmantic.addDefinition',
-                arguments: [symbol, sourceDoc, sourceDoc.uri]
-            },
-            disabled: addDefinitionInCurrentFileDisabled
-        }];
+        return [addDefinitionInMatchingSourceFile, addDefinitionInCurrentFile];
     }
 
     private async getFunctionDefinitionRefactorings(
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<vscode.CodeAction[]> {
-        let moveDefinitionToMatchingSourceFileTitle = moveDefinitionTitle.matchingSourceFile;
-        let moveDefinitionToMatchingSourceFileDisabled: { readonly reason: string } | undefined;
-        let moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.intoOrOutOfClassPlaceholder;
-        let moveDefinitionIntoOrOutOfClassDisabled: { readonly reason: string } | undefined;
+    ): Promise<RefactorAction[]> {
+        const moveDefinitionToMatchingSourceFile = new RefactorAction(moveDefinitionTitle.matchingSourceFile);
+        const moveDefinitionIntoOrOutOfClass = new RefactorAction(moveDefinitionTitle.intoOrOutOfClass);
+        moveDefinitionToMatchingSourceFile.setCommand('cmantic.moveDefinitionToMatchingSourceFile');
+        moveDefinitionIntoOrOutOfClass.setCommand('cmantic.moveDefinitionIntoOrOutOfClass');
 
         let declaration: CSymbol | undefined;
         let declarationDoc: SourceDocument | undefined;
 
         if (definition.parent?.isClassOrStruct()) {
             if (definition.parent.kind === vscode.SymbolKind.Class) {
-                moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfClass;
+                moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfClass);
             } else {
-                moveDefinitionIntoOrOutOfClassTitle = moveDefinitionTitle.outOfStruct;
+                moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfStruct);
             }
             declarationDoc = sourceDoc;
         } else {
@@ -130,152 +178,102 @@ export class CodeActionProvider implements vscode.CodeActionProvider
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
-                    moveDefinitionIntoOrOutOfClassTitle = `${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`;
+                    moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`);
                 } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
-                    moveDefinitionIntoOrOutOfClassTitle = `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`;
+                    moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
                 } else {
-                    moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
+                    moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
                 }
             } else {
-                moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notMemberFunction };
+                moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
             }
         }
 
         if (sourceDoc.languageId !== 'cpp') {
-            moveDefinitionIntoOrOutOfClassDisabled = { reason: moveDefinitionFailure.notCpp };
+            moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notCpp);
         }
 
         if (definition.isInline()) {
-            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isInline };
+            moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isInline);
         } else if (definition.isConstexpr()) {
-            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.isConstexpr };
+            moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isConstexpr);
         }
 
         if (matchingUri) {
             const displayPath = this.formatPathToDisplay(matchingUri);
-            moveDefinitionToMatchingSourceFileTitle = `Move Definition to "${displayPath}"`;
+            moveDefinitionToMatchingSourceFile.setTitle(`Move Definition to "${displayPath}"`);
         } else {
-            moveDefinitionToMatchingSourceFileDisabled = { reason: moveDefinitionFailure.noMatchingSourceFile };
+            moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.noMatchingSourceFile);
         }
 
-        return [{
-            title: moveDefinitionToMatchingSourceFileTitle,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: moveDefinitionToMatchingSourceFileTitle,
-                command: 'cmantic.moveDefinitionToMatchingSourceFile',
-                arguments: [definition, matchingUri, declaration]
-            },
-            disabled: moveDefinitionToMatchingSourceFileDisabled
-        }, {
-            title: moveDefinitionIntoOrOutOfClassTitle,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: moveDefinitionIntoOrOutOfClassTitle,
-                command: 'cmantic.moveDefinitionIntoOrOutOfClass',
-                arguments: [definition, declarationDoc, declaration]
-            },
-            disabled: moveDefinitionIntoOrOutOfClassDisabled
-        }];
+        moveDefinitionToMatchingSourceFile.setArguments(definition, matchingUri, declaration);
+        moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
+
+        return [moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass];
     }
 
     private async getMemberVariableRefactorings(
-        symbol: CSymbol,
+        memberVariable: CSymbol,
         sourceDoc: SourceDocument
-    ): Promise<vscode.CodeAction[]> {
-        let generateGetterSetterDisabled: { readonly reason: string } | undefined;
-        let generateGetterDisabled: { readonly reason: string } | undefined;
-        let generateSetterDisabled: { readonly reason: string } | undefined;
+    ): Promise<RefactorAction[]> {
+        const generateGetterSetter = new RefactorAction(getterSetterTitle.getterSetter);
+        const generateGetter = new RefactorAction(getterSetterTitle.getterSetter);
+        const generateSetter = new RefactorAction(getterSetterTitle.getterSetter);
+        generateGetterSetter.setCommand('cmantic.generateGetterSetterFor');
+        generateGetter.setCommand('cmantic.generateGetterFor');
+        generateSetter.setCommand('cmantic.generateSetterFor');
+        generateGetterSetter.setArguments(memberVariable, sourceDoc);
+        generateGetter.setArguments(memberVariable, sourceDoc);
+        generateSetter.setArguments(memberVariable, sourceDoc);
 
         if (sourceDoc.languageId !== 'cpp') {
-            generateGetterSetterDisabled = { reason: getterSetterFailure.notCpp };
-            generateGetterDisabled = { reason: getterSetterFailure.notCpp };
-            generateSetterDisabled = { reason: getterSetterFailure.notCpp };
+            generateGetterSetter.disable(getterSetterFailure.notCpp);
+            generateGetter.disable(getterSetterFailure.notCpp);
+            generateSetter.disable(getterSetterFailure.notCpp);
         } else {
-            const getter = symbol.parent?.findGetterFor(symbol);
-            const setter = symbol.parent?.findSetterFor(symbol);
+            const getter = memberVariable.parent?.findGetterFor(memberVariable);
+            const setter = memberVariable.parent?.findSetterFor(memberVariable);
 
-            generateGetterSetterDisabled = (getter || setter) ? { reason: getterSetterFailure.getterOrSetterExists } : undefined;
-            generateGetterDisabled = getter ? { reason: getterSetterFailure.getterExists } : undefined;
-            generateSetterDisabled = setter ? { reason: getterSetterFailure.setterExists } : undefined;
+            if (getter) {
+                generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
+                generateGetter.disable(getterSetterFailure.getterExists);
+            }
 
-            if (symbol.isConst()) {
-                generateGetterSetterDisabled = { reason: getterSetterFailure.isConst };
-                generateSetterDisabled = { reason: getterSetterFailure.isConst };
+            if (setter) {
+                generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
+                generateSetter.disable(getterSetterFailure.setterExists);
+            } else if (memberVariable.isConst()) {
+                generateGetterSetter.disable(getterSetterFailure.isConst);
+                generateSetter.disable(getterSetterFailure.isConst);
             }
         }
 
-        return [{
-            title: getterSetterTitle.getterSetter,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: getterSetterTitle.getterSetter,
-                command: 'cmantic.generateGetterSetterFor',
-                arguments: [symbol, sourceDoc]
-            },
-            disabled: generateGetterSetterDisabled
-        }, {
-            title: getterSetterTitle.getter,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: getterSetterTitle.getter,
-                command: 'cmantic.generateGetterFor',
-                arguments: [symbol, sourceDoc]
-            },
-            disabled: generateGetterDisabled
-        }, {
-            title: getterSetterTitle.setter,
-            kind: vscode.CodeActionKind.Refactor,
-            command: {
-                title: getterSetterTitle.setter,
-                command: 'cmantic.generateSetterFor',
-                arguments: [symbol, sourceDoc]
-            },
-            disabled: generateSetterDisabled
-        }];
+        return [generateGetterSetter, generateGetter, generateSetter];
     }
 
     private async getSourceActions(
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<vscode.CodeAction[]> {
-        let createMatchingSourceFileDisabled: { readonly reason: string } | undefined;
-        let addHeaderGuardDisabled: { readonly reason: string } | undefined;
+    ): Promise<SourceAction[]> {
+        const addHeaderGuard = new SourceAction('Add Header Guard');
+        const addInclude = new SourceAction('Add Include');
+        const createMatchingSourceFile = new SourceAction('Create Matching Source File');
+        addHeaderGuard.setCommand('cmantic.addHeaderGuard');
+        addInclude.setCommand('cmantic.addInclude');
+        createMatchingSourceFile.setCommand('cmantic.createMatchingSourceFile');
 
         if (!sourceDoc.isHeader()) {
-            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.notHeaderFile };
-            addHeaderGuardDisabled = { reason: addHeaderGuardFailure.notHeaderFile };
+            addHeaderGuard.disable(addHeaderGuardFailure.notHeaderFile);
+            createMatchingSourceFile.disable(createSourceFileFailure.notHeaderFile);
         } else if (matchingUri) {
-            createMatchingSourceFileDisabled = { reason: createSourceFileFailure.sourceFileExists };
-        }
-        if (sourceDoc.hasHeaderGuard()) {
-            addHeaderGuardDisabled = { reason: addHeaderGuardFailure.headerGuardExists };
+            createMatchingSourceFile.disable(createSourceFileFailure.sourceFileExists);
         }
 
-        return [{
-            title: 'Add Header Guard',
-            kind: vscode.CodeActionKind.Source,
-            command: {
-                title: 'Add Header Guard',
-                command: 'cmantic.addHeaderGuard'
-            },
-            disabled: addHeaderGuardDisabled
-        }, {
-            title: 'Add Include',
-            kind: vscode.CodeActionKind.Source,
-            command: {
-                title: 'Add Include',
-                command: 'cmantic.addInclude'
-            }
-        }, {
-            title: 'Create Matching Source File',
-            kind: vscode.CodeActionKind.Source,
-            command: {
-                title: 'Create Matching Source File',
-                command: 'cmantic.createMatchingSourceFile'
-            },
-            disabled: createMatchingSourceFileDisabled
-        }];
+        if (sourceDoc.hasHeaderGuard()) {
+            addHeaderGuard.disable(addHeaderGuardFailure.headerGuardExists);
+        }
+
+        return [addHeaderGuard, addInclude, createMatchingSourceFile];
     }
 
     private formatPathToDisplay(uri: vscode.Uri): string
