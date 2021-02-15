@@ -217,8 +217,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {
         const generateGetterSetter = new RefactorAction(getterSetterTitle.getterSetter);
-        const generateGetter = new RefactorAction(getterSetterTitle.getterSetter);
-        const generateSetter = new RefactorAction(getterSetterTitle.getterSetter);
+        const generateGetter = new RefactorAction(getterSetterTitle.getter);
+        const generateSetter = new RefactorAction(getterSetterTitle.setter);
         generateGetterSetter.setCommand('cmantic.generateGetterSetterFor');
         generateGetter.setCommand('cmantic.generateGetterFor');
         generateSetter.setCommand('cmantic.generateSetterFor');
