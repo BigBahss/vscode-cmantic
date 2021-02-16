@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as xregexp from 'xregexp';
 import { ProposedPosition } from './ProposedPosition';
 import { CSymbol } from './CSymbol';
-import { logger } from './extension';
+import { logger } from './logger';
 
 /**
  * Returns the file extension without the dot.

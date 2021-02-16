@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { SourceDocument } from './SourceDocument';
-import { logger } from './extension';
+import { logger } from './logger';
 
 
 export async function addInclude(): Promise<void>

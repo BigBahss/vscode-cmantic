@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as path from 'path';
 import { SourceDocument } from './SourceDocument';
-import { logger } from './extension';
+import { logger } from './logger';
 
 
 export const failure = {

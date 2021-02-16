@@ -4,7 +4,8 @@ import * as util from './utility';
 import * as path from 'path';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
-import { getMatchingSourceFile, logger } from './extension';
+import { getMatchingSourceFile } from './extension';
+import { logger } from './logger';
 import { CSymbol } from './CSymbol';
 
 

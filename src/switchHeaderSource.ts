@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { getMatchingSourceFile, logger } from './extension';
+import { getMatchingSourceFile } from './extension';
+import { logger } from './logger';
 
 
 export async function switchHeaderSourceInWorkspace(): Promise<void>

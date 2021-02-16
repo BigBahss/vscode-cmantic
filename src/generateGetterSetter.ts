@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as util from './utility';
 import { ProposedPosition } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
 import { Accessor, CSymbol, Getter, Setter } from './CSymbol';
-import { getMatchingSourceFile, logger } from './extension';
+import { getMatchingSourceFile } from './extension';
+import { logger } from './logger';
 
 
 export const title = {

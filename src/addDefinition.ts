@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { getMatchingSourceFile, logger } from './extension';
 import * as cfg from './configuration';
 import * as util from './utility';
+import { getMatchingSourceFile } from './extension';
+import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';

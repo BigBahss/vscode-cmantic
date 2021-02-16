@@ -4,7 +4,8 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { getMatchingSourceFile, logger } from './extension';
+import { getMatchingSourceFile } from './extension';
+import { logger } from './logger';
 import { SourceFile } from './SourceFile';
 
 

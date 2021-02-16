@@ -13,13 +13,11 @@ import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
-import { Logger } from './logger';
+import { logger } from './logger';
 
 
 const disposables: vscode.Disposable[] = [];
 const headerSourceCache: Map<string, vscode.Uri> = new Map<string, vscode.Uri>();
-
-export const logger: Logger = new Logger();
 
 export function activate(context: vscode.ExtensionContext): void
 {
@@ -53,6 +51,8 @@ export function activate(context: vscode.ExtensionContext): void
     disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
     disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
     disposables.push(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
+
+    logger.logInfo('C-mantic extension activated.');
 
     vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
 }
@@ -165,11 +165,11 @@ function onDidDeleteFiles(event: vscode.FileDeleteEvent): void
 
 function onDidRenameFiles(event: vscode.FileRenameEvent): void
 {
-    event.files.forEach(uri => {
-        const matchingUri = headerSourceCache.get(uri.oldUri.toString());
+    event.files.forEach(file => {
+        const matchingUri = headerSourceCache.get(file.oldUri.toString());
         if (matchingUri) {
-            removeHeaderSourcePairFromCache(uri.oldUri, matchingUri);
-            addHeaderSourcePairToCache(uri.newUri, matchingUri);
+            removeHeaderSourcePairFromCache(file.oldUri, matchingUri);
+            addHeaderSourcePairToCache(file.newUri, matchingUri);
         }
     });
 }

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 
-
-export class Logger extends vscode.Disposable
+class Logger extends vscode.Disposable
 {
     private readonly output: vscode.OutputChannel;
 
@@ -44,3 +43,5 @@ export class Logger extends vscode.Disposable
         return `${(hours < 10 ? '0' : '') + hours}:${(minutes < 10 ? '0' : '') + minutes}:${(seconds < 10 ? '0' : '') + seconds}`;
     }
 }
+
+export const logger = new Logger();
