@@ -122,7 +122,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         addDefinitionInMatchingSourceFile.setCommand('cmantic.addDefinition');
         addDefinitionInCurrentFile.setCommand('cmantic.addDefinition');
         addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
-        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, matchingUri);
+        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri);
 
         if (declaration.isInline()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isInline);
