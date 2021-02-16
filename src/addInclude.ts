@@ -15,15 +15,16 @@ export async function addInclude(): Promise<void>
 
     const sourceDoc = new SourceDocument(editor.document);
     const newIncludePosition = sourceDoc.findPositionForNewInclude();
-    const eol = sourceDoc.endOfLine;
 
-    userInput.then(value => {
-        if (value?.match(/^\s*#\s*include\s*<.+>/)) {
-            editor.edit(edit => edit.insert(newIncludePosition.system, value + eol));
-        } else if (value?.match(/^\s*#\s*include\s*".+"/)) {
-            editor.edit(edit => edit.insert(newIncludePosition.project, value + eol));
-        } else if (value) {
-            logger.showInformationMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
+    return userInput.then(value => {
+        if (value !== undefined) {
+            if (/^\s*#\s*include\s*<.+>/.test(value)) {
+                editor.edit(edit => edit.insert(newIncludePosition.system, value + sourceDoc.endOfLine));
+            } else if (/^\s*#\s*include\s*".+"/.test(value)) {
+                editor.edit(edit => edit.insert(newIncludePosition.project, value + sourceDoc.endOfLine));
+            } else {
+                logger.showInformationMessage('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
+            }
         }
     });
 }

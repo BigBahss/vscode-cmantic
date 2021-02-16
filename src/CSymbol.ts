@@ -218,23 +218,22 @@ export class CSymbol extends SourceSymbol
 
     isDeletedOrDefaulted(): boolean
     {
-        return this.parsableText.match(/\s*=\s*(delete|default)\s*;?$/) !== null;
+        return /\s*=\s*(delete|default)\s*;?$/.test(this.parsableText);
     }
 
     isPureVirtual(): boolean
     {
-        return this.parsableLeadingText.match(/\bvirtual\b/) !== null
-                && this.parsableText.match(/\s*=\s*0\s*;?$/) !== null;
+        return /\bvirtual\b/.test(this.parsableLeadingText) && /\s*=\s*0\s*;?$/.test(this.parsableText);
     }
 
     isConstexpr(): boolean
     {
-        return this.parsableLeadingText.match(/\bconstexpr\b/) !== null;
+        return /\bconstexpr\b/.test(this.parsableLeadingText);
     }
 
     isInline(): boolean
     {
-        return this.parsableLeadingText.match(/\binline\b/) !== null;
+        return /\binline\b/.test(this.parsableLeadingText);
     }
 
     isPointer(): boolean
@@ -244,18 +243,18 @@ export class CSymbol extends SourceSymbol
 
     isConst(): boolean
     {
-        return util.maskAngleBrackets(this.parsableLeadingText).match(/\bconst\b/) !== null;
+        return /\bconst\b/.test(util.maskAngleBrackets(this.parsableLeadingText));
     }
 
     isTypedef(): boolean
     {
-        return this.mightBeTypedefOrTypeAlias() && this.parsableText.match(/\btypedef\b/) !== null;
+        return this.mightBeTypedefOrTypeAlias() && /\btypedef\b/.test(this.parsableText);
     }
 
     isTypeAlias(): boolean
     {
         return this.mightBeTypedefOrTypeAlias()
-                && this.parsableText.match(/\busing\b/) !== null && this.parsableText.includes('=');
+                && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
     }
 
     async isPrimitive(): Promise<boolean>
@@ -269,28 +268,28 @@ export class CSymbol extends SourceSymbol
             }
 
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, util.masker);
-            const match = type.match(re_scopeResolvedIdentifier);
-            if (match?.index !== undefined) {
-                return await this.resolveThisType(this.startOffset() + match.index);
+            const index = type.search(re_scopeResolvedIdentifier);
+            if (index !== -1) {
+                return await this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypedef()) {
             if (this.matchesPrimitiveType(this.parsableText)) {
                 return true;
-            } else if (this.parsableText.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+            } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
             } else if (!cfg.resolveTypes()) {
                 return false;
             }
 
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, util.masker);
-            const match = maskedText.match(re_scopeResolvedIdentifier);
-            if (match?.index !== undefined) {
-                return await this.resolveThisType(this.startOffset() + match.index);
+            const index = maskedText.search(re_scopeResolvedIdentifier);
+            if (index !== -1) {
+                return await this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypeAlias()) {
             if (this.matchesPrimitiveType(this.parsableText)) {
                 return true;
-            } else if (this.parsableText.match(/\b(struct|class|(<(>(?=>)|[^>])*>))\b/)) {
+            } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
             } else if (!cfg.resolveTypes()) {
                 return false;
@@ -302,9 +301,9 @@ export class CSymbol extends SourceSymbol
             }
 
             const type = this.parsableText.substring(indexOfEquals + 1);
-            const match = type.match(re_scopeResolvedIdentifier);
-            if (match?.index !== undefined) {
-                return await this.resolveThisType(this.startOffset() + match.index);
+            const index = type.search(re_scopeResolvedIdentifier);
+            if (index !== -1) {
+                return await this.resolveThisType(this.startOffset() + index);
             }
         }
 
@@ -468,8 +467,8 @@ export class CSymbol extends SourceSymbol
         const maskedText = util.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
-        const bodyStartIndex = maskedText.substring(nameEndIndex).match(/\s*{/)?.index;
-        if (bodyStartIndex === undefined) {
+        const bodyStartIndex = maskedText.substring(nameEndIndex).search(/\s*{/);
+        if (bodyStartIndex === -1) {
             return this.range.end;
         }
 
@@ -478,8 +477,8 @@ export class CSymbol extends SourceSymbol
         }
 
         // Get the start of the constructor's member initializer list, if one is present.
-        const initializerIndex = maskedText.substring(nameEndIndex, bodyStartIndex + nameEndIndex).match(/\s*:(?!:)/)?.index;
-        if (initializerIndex === undefined) {
+        const initializerIndex = maskedText.substring(nameEndIndex, bodyStartIndex + nameEndIndex).search(/\s*:(?!:)/);
+        if (initializerIndex === -1) {
             return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
         }
         return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
@@ -598,7 +597,7 @@ export class CSymbol extends SourceSymbol
 
     private matchesPrimitiveType(text: string): boolean
     {
-        return text.match(re_primitiveTypes) !== null && text.match(/[<>]/g) === null;
+        return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);
     }
 }
 
@@ -634,10 +633,10 @@ export class Getter implements Accessor
         const leadingText = memberVariable.leadingText();
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
-        const maskedLeadingText = leadingText.replace(re_blockComments, s => ' '.repeat(s.length));
-        this.isStatic = maskedLeadingText.match(/\bstatic\b/) !== null;
-        if (maskedLeadingText.includes('<')) {
-            const templateParamStart = maskedLeadingText.indexOf('<');
+        const parsableLeadingText = memberVariable.parsableLeadingText;
+        this.isStatic = /\bstatic\b/.test(parsableLeadingText);
+        if (parsableLeadingText.includes('<')) {
+            const templateParamStart = parsableLeadingText.indexOf('<');
             this.returnType = leadingText.substring(0, templateParamStart).replace(/\b(static|const|mutable)\s*/g, '')
                     + leadingText.substring(templateParamStart);
         } else {
@@ -681,7 +680,7 @@ export class Setter implements Accessor
         const setter = new Setter(memberVariable);
         const leadingText = memberVariable.leadingText();
         const type = leadingText.replace(/\b(static|mutable)\s*/g, '');
-        setter.isStatic = leadingText.match(/\bstatic\b/) !== null;
+        setter.isStatic = /\bstatic\b/.test(leadingText);
         setter.parameter = (!await memberVariable.isPrimitive() && !memberVariable.isPointer()
             ? 'const ' + type + '&'
             : type

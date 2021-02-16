@@ -75,33 +75,33 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
     {
         let offset: number | undefined;
         let maskedText = util.maskComments(this.getText());
+        maskedText = util.maskRawStringLiterals(maskedText);
         maskedText = util.maskQuotes(maskedText);
 
-        const pragmaOnceMatch = maskedText.match(/^\s*#\s*pragma\s+once\b/);
-        if (pragmaOnceMatch) {
-            offset = pragmaOnceMatch.index;
+        const pragmaOnceOffset = maskedText.search(/^\s*#\s*pragma\s+once\b/);
+        if (pragmaOnceOffset !== -1) {
+            offset = pragmaOnceOffset;
         }
 
         const headerGuardDefine = cfg.headerGuardDefine(path.basename(this.fileName));
         const re_headerGuardDefine = new RegExp(`^\\s*#\\s*define\\s+${headerGuardDefine}\\b`, 'm');
-        const defineMatch = maskedText.match(re_headerGuardDefine);
-        if (defineMatch) {
-            offset = defineMatch.index;
+        const defineOffset = maskedText.search(re_headerGuardDefine);
+        if (defineOffset !== -1) {
+            offset = defineOffset;
         }
 
         if (offset !== undefined) {
-            const positionOfHeaderGuard = this.positionAt(offset);
-            return new vscode.Position(positionOfHeaderGuard.line + 1, 0);
+            return new vscode.Position(this.positionAt(offset).line + 1, 0);
         }
     }
 
     positionAfterHeaderComment(): ProposedPosition
     {
         const maskedText = util.maskComments(this.getText(), false);
-        let match = maskedText.match(/\S/);
-        if (match?.index !== undefined) {
+        let offset = maskedText.search(/\S/);
+        if (offset !== -1) {
             // Return position before first non-comment text.
-            return new ProposedPosition(this.positionAt(match.index), { before: true });
+            return new ProposedPosition(this.positionAt(offset), { before: true });
         }
 
         // Return position after header comment when there is no non-comment text in the file.
@@ -253,7 +253,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         let largestProjectIncludeBlock: vscode.Range | undefined;
         for (let i = 0; i < this.lineCount; ++i) {
             const line = this.lineAt(i);
-            if (!line.text.match(/^\s*#\s*include\s*(<.+>)|(".+")/)) {
+            if (!/^\s*#\s*include\s*(<.+>)|(".+")/.test(line.text)) {
                 if (systemIncludeStart) {
                     largestSystemIncludeBlock = largestBlock(line, systemIncludeStart, largestSystemIncludeBlock);
                     systemIncludeStart = undefined;
@@ -261,7 +261,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
                     largestProjectIncludeBlock = largestBlock(line, projectIncludeStart, largestProjectIncludeBlock);
                     projectIncludeStart = undefined;
                 }
-            } else if (line.text.match(/<.+>/)) {
+            } else if (/<.+>/.test(line.text)) {
                 if (!systemIncludeStart) {
                     systemIncludeStart = line.range.start;
                 }
@@ -269,7 +269,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
                     largestProjectIncludeBlock = largestBlock(line, projectIncludeStart, largestProjectIncludeBlock);
                     projectIncludeStart = undefined;
                 }
-            } else if (line.text.match(/".+"/)) {
+            } else if (/".+"/.test(line.text)) {
                 if (!projectIncludeStart) {
                     projectIncludeStart = line.range.start;
                 }

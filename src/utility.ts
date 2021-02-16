@@ -109,11 +109,11 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position
 {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
-    const match = text.match(/(?<=^\s*);/);
-    if (match?.index === undefined) {
+    const index = text.search(/(?<=^\s*);/);
+    if (index === -1) {
         return position;
     }
-    return document.positionAt(document.offsetAt(position) + match.index + 1);
+    return document.positionAt(document.offsetAt(position) + index + 1);
 }
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp
@@ -130,7 +130,7 @@ export function firstCharToUpper(str: string): string
 
 export function is_snake_case(label: string): boolean
 {
-    return label.match(/[\w\d]_[\w\d]/) !== null;
+    return /[\w\d]_[\w\d]/.test(label);
 }
 
 export function masker(match: string): string { return ' '.repeat(match.length); }
