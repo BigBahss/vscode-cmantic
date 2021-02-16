@@ -92,15 +92,8 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined
     {
-        if (!results) {
-            return;
-        }
-
         const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
-        for (const result of results) {
-            const location = (result instanceof vscode.Location)
-                    ? result : new vscode.Location(result.targetUri, result.targetRange);
-
+        for (const location of util.makeLocationArray(results)) {
             if (!util.existsInWorkspace(location)) {
                 continue;
             }

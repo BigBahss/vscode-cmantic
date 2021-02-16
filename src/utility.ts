@@ -62,6 +62,22 @@ export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): 
     return vscode.workspace.asRelativePath(locationOrUri) !== locationOrUri.fsPath;
 }
 
+export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[]
+{
+    if (!input) {
+        return [];
+    }
+
+    const locations: vscode.Location[] = [];
+    for (const element of input) {
+        const location = (element instanceof vscode.Location) ?
+                element : new vscode.Location(element.targetUri, element.targetRange);
+        locations.push(location);
+    }
+
+    return locations;
+}
+
 export function indentation(options?: vscode.TextEditorOptions): string
 {
     if (!options) {

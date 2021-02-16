@@ -88,7 +88,7 @@ export class SourceFile
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
 
-        return this.makeLocationArray(definitionResults);
+        return util.makeLocationArray(definitionResults);
     }
 
     async findDeclarations(position: vscode.Position): Promise<vscode.Location[]>
@@ -96,7 +96,7 @@ export class SourceFile
         const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
 
-        return this.makeLocationArray(declarationResults);
+        return util.makeLocationArray(declarationResults);
     }
 
     async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined>
@@ -167,21 +167,5 @@ export class SourceFile
         }
 
         return false;
-    }
-
-    private makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[]
-    {
-        if (!input) {
-            return [];
-        }
-
-        const locations: vscode.Location[] = [];
-        for (const element of input) {
-            const location = (element instanceof vscode.Location) ?
-                    element : new vscode.Location(element.targetUri, element.targetRange);
-            locations.push(location);
-        }
-
-        return locations;
     }
 }
