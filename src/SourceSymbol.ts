@@ -76,24 +76,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
     {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, this.selectionRange.start);
-        if (!definitionResults) {
-            return;
-        }
-
-        const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
-        for (const result of definitionResults) {
-            const location = (result instanceof vscode.Location) ?
-                    result : new vscode.Location(result.targetUri, result.targetRange);
-
-            if (!util.existsInWorkspace(location)) {
-                continue;
-            }
-
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
-                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
-                return location;
-            }
-        }
+        return this.findMostLikelyResult(definitionResults);
     }
 
     /**
@@ -104,14 +87,19 @@ export class SourceSymbol extends vscode.DocumentSymbol
     {
         const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, this.selectionRange.start);
-        if (!declarationResults) {
+        return this.findMostLikelyResult(declarationResults);
+    }
+
+    private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined
+    {
+        if (!results) {
             return;
         }
 
         const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
-        for (const result of declarationResults) {
-            const location = (result instanceof vscode.Location) ?
-                    result : new vscode.Location(result.targetUri, result.targetRange);
+        for (const result of results) {
+            const location = (result instanceof vscode.Location)
+                    ? result : new vscode.Location(result.targetUri, result.targetRange);
 
             if (!util.existsInWorkspace(location)) {
                 continue;
