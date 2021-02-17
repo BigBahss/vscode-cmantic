@@ -201,25 +201,17 @@ export class SourceSymbol extends vscode.DocumentSymbol
      */
     baseName(): string
     {
-        let baseMemberName: string | undefined;
-        let match = /^_+[\w_][\w\d_]*_*$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^_+|_*$/g, '');
+        if (/^_+|_+$/.test(this.name)) {
+            return this.name.replace(/^_+|_+$/g, '');
         }
-        match = /^_*[\w_][\w\d_]*_+$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^_*|_+$/g, '');
+        if (/^m_[\w_][\w\d_]*$/.test(this.name)) {
+            return this.name.replace(/^m_/, '');
         }
-        match = /^m_[\w_][\w\d_]*$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^m_/, '');
-        }
-        match = /^s_[\w_][\w\d_]*$/.exec(this.name);
-        if (match && !baseMemberName) {
-            baseMemberName = this.name.replace(/^s_/, '');
+        if (/^s_[\w_][\w\d_]*$/.test(this.name)) {
+            return this.name.replace(/^s_/, '');
         }
 
-        return baseMemberName ? baseMemberName : this.name;
+        return this.name;
     }
 
     getterName(memberBaseName?: string): string
