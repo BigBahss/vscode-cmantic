@@ -214,6 +214,10 @@ export class SourceSymbol extends vscode.DocumentSymbol
         if (match && !baseMemberName) {
             baseMemberName = this.name.replace(/^m_/, '');
         }
+        match = /^s_[\w_][\w\d_]*$/.exec(this.name);
+        if (match && !baseMemberName) {
+            baseMemberName = this.name.replace(/^s_/, '');
+        }
 
         return baseMemberName ? baseMemberName : this.name;
     }
