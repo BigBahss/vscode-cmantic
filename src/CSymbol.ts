@@ -134,14 +134,27 @@ export class CSymbol extends SourceSymbol
         }
 
         const startOffset = this.startOffset();
-        let publicSpecifierOffset = /\bpublic\s*:/g.exec(this.parsableText)?.index;
 
-        if (publicSpecifierOffset === undefined) {
+        let parsableText = this.parsableText;
+        this.children.forEach(child => {
+            // Mask inner classes/structs to prevent matching access specifiers within them.
+            if (child.isClassOrStruct()) {
+                const subClassOrStruct = new CSymbol(child, this.document);
+                const relativeStartOffset = subClassOrStruct.startOffset() - startOffset;
+                const relativeEndOffset = subClassOrStruct.endOffset() - startOffset;
+                parsableText = parsableText.slice(0, relativeStartOffset)
+                        + ' '.repeat(relativeEndOffset - relativeStartOffset)
+                        + parsableText.slice(relativeEndOffset);
+            }
+        });
+
+        let publicSpecifierOffset = parsableText.search(/\bpublic\s*:/);
+        if (publicSpecifierOffset === -1) {
             return this.positionAfterLastChildOrUndefined();
         }
 
         let nextAccessSpecifierOffset: number | undefined;
-        for (const match of this.parsableText.matchAll(/(?<!\b(class|struct)\s+)\b[\w_][\w\d_]*\s*:(?!:)/g)) {
+        for (const match of parsableText.matchAll(/(?<!\b(class|struct)\s+)\b[\w_][\w\d_]*\s*:(?!:)/g)) {
             if (match.index === undefined) {
                 continue;
             }
