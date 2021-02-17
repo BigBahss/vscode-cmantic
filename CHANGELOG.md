@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Added
+- Added support for `s_` static member naming scheme when generating getters and setters.
+
 ## [0.4.0] - February 14, 2021
 ### Added
 - Added `cmantic.moveDefinitionIntoOrOutOfClass` command/code-action. Additionally, definitions within classes can be moved to a matching source file. (#7)
