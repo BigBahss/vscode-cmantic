@@ -25,8 +25,7 @@ export const failure = {
 };
 
 
-export async function addDefinitionInSourceFile(): Promise<void>
-{
+export async function addDefinitionInSourceFile(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.showErrorMessage(failure.noActiveTextEditor);
@@ -61,8 +60,7 @@ export async function addDefinitionInSourceFile(): Promise<void>
     await addDefinition(symbol, headerDoc, matchingUri);
 }
 
-export async function addDefinitionInCurrentFile(): Promise<void>
-{
+export async function addDefinitionInCurrentFile(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.showErrorMessage(failure.noActiveTextEditor);
@@ -165,8 +163,7 @@ async function constructFunctionSkeleton(
     return position.formatTextToInsert(functionSkeleton, targetDoc);
 }
 
-function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position
-{
+function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position {
     const lines = functionSkeleton.split('\n');
     for (let i = 0; i < lines.length; ++i) {
         if (lines[i].trimEnd().endsWith('{')) {

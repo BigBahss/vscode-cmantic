@@ -7,8 +7,7 @@ import * as util from './utility';
  * Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
  * Additionally, some properties are normalized for different language servers.
  */
-export class SourceSymbol extends vscode.DocumentSymbol
-{
+export class SourceSymbol extends vscode.DocumentSymbol {
     readonly uri: vscode.Uri;
     signature: string;
     parent?: SourceSymbol;
@@ -16,8 +15,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
 
     get location(): vscode.Location { return new vscode.Location(this.uri, this.range); }
 
-    constructor(docSymbol: vscode.DocumentSymbol, uri: vscode.Uri, parent?: SourceSymbol)
-    {
+    constructor(docSymbol: vscode.DocumentSymbol, uri: vscode.Uri, parent?: SourceSymbol) {
         super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
         this.uri = uri;
         this.signature = docSymbol.name;
@@ -59,8 +57,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         this.children = convertedChildren;
     }
 
-    findChild(compareFn: (child: SourceSymbol) => boolean): SourceSymbol | undefined
-    {
+    findChild(compareFn: (child: SourceSymbol) => boolean): SourceSymbol | undefined {
         for (const child of this.children) {
             if (compareFn(child)) {
                 return child;
@@ -72,8 +69,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
      * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
      * Returns undefined if the most likely definition is this SourceSymbol.
      */
-    async findDefinition(): Promise<vscode.Location | undefined>
-    {
+    async findDefinition(): Promise<vscode.Location | undefined> {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, this.selectionRange.start);
         return this.findMostLikelyResult(definitionResults);
@@ -83,15 +79,13 @@ export class SourceSymbol extends vscode.DocumentSymbol
      * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
      * Returns undefined if the most likely declaration is this SourceSymbol.
      */
-    async findDeclaration(): Promise<vscode.Location | undefined>
-    {
+    async findDeclaration(): Promise<vscode.Location | undefined> {
         const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, this.selectionRange.start);
         return this.findMostLikelyResult(declarationResults);
     }
 
-    private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined
-    {
+    private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined {
         const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
         for (const location of util.makeLocationArray(results)) {
             if (!util.existsInWorkspace(location)) {
@@ -109,8 +103,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
      * Returns an array of SourceSymbol's starting with the top-most ancestor and ending with this.parent.
      * Returns an empty array if this is a top-level symbol (parent is undefined).
      */
-    scopes(): SourceSymbol[]
-    {
+    scopes(): SourceSymbol[] {
         const scopes: SourceSymbol[] = [];
         let symbol: SourceSymbol = this;
         while (symbol.parent) {
@@ -120,8 +113,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return scopes.reverse();
     }
 
-    async scopeString(target: SourceFile, position: vscode.Position): Promise<string>
-    {
+    async scopeString(target: SourceFile, position: vscode.Position): Promise<string> {
         let scopeString = '';
         for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
@@ -134,18 +126,15 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return scopeString;
     }
 
-    isMemberVariable(): boolean
-    {
+    isMemberVariable(): boolean {
         return this.kind === vscode.SymbolKind.Field && this.parent?.isClassOrStruct() === true;
     }
 
-    isVariable(): boolean
-    {
+    isVariable(): boolean {
         return this.kind === vscode.SymbolKind.Variable || this.isMemberVariable();
     }
 
-    isFunction(): boolean
-    {
+    isFunction(): boolean {
         switch (this.kind) {
         case vscode.SymbolKind.Operator:
         case vscode.SymbolKind.Method:
@@ -157,8 +146,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    isConstructor(): boolean
-    {
+    isConstructor(): boolean {
         switch (this.kind) {
         case vscode.SymbolKind.Constructor:
             return true;
@@ -169,8 +157,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    isDestructor(): boolean
-    {
+    isDestructor(): boolean {
         switch (this.kind) {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
@@ -180,8 +167,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         }
     }
 
-    isClassOrStruct(): boolean
-    {
+    isClassOrStruct(): boolean {
         return this.kind === vscode.SymbolKind.Class || this.kind === vscode.SymbolKind.Struct;
     }
 
@@ -189,8 +175,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
      * This is a fuzzy test to see if the symbol might be a typedef or type-alias. This tells us that it
      * is worth it to open the document cooresponding to this.uri to resolve the typedef/type-alias.
      */
-    mightBeTypedefOrTypeAlias(): boolean
-    {
+    mightBeTypedefOrTypeAlias(): boolean {
         return this.kind === vscode.SymbolKind.Interface    // cpptools
             || this.kind === vscode.SymbolKind.Class        // clangd
             || this.kind === vscode.SymbolKind.Property;    // ccls
@@ -199,8 +184,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
     /**
      * Checks for common naming schemes of private members and returns the base name.
      */
-    baseName(): string
-    {
+    baseName(): string {
         if (/^_+|_+$/.test(this.name)) {
             return this.name.replace(/^_+|_+$/g, '');
         }
@@ -214,8 +198,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return this.name;
     }
 
-    getterName(memberBaseName?: string): string
-    {
+    getterName(memberBaseName?: string): string {
         if (!this.isMemberVariable()) {
             return '';
         }
@@ -233,8 +216,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return memberBaseName;
     }
 
-    setterName(memberBaseName?: string): string
-    {
+    setterName(memberBaseName?: string): string {
         if (!this.isMemberVariable()) {
             return '';
         }
@@ -249,8 +231,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return 'set' + util.firstCharToUpper(memberBaseName);
     }
 
-    findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
-    {
+    findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {
         if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
             return;
         }
@@ -260,8 +241,7 @@ export class SourceSymbol extends vscode.DocumentSymbol
         return this.findChild(child => child.name === getterName);
     }
 
-    findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined
-    {
+    findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {
         if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
             return;
         }

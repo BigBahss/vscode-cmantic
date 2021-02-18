@@ -162,8 +162,7 @@ export async function moveDefinitionIntoOrOutOfClass(
     return false;
 }
 
-async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSymbol): Promise<ProposedPosition>
-{
+async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSymbol): Promise<ProposedPosition> {
     if (!declaration) {
         return targetDoc.findPositionForNewSymbol();
     }
@@ -172,8 +171,7 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
     return await declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
 }
 
-function getDeletionRange(definition: CSymbol): vscode.Range
-{
+function getDeletionRange(definition: CSymbol): vscode.Range {
     let deletionRange = definition.getRangeWithLeadingComment();
     if (definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
         deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.start.line - 1).range);

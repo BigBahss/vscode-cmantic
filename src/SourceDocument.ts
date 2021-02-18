@@ -10,19 +10,16 @@ import { ProposedPosition } from './ProposedPosition';
 /**
  * Represents a C/C++ source file.
  */
-export class SourceDocument extends SourceFile implements vscode.TextDocument
-{
+export class SourceDocument extends SourceFile implements vscode.TextDocument {
     private readonly doc: vscode.TextDocument;
 
-    constructor(document: vscode.TextDocument, sourceFile?: SourceFile)
-    {
+    constructor(document: vscode.TextDocument, sourceFile?: SourceFile) {
         super(document.uri);
         this.doc = document;
         this.symbols = sourceFile?.symbols;
     }
 
-    static async open(uri: vscode.Uri): Promise<SourceDocument>
-    {
+    static async open(uri: vscode.Uri): Promise<SourceDocument> {
         const document = await vscode.workspace.openTextDocument(uri);
         return new SourceDocument(document);
     }
@@ -46,8 +43,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
 
     get endOfLine(): string { return util.endOfLine(this); }
 
-    async getSymbol(position: vscode.Position): Promise<CSymbol | undefined>
-    {
+    async getSymbol(position: vscode.Position): Promise<CSymbol | undefined> {
         const sourceSymbol = await super.getSymbol(position);
         if (!sourceSymbol) {
             return;
@@ -56,8 +52,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         return new CSymbol(sourceSymbol, this);
     }
 
-    async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined>
-    {
+    async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined> {
         const sourceSymbol = await super.findMatchingSymbol(target);
         if (!sourceSymbol) {
             return;
@@ -66,13 +61,11 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         return new CSymbol(sourceSymbol, this);
     }
 
-    hasHeaderGuard(): boolean
-    {
+    hasHeaderGuard(): boolean {
         return this.positionAfterHeaderGuard() !== undefined;
     }
 
-    positionAfterHeaderGuard(): vscode.Position | undefined
-    {
+    positionAfterHeaderGuard(): vscode.Position | undefined {
         let offset: number | undefined;
         let maskedText = util.maskComments(this.getText());
         maskedText = util.maskRawStringLiterals(maskedText);
@@ -95,8 +88,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         }
     }
 
-    positionAfterHeaderComment(): ProposedPosition
-    {
+    positionAfterHeaderComment(): ProposedPosition {
         const maskedText = util.maskComments(this.getText(), false);
         let offset = maskedText.search(/\S/);
         if (offset !== -1) {
@@ -237,8 +229,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
     /**
      * Returns the best positions to place new includes (system and project includes).
      */
-    findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position }
-    {
+    findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position } {
         // TODO: Clean up this mess.
         function largestBlock (
             line: vscode.TextLine, start: vscode.Position, largest: vscode.Range | undefined
@@ -309,8 +300,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
     /**
      * Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
      */
-    async findPositionForNewSymbol(): Promise<ProposedPosition>
-    {
+    async findPositionForNewSymbol(): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
@@ -322,8 +312,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument
         return util.positionAfterLastNonEmptyLine(this);
     }
 
-    private getEndOfStatement(position: vscode.Position): vscode.Position
-    {
+    private getEndOfStatement(position: vscode.Position): vscode.Position {
         return util.getEndOfStatement(this, position);
     }
 }

@@ -1,11 +1,9 @@
 import * as vscode from 'vscode';
 
-class Logger extends vscode.Disposable
-{
+class Logger extends vscode.Disposable {
     private readonly output: vscode.OutputChannel;
 
-    constructor()
-    {
+    constructor() {
         super(() => this.output.dispose());
         this.output = vscode.window.createOutputChannel('C-mantic');
     }
@@ -16,26 +14,22 @@ class Logger extends vscode.Disposable
 
     logError(message: string): void { this.output.appendLine(`[${this.getTimeString()} Error] ${message}`); }
 
-    showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined>
-    {
+    showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined> {
         this.logInfo(message);
         return vscode.window.showInformationMessage(message, ...items);
     }
 
-    showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined>
-    {
+    showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined> {
         this.logWarn(message);
         return vscode.window.showWarningMessage(message, ...items);
     }
 
-    showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined>
-    {
+    showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined> {
         this.logError(message);
         return vscode.window.showErrorMessage(message, ...items);
     }
 
-    private getTimeString(): string
-    {
+    private getTimeString(): string {
         const date = new Date();
         const hours = date.getHours();
         const minutes = date.getMinutes();

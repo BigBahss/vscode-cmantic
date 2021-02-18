@@ -17,8 +17,7 @@ export const failure = {
 };
 
 
-export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined>
-{
+export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined> {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
         logger.showErrorMessage(failure.noActiveTextEditor);
@@ -55,8 +54,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     });
 
     const folder = await vscode.window.showQuickPick(
-            sourceFolders,
-            { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
+            sourceFolders, { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
     if (!folder) {
         return;
     }
@@ -64,8 +62,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     let extension = await getSourceFileExtension(folder.uri);
     if (!extension) {
         extension = await vscode.window.showQuickPick(
-                cfg.sourceExtensions(),
-                { placeHolder: 'Select an extension for the new source file' });
+                cfg.sourceExtensions(), { placeHolder: 'Select an extension for the new source file' });
         if (!extension) {
             return;
         }
@@ -94,8 +91,7 @@ interface FolderItem extends vscode.QuickPickItem {
 }
 
 // Returns an array of FolderItem's that contain C/C++ source files.
-async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
-{
+async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(relativeUri);
     let directories: FolderItem[] = [];
     let foundSourceFile = false;
@@ -116,8 +112,7 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
 
 // Reads a directory containing source files and returns the extension of those files.
 // Returns undefined if more than one kind of source file extension is found.
-async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined>
-{
+async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
     const sourceExtensions = cfg.sourceExtensions();
     let sourceExtension: string | undefined;
@@ -137,8 +132,7 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
     return sourceExtension;
 }
 
-async function getNamespaceText(headerDoc: SourceDocument)
-{
+async function getNamespaceText(headerDoc: SourceDocument) {
     if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
         return '';
     }
@@ -155,8 +149,7 @@ async function getNamespaceText(headerDoc: SourceDocument)
     return eol + namespacesText + eol;
 }
 
-function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: SourceDocument): string
-{
+function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: SourceDocument): string {
     const curlyFormat = cfg.namespaceCurlyBraceFormat();
     if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
         const namespace = new CSymbol(namespaces[0], headerDoc);
@@ -170,8 +163,7 @@ function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: Sourc
     return ' ';
 }
 
-async function getNamespaceIndentation(headerDoc: SourceDocument): Promise<string>
-{
+async function getNamespaceIndentation(headerDoc: SourceDocument): Promise<string> {
     switch (cfg.indentNamespaceBody()) {
     case cfg.NamespaceIndentation.Always:
         return util.indentation();

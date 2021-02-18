@@ -9,8 +9,7 @@ import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile } from './extension';
 
 
-export class CodeAction implements vscode.CodeAction
-{
+export class CodeAction implements vscode.CodeAction {
     title: string;
     edit?: vscode.WorkspaceEdit;
     diagnostics?: vscode.Diagnostic[];
@@ -19,8 +18,7 @@ export class CodeAction implements vscode.CodeAction
     isPreferred?: boolean;
     disabled?: { readonly reason: string };
 
-    constructor(kind: vscode.CodeActionKind, title: string, command?: string)
-    {
+    constructor(kind: vscode.CodeActionKind, title: string, command?: string) {
         this.kind = kind;
         this.title = title;
         if (command) {
@@ -28,16 +26,14 @@ export class CodeAction implements vscode.CodeAction
         }
     }
 
-    setTitle(title: string): void
-    {
+    setTitle(title: string): void {
         this.title = title;
         if (this.command) {
             this.command.title = title;
         }
     }
 
-    setCommand(command: string): void
-    {
+    setCommand(command: string): void {
         if (!this.command) {
             this.command = { title: this.title, command: command };
         } else {
@@ -45,8 +41,7 @@ export class CodeAction implements vscode.CodeAction
         }
     }
 
-    setArguments(...args: any[]): void
-    {
+    setArguments(...args: any[]): void {
         if (this.command) {
             this.command.arguments = args;
         }
@@ -55,24 +50,19 @@ export class CodeAction implements vscode.CodeAction
     disable(reason: string): void { this.disabled = { reason: reason }; }
 }
 
-export class RefactorAction extends CodeAction
-{
-    constructor(title: string, command?: string)
-    {
+export class RefactorAction extends CodeAction {
+    constructor(title: string, command?: string) {
         super(vscode.CodeActionKind.Refactor, title, command);
     }
 }
 
-export class SourceAction extends CodeAction
-{
-    constructor(title: string, command?: string)
-    {
+export class SourceAction extends CodeAction {
+    constructor(title: string, command?: string) {
         super(vscode.CodeActionKind.Source, title, command);
     }
 }
 
-export class CodeActionProvider implements vscode.CodeActionProvider
-{
+export class CodeActionProvider implements vscode.CodeActionProvider {
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
@@ -276,8 +266,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
         return [addHeaderGuard, addInclude, createMatchingSourceFile];
     }
 
-    private formatPathToDisplay(uri: vscode.Uri): string
-    {
+    private formatPathToDisplay(uri: vscode.Uri): string {
         const relativePath = vscode.workspace.asRelativePath(uri);
         // Arbitrary limit, as to not display a path that's running all the way across the screen.
         if (relativePath.length > 60) {

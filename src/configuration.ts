@@ -40,23 +40,19 @@ const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
 
-function configuration(): vscode.WorkspaceConfiguration
-{
+function configuration(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration('C_mantic');
 }
 
-export function headerExtensions(): string[]
-{
+export function headerExtensions(): string[] {
     return configuration().get<string[]>('extensions.headerFiles', defaultHeaderExtensions);
 }
 
-export function sourceExtensions(): string[]
-{
+export function sourceExtensions(): string[] {
     return configuration().get<string[]>('extensions.sourceFiles', defaultSourceExtensions);
 }
 
-export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat
-{
+export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat {
     const format = configuration().get<string>(languageId + '.curlyBraceFormat.function');
     switch (format) {
     case 'New line':
@@ -70,8 +66,7 @@ export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat
     }
 }
 
-export function namespaceCurlyBraceFormat(): CurlyBraceFormat
-{
+export function namespaceCurlyBraceFormat(): CurlyBraceFormat {
     const format = configuration().get<string>('cpp.curlyBraceFormat.namespace');
     switch (format) {
     case 'Auto':
@@ -85,8 +80,7 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat
     }
 }
 
-export function indentNamespaceBody(): NamespaceIndentation
-{
+export function indentNamespaceBody(): NamespaceIndentation {
     const indent = configuration().get<string>('cpp.indentation.namespace');
     switch (indent) {
     case 'Auto':
@@ -100,13 +94,11 @@ export function indentNamespaceBody(): NamespaceIndentation
     }
 }
 
-export function shouldGenerateNamespaces(): boolean
-{
+export function shouldGenerateNamespaces(): boolean {
     return configuration().get<boolean>('cpp.generateNamespaces', defaultGenerateNamespaces);
 }
 
-export function headerGuardStyle(): HeaderGuardStyle
-{
+export function headerGuardStyle(): HeaderGuardStyle {
     const style = configuration().get<string>('headerGuard.style');
     switch (style) {
     case 'Add both':
@@ -119,15 +111,13 @@ export function headerGuardStyle(): HeaderGuardStyle
     }
 }
 
-export function headerGuardDefineFormat(): string
-{
+export function headerGuardDefineFormat(): string {
     return configuration().get<string>('headerGuard.defineFormat', defaultHeaderGuardDefineFormat);
 }
 
 const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
 
-export function headerGuardDefine(fileName: string): string
-{
+export function headerGuardDefine(fileName: string): string {
     const FILE_NAME_EXT = fileName.toUpperCase();
     const FILE_NAME = util.fileNameBase(fileName).toUpperCase();
     return headerGuardDefineFormat()
@@ -136,8 +126,7 @@ export function headerGuardDefine(fileName: string): string
             .replace(re_charactersNotAllowedInIdentifiers, '_');
 }
 
-export function getterDefinitionLocation(): AccessorDefinitionLocation
-{
+export function getterDefinitionLocation(): AccessorDefinitionLocation {
     const location = configuration().get<string>('cpp.accessor.getterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
@@ -151,8 +140,7 @@ export function getterDefinitionLocation(): AccessorDefinitionLocation
     }
 }
 
-export function setterDefinitionLocation(): AccessorDefinitionLocation
-{
+export function setterDefinitionLocation(): AccessorDefinitionLocation {
     const location = configuration().get<string>('cpp.accessor.setterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
@@ -166,17 +154,14 @@ export function setterDefinitionLocation(): AccessorDefinitionLocation
     }
 }
 
-export function resolveTypes(): boolean
-{
+export function resolveTypes(): boolean {
     return configuration().get<boolean>('cpp.resolveTypes', defaultResolveTypes);
 }
 
-export function revealNewDefinition(): boolean
-{
+export function revealNewDefinition(): boolean {
     return configuration().get<boolean>('revealNewDefinition', defaultRevealNewDefinition);
 }
 
-export function alwaysMoveComments(): boolean
-{
+export function alwaysMoveComments(): boolean {
     return configuration().get<boolean>('alwaysMoveComments', defaultAlwaysMoveComments);
 }

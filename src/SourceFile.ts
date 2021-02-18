@@ -8,21 +8,18 @@ import { SourceDocument } from './SourceDocument';
 /**
  * Represents a C/C++ source file.
  */
-export class SourceFile
-{
+export class SourceFile {
     readonly uri: vscode.Uri;
     symbols?: SourceSymbol[];
 
-    constructor(uri: vscode.Uri)
-    {
+    constructor(uri: vscode.Uri) {
         this.uri = uri;
     }
 
     /**
      * Effectively promotes this SourceFile to a SourceDocument by opening the cooresponding TextDocument.
      */
-    async openDocument(): Promise<SourceDocument>
-    {
+    async openDocument(): Promise<SourceDocument> {
         const document = await vscode.workspace.openTextDocument(this.uri);
         return new SourceDocument(document, this);
     }
@@ -34,8 +31,7 @@ export class SourceFile
      * SourceSymbols to update the symbols property. Returns a reference to the new symbols.
      * Methods that use the symbols property will call this automatically if needed.
      */
-    async executeSourceSymbolProvider(): Promise<SourceSymbol[]>
-    {
+    async executeSourceSymbolProvider(): Promise<SourceSymbol[]> {
         const documentSymbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[]>(
                 'vscode.executeDocumentSymbolProvider', this.uri);
         if (!documentSymbols) {
@@ -54,8 +50,7 @@ export class SourceFile
         return this.symbols;
     }
 
-    async getSymbol(position: vscode.Position): Promise<SourceSymbol | undefined>
-    {
+    async getSymbol(position: vscode.Position): Promise<SourceSymbol | undefined> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
@@ -77,30 +72,26 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined>
-    {
+    static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined> {
         const sourceFile = new SourceFile(location.uri);
         return await sourceFile.getSymbol(location.range.start);
     }
 
-    async findDefintions(position: vscode.Position): Promise<vscode.Location[]>
-    {
+    async findDefintions(position: vscode.Position): Promise<vscode.Location[]> {
         const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
 
         return util.makeLocationArray(definitionResults);
     }
 
-    async findDeclarations(position: vscode.Position): Promise<vscode.Location[]>
-    {
+    async findDeclarations(position: vscode.Position): Promise<vscode.Location[]> {
         const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
 
         return util.makeLocationArray(declarationResults);
     }
 
-    async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined>
-    {
+    async findMatchingSymbol(target: SourceSymbol): Promise<SourceSymbol | undefined> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
@@ -123,16 +114,14 @@ export class SourceFile
 
     isHeader(): boolean { return SourceFile.isHeader(this.uri); }
 
-    static isHeader(uri: vscode.Uri): boolean
-    {
+    static isHeader(uri: vscode.Uri): boolean {
         return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
     }
 
     /**
      * Returns a SourceSymbol tree of just the namespaces in this SourceFile.
      */
-    async namespaces(): Promise<SourceSymbol[]>
-    {
+    async namespaces(): Promise<SourceSymbol[]> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
@@ -152,8 +141,7 @@ export class SourceFile
         return searchSymbolTree(this.symbols);
     }
 
-    async isNamespaceBodyIndented(): Promise<boolean>
-    {
+    async isNamespaceBodyIndented(): Promise<boolean> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }

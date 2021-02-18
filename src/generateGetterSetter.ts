@@ -33,18 +33,15 @@ enum AccessorType {
 }
 
 
-export async function generateGetterSetter(): Promise<void>
-{
+export async function generateGetterSetter(): Promise<void> {
     await getCurrentSymbolAndCall(generateGetterSetterFor);
 }
 
-export async function generateGetter(): Promise<void>
-{
+export async function generateGetter(): Promise<void> {
     await getCurrentSymbolAndCall(generateGetterFor);
 }
 
-export async function generateSetter(): Promise<void>
-{
+export async function generateSetter(): Promise<void> {
     await getCurrentSymbolAndCall(generateSetterFor);
 }
 
@@ -75,8 +72,7 @@ async function getCurrentSymbolAndCall(
     await callback(symbol, sourceDoc);
 }
 
-export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
-{
+export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void> {
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
 
@@ -119,8 +115,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
-export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
-{
+export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void> {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
         logger.showInformationMessage(failure.getterExists);
@@ -138,8 +133,7 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
-export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void>
-{
+export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void> {
     if (symbol.isConst()) {
         logger.showInformationMessage(failure.isConst);
         return;

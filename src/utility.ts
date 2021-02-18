@@ -8,8 +8,7 @@ import { logger } from './logger';
 /**
  * Returns the file extension without the dot.
  */
-export function fileExtension(fsPath: string): string
-{
+export function fileExtension(fsPath: string): string {
     const extension = path.extname(fsPath);
     if (extension.length > 0) {
         return extension.substring(1);
@@ -20,16 +19,14 @@ export function fileExtension(fsPath: string): string
 /**
  * Strips the directory and extension from a file name.
  */
-export function fileNameBase(fsPath: string): string
-{
+export function fileNameBase(fsPath: string): string {
     return path.basename(fsPath, path.extname(fsPath));
 }
 
 /**
  * Returns the number of different directories between directoryPath_a and directoryPath_b.
  */
-export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number
-{
+export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number {
     const a_segments = directoryPath_a.split(path.sep);
     const b_segments = directoryPath_b.split(path.sep);
     const minSegments = Math.min(a_segments.length, b_segments.length);
@@ -54,16 +51,14 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (b_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
-export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean
-{
+export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean {
     if (locationOrUri instanceof vscode.Location) {
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;
     }
     return vscode.workspace.asRelativePath(locationOrUri) !== locationOrUri.fsPath;
 }
 
-export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[]
-{
+export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
     if (!input) {
         return [];
     }
@@ -78,8 +73,7 @@ export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLin
     return locations;
 }
 
-export function indentation(options?: vscode.TextEditorOptions): string
-{
+export function indentation(options?: vscode.TextEditorOptions): string {
     if (!options) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
@@ -93,13 +87,11 @@ export function indentation(options?: vscode.TextEditorOptions): string
     return '\t';
 }
 
-export function lineCount(text: string): number
-{
+export function lineCount(text: string): number {
     return (text.endsWith('\n')) ? text.split('\n').length - 1 : text.split('\n').length;
 }
 
-export function endOfLine(document: vscode.TextDocument): string
-{
+export function endOfLine(document: vscode.TextDocument): string {
     switch (document.eol) {
     case vscode.EndOfLine.CRLF:
         return '\r\n';
@@ -109,8 +101,7 @@ export function endOfLine(document: vscode.TextDocument): string
     }
 }
 
-export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): ProposedPosition
-{
+export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): ProposedPosition {
     for (let i = document.lineCount - 1; i >= 0; --i) {
         if (!document.lineAt(i).isEmptyOrWhitespace) {
             return new ProposedPosition(document.lineAt(i).range.end, { after: true });
@@ -122,8 +113,7 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 /**
  * DocumentSymbol ranges don't always include the final semi-colon.
  */
-export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position
-{
+export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
     const index = text.search(/(?<=^\s*);/);
     if (index === -1) {
@@ -132,20 +122,17 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
     return document.positionAt(document.offsetAt(position) + index + 1);
 }
 
-export function getIndentationRegExp(symbol: CSymbol): RegExp
-{
+export function getIndentationRegExp(symbol: CSymbol): RegExp {
     const line = symbol.document.lineAt(symbol.getTrueStart());
     const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     return new RegExp('^' + indentation, 'gm');
 }
 
-export function firstCharToUpper(str: string): string
-{
+export function firstCharToUpper(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-export function is_snake_case(label: string): boolean
-{
+export function is_snake_case(label: string): boolean {
     return /[\w\d]_[\w\d]/.test(label);
 }
 
@@ -155,8 +142,7 @@ export function masker(match: string): string { return ' '.repeat(match.length);
  * Performs a balanced mask of text between left and right, accounting for depth.
  * Should only be used with single characters.
  */
-function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean): string
-{
+function maskBalanced(text: string, left: string, right: string, keepEnclosingChars: boolean): string {
     try {
         xregexp.matchRecursive(text, left, right, 'gm', {
             valueNames: ['outer', 'left', 'inner', 'right'],
@@ -189,8 +175,7 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
     }
 }
 
-export function maskComments(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskComments(text: string, keepEnclosingChars: boolean = true): string {
     if (keepEnclosingChars) {
         text = text.replace(/(?<=\/\/).*/gm, masker);
         text = text.replace(/(?<=\/\*)(\*(?!\/)|[^*])*(?=\*\/)/gm, masker);
@@ -201,16 +186,14 @@ export function maskComments(text: string, keepEnclosingChars: boolean = true): 
     return text;
 }
 
-export function maskRawStringLiterals(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskRawStringLiterals(text: string, keepEnclosingChars: boolean = true): string {
     if (keepEnclosingChars) {
         return text.replace(/(?<=R")(?<delimiter>.*)\(.*\)\k<delimiter>(?=")/gs, masker);
     }
     return text.replace(/R"(?<delimiter>.*)\(.*\)\k<delimiter>"/gs, masker);
 }
 
-export function maskQuotes(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskQuotes(text: string, keepEnclosingChars: boolean = true): string {
     if (keepEnclosingChars) {
         text = text.replace(/(?<=').*(?=')(?<!\\)/g, masker);
         text = text.replace(/(?<=").*(?=")(?<!\\)/g, masker);
@@ -221,27 +204,22 @@ export function maskQuotes(text: string, keepEnclosingChars: boolean = true): st
     return text;
 }
 
-export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
 };
 
-export function maskBraces(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskBraces(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '{', '}', keepEnclosingChars);
 }
 
-export function maskBrackets(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskBrackets(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\[', '\\]', keepEnclosingChars);
 }
 
-export function maskAngleBrackets(text: string, keepEnclosingChars: boolean = true): string
-{
+export function maskAngleBrackets(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\<', '\\>', keepEnclosingChars);
 }
 
-export function maskComparisonOperators(text: string): string
-{
+export function maskComparisonOperators(text: string): string {
     return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }

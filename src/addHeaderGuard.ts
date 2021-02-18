@@ -12,8 +12,7 @@ export const failure = {
 };
 
 
-export async function addHeaderGuard(): Promise<void>
-{
+export async function addHeaderGuard(): Promise<void> {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
         logger.showErrorMessage(failure.noActiveTextEditor);

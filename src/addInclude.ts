@@ -3,8 +3,7 @@ import { SourceDocument } from './SourceDocument';
 import { logger } from './logger';
 
 
-export async function addInclude(): Promise<void>
-{
+export async function addInclude(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.showErrorMessage('No active text editor detected.');

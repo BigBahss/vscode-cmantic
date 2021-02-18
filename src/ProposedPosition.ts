@@ -10,12 +10,10 @@ export interface PositionOptions {
     emptyScope?: boolean;   // Signals that the position is in an empty scope and may need to be indented.
 }
 
-export class ProposedPosition extends Position
-{
+export class ProposedPosition extends Position {
     options: PositionOptions;
 
-    constructor(position?: Position, options?: PositionOptions)
-    {
+    constructor(position?: Position, options?: PositionOptions) {
         if (position) {
             super(position.line, position.character);
         } else {
@@ -29,8 +27,7 @@ export class ProposedPosition extends Position
         }
     }
 
-    formatTextToInsert(insertText: string, document: TextDocument): string
-    {
+    formatTextToInsert(insertText: string, document: TextDocument): string {
         // Indent text to match the relative position.
         const line = this.options.relativeTo ? document.lineAt(this.options.relativeTo.start) : document.lineAt(this);
         const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
