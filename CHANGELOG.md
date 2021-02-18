@@ -5,6 +5,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added support for `s_` static member naming scheme when generating getters and setters.
 
+### Changed
+- Code-actions for generating getters and setters will now only be suggested when you select the name of the member variable.
+
 ### Fixed
 - Fixed a bug where classes/structs defined within a class/struct could affect the placement of getters and setters.
 

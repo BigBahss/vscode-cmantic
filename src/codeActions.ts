@@ -104,7 +104,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
         } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(rangeOrSelection.start)) {
             return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (symbol?.isMemberVariable()) {
+        } else if (symbol?.isMemberVariable() && symbol.selectionRange.contains(rangeOrSelection.start)) {
             return await this.getMemberVariableRefactorings(symbol, sourceDoc);
         }
         return [];
