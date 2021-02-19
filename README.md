@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img src="./images/cmantic.png" width="128">
+    <img src="./images/cmantic-small.png" width="128">
     <br>
     <b>C-mantic</b>
 </h1>
