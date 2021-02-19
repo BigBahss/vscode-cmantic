@@ -50,22 +50,22 @@ async function getCurrentSymbolAndCall(
 ): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        logger.showErrorMessage(failure.noActiveTextEditor);
+        logger.alertError(failure.noActiveTextEditor);
         return;
     }
 
     const sourceDoc = new SourceDocument(editor.document);
     if (sourceDoc.languageId !== 'cpp') {
-        logger.showWarningMessage(failure.notCpp);
+        logger.alertWarning(failure.notCpp);
         return;
     } else if (!sourceDoc.isHeader()) {
-        logger.showWarningMessage(failure.notHeaderFile);
+        logger.alertWarning(failure.notHeaderFile);
         return;
     }
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isMemberVariable()) {
-        logger.showWarningMessage(failure.noMemberVariable);
+        logger.alertWarning(failure.noMemberVariable);
         return;
     }
 
@@ -78,28 +78,28 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 
     if (symbol.isConst()) {
         if (getter) {
-            logger.showInformationMessage(failure.isConst + ' ' + failure.getterExists);
+            logger.alertInformation(failure.isConst + ' ' + failure.getterExists);
             return;
         }
-        logger.showInformationMessage(failure.isConst + ' Only generating a getter member function.');
+        logger.alertInformation(failure.isConst + ' Only generating a getter member function.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
-        logger.showInformationMessage(failure.getterExists + ' Only generating a setter member function.');
+        logger.alertInformation(failure.getterExists + ' Only generating a setter member function.');
         await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
-        logger.showInformationMessage(failure.setterExists + ' Only generating a getter member function.');
+        logger.alertInformation(failure.setterExists + ' Only generating a getter member function.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {
-        logger.showInformationMessage(failure.getterAndSetterExists);
+        logger.alertInformation(failure.getterAndSetterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Both);
     if (!position) {
-        logger.showErrorMessage(failure.positionNotFound);
+        logger.alertError(failure.positionNotFound);
         return;
     }
 
@@ -118,13 +118,13 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void> {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
-        logger.showInformationMessage(failure.getterExists);
+        logger.alertInformation(failure.getterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Getter);
     if (!position) {
-        logger.showErrorMessage(failure.positionNotFound);
+        logger.alertError(failure.positionNotFound);
         return;
     }
 
@@ -135,19 +135,19 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
 
 export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<void> {
     if (symbol.isConst()) {
-        logger.showInformationMessage(failure.isConst);
+        logger.alertInformation(failure.isConst);
         return;
     }
 
     const setter = symbol.parent?.findSetterFor(symbol);
     if (setter) {
-        logger.showInformationMessage(failure.setterExists);
+        logger.alertInformation(failure.setterExists);
         return;
     }
 
     const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Setter);
     if (!position) {
-        logger.showErrorMessage(failure.positionNotFound);
+        logger.alertError(failure.positionNotFound);
         return;
     }
 

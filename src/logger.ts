@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 
 class Logger extends vscode.Disposable {
     private readonly output: vscode.OutputChannel;
@@ -14,19 +15,23 @@ class Logger extends vscode.Disposable {
 
     logError(message: string): void { this.output.appendLine(`[${this.getTimeString()} Error] ${message}`); }
 
-    showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined> {
+    async alertInformation(message: string): Promise<void> {
         this.logInfo(message);
-        return vscode.window.showInformationMessage(message, ...items);
+        if (cfg.alertLevel() === cfg.AlertLevel.Info) {
+            await vscode.window.showInformationMessage(message);
+        }
     }
 
-    showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined> {
+    async alertWarning(message: string): Promise<void> {
         this.logWarn(message);
-        return vscode.window.showWarningMessage(message, ...items);
+        if (cfg.alertLevel() >= cfg.AlertLevel.Warn) {
+            await vscode.window.showWarningMessage(message);
+        }
     }
 
-    showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined> {
+    async alertError(message: string): Promise<void> {
         this.logError(message);
-        return vscode.window.showErrorMessage(message, ...items);
+        await vscode.window.showErrorMessage(message);
     }
 
     private getTimeString(): string {

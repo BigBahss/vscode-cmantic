@@ -28,13 +28,13 @@ export const failure = {
 export async function addDefinitionInSourceFile(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        logger.showErrorMessage(failure.noActiveTextEditor);
+        logger.alertError(failure.noActiveTextEditor);
         return;
     }
 
     const headerDoc = new SourceDocument(editor.document);
     if (!headerDoc.isHeader()) {
-        logger.showWarningMessage(failure.notHeaderFile);
+        logger.alertWarning(failure.notHeaderFile);
         return;
     }
 
@@ -44,16 +44,16 @@ export async function addDefinitionInSourceFile(): Promise<void> {
     ]);
 
     if (!symbol?.isFunctionDeclaration()) {
-        logger.showWarningMessage(failure.noFunctionDeclaration);
+        logger.alertWarning(failure.noFunctionDeclaration);
         return;
     } else if (!matchingUri) {
-        logger.showWarningMessage(failure.noMatchingSourceFile);
+        logger.alertWarning(failure.noMatchingSourceFile);
         return;
     } else if (symbol.isConstexpr()) {
-        logger.showInformationMessage(failure.isConstexpr);
+        logger.alertInformation(failure.isConstexpr);
         return;
     } else if (symbol.isInline()) {
-        logger.showInformationMessage(failure.isInline);
+        logger.alertInformation(failure.isInline);
         return;
     }
 
@@ -63,7 +63,7 @@ export async function addDefinitionInSourceFile(): Promise<void> {
 export async function addDefinitionInCurrentFile(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-        logger.showErrorMessage(failure.noActiveTextEditor);
+        logger.alertError(failure.noActiveTextEditor);
         return;
     }
 
@@ -71,7 +71,7 @@ export async function addDefinitionInCurrentFile(): Promise<void> {
 
     const symbol = await sourceDoc.getSymbol(editor.selection.start);
     if (!symbol?.isFunctionDeclaration()) {
-        logger.showWarningMessage(failure.noFunctionDeclaration);
+        logger.alertWarning(failure.noFunctionDeclaration);
         return;
     }
 
@@ -87,7 +87,7 @@ export async function addDefinition(
     const existingDefinition = await functionDeclaration.findDefinition();
     if (existingDefinition) {
         if (!shouldReveal) {
-            logger.showInformationMessage(failure.definitionExists);
+            logger.alertInformation(failure.definitionExists);
             return;
         }
         const editor = await vscode.window.showTextDocument(existingDefinition.uri);

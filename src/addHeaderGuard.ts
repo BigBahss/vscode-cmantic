@@ -15,16 +15,16 @@ export const failure = {
 export async function addHeaderGuard(): Promise<void> {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
-        logger.showErrorMessage(failure.noActiveTextEditor);
+        logger.alertError(failure.noActiveTextEditor);
         return;
     }
     const fileName = path.basename(activeEditor.document.fileName);
     const headerDoc = new SourceDocument(activeEditor.document);
     if (!headerDoc.isHeader()) {
-        logger.showWarningMessage(failure.notHeaderFile);
+        logger.alertWarning(failure.notHeaderFile);
         return;
     } else if (headerDoc.hasHeaderGuard()) {
-        logger.showInformationMessage(failure.headerGuardExists);
+        logger.alertInformation(failure.headerGuardExists);
         return;
     }
 

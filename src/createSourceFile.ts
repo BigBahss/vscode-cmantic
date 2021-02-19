@@ -20,12 +20,12 @@ export const failure = {
 export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined> {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
-        logger.showErrorMessage(failure.noActiveTextEditor);
+        logger.alertError(failure.noActiveTextEditor);
         return;
     }
 
     if (!vscode.workspace.workspaceFolders) {
-        logger.showWarningMessage(failure.noWorkspaceFolder);
+        logger.alertWarning(failure.noWorkspaceFolder);
         return;
     }
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
@@ -36,10 +36,10 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
 
     const headerDoc = new SourceDocument(currentDocument);
     if (!headerDoc.isHeader()) {
-        logger.showWarningMessage(failure.notHeaderFile);
+        logger.alertWarning(failure.notHeaderFile);
         return;
     } else if (await getMatchingSourceFile(headerDoc.uri)) {
-        logger.showInformationMessage(failure.sourceFileExists);
+        logger.alertInformation(failure.sourceFileExists);
         return;
     }
 

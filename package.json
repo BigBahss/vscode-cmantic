@@ -101,6 +101,16 @@
         "title": "C-mantic",
         "type": "object",
         "properties": {
+          "C_mantic.alertLevel": {
+            "type": "string",
+            "enum": [
+              "Information",
+              "Warning",
+              "Error"
+            ],
+            "default": "Information",
+            "description": "Controls verbosity of alerts that are shown (notifications). These alerts exist to indicate when you might be misusing a command, or if a command couldn't be executed for various reasons, etc. All alerts are logged to the Output Panel, regardless of alert level. The order of levels from least verbose to most verbose is: Error < Warning < Information."
+          },
           "C_mantic.codeActions.enableAddDefinition": {
             "type": "boolean",
             "default": true,

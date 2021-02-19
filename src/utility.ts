@@ -168,7 +168,7 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
             text = maskBalanced(text, left, right, keepEnclosingChars);
         } else {
             // This shouldn't happen, but log the error just in case.
-            logger.showErrorMessage(`Unknown parsing error: ${message}`);
+            logger.alertError(`Unknown parsing error: ${message}`);
         }
     } finally {
         return text;

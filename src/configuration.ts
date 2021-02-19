@@ -2,6 +2,12 @@ import * as vscode from 'vscode';
 import * as util from './utility';
 
 
+export enum AlertLevel {
+    Error,
+    Warn,
+    Info
+}
+
 export enum CurlyBraceFormat {
     Auto,
     SameLine,
@@ -27,6 +33,7 @@ export enum AccessorDefinitionLocation {
     SourceFile
 }
 
+const defaultAlertLevel = AlertLevel.Info;
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
@@ -45,6 +52,20 @@ export const baseConfigurationString = 'C_mantic';
 
 function configuration(): vscode.WorkspaceConfiguration {
     return vscode.workspace.getConfiguration(baseConfigurationString);
+}
+
+export function alertLevel(): AlertLevel {
+    const level = configuration().get<string>('alertLevel');
+    switch (level) {
+    case 'Information':
+        return AlertLevel.Info;
+    case 'Warning':
+        return AlertLevel.Warn;
+    case 'Error':
+        return AlertLevel.Error;
+    default:
+        return defaultAlertLevel;
+    }
 }
 
 export function headerExtensions(): string[] {

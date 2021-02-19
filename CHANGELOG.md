@@ -5,6 +5,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added support for `s_` static member naming scheme when generating getters and setters.
 - Added settings to control what code-actions are suggested (light-bulb menu).
+- Added a setting to control the verbosity of alerts that are shown (Information, Warning, Error).
 
 ### Changed
 - Code-actions for generating getters and setters will now only be suggested when you select the name of the member variable.

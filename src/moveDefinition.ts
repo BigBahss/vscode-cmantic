@@ -38,7 +38,7 @@ export async function moveDefinitionToMatchingSourceFile(
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            logger.showErrorMessage(failure.noActiveTextEditor);
+            logger.alertError(failure.noActiveTextEditor);
             return false;
         }
 
@@ -50,10 +50,10 @@ export async function moveDefinitionToMatchingSourceFile(
         ]);
 
         if (!symbol?.isFunctionDefinition()) {
-            logger.showWarningMessage(failure.noFunctionDefinition);
+            logger.alertWarning(failure.noFunctionDefinition);
             return false;
         } else if (!matchingUri) {
-            logger.showWarningMessage(failure.noMatchingSourceFile);
+            logger.alertWarning(failure.noMatchingSourceFile);
             return false;
         }
 
@@ -97,7 +97,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            logger.showErrorMessage(failure.noActiveTextEditor);
+            logger.alertError(failure.noActiveTextEditor);
             return false;
         }
 
@@ -109,7 +109,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         ]);
 
         if (!symbol?.isFunctionDefinition()) {
-            logger.showWarningMessage(failure.noFunctionDefinition);
+            logger.alertWarning(failure.noFunctionDefinition);
             return false;
         }
         definition = symbol;
@@ -128,7 +128,7 @@ export async function moveDefinitionIntoOrOutOfClass(
             }
 
             if (!declaration?.parent?.isClassOrStruct() || !classDoc) {
-                logger.showWarningMessage(failure.notMemberFunction);
+                logger.alertWarning(failure.notMemberFunction);
                 return false;
             }
         }
@@ -158,7 +158,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         return vscode.workspace.applyEdit(workspaceEdit);
     }
 
-    logger.showWarningMessage(failure.noFunctionDeclaration);
+    logger.alertWarning(failure.noFunctionDeclaration);
     return false;
 }
 
