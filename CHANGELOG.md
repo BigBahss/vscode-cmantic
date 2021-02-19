@@ -12,6 +12,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed a bug where classes/structs defined within a class/struct could affect the placement of getters and setters.
+- `Move Definition` is will now provide more accurate destinations (it is less strict on matching exact file names now).
 
 ## [0.4.0] - February 14, 2021
 ### Added
