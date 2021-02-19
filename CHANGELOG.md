@@ -12,7 +12,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed a bug where classes/structs defined within a class/struct could affect the placement of getters and setters.
-- Fixed a bug where getters and setters could not generated for static members on `clangd`.
+- Fixed a bug where getters and setters could not be generated for static members on `clangd`.
 
 ## [0.4.0] - February 14, 2021
 ### Added
