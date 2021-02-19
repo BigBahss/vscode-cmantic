@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.4.1] - February 19, 2021
 ### Added
 - Added support for `s_` static member naming scheme when generating getters and setters.
 - Added settings to control what code-actions are suggested (light-bulb menu).
