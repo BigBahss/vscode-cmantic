@@ -127,7 +127,8 @@ export class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isMemberVariable(): boolean {
-        return this.kind === vscode.SymbolKind.Field && this.parent?.isClassOrStruct() === true;
+        return this.parent?.isClassOrStruct() === true
+                && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
     isVariable(): boolean {
