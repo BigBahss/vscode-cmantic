@@ -86,17 +86,49 @@ export class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined {
+        const locations = util.makeLocationArray(results);
+
+        // Handle the easy cases
+        if (locations.length === 0) {
+            return;
+        } else if (locations.length === 1) {
+            return locations[0];
+        }
+
         const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
-        for (const location of util.makeLocationArray(results)) {
+        const closeMatches: vscode.Location[] = [];
+
+        for (const location of locations) {
             if (!util.existsInWorkspace(location)) {
                 continue;
             }
 
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
+            const currentFileNameBase = util.fileNameBase(location.uri.fsPath);
+
+            if (currentFileNameBase === thisFileNameBase
                     && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
+                // A definite match, return the location.
                 return location;
+            } else if (currentFileNameBase.includes(thisFileNameBase) || thisFileNameBase.includes(currentFileNameBase)) {
+                closeMatches.push(location);
             }
         }
+
+        // Find the bestMatch of the closeMatches and return it.
+        let bestMatch: vscode.Location | undefined;
+        let smallestDiff: number | undefined;
+
+        for (const location of closeMatches) {
+            const currentFileNameBase = util.fileNameBase(location.uri.fsPath);
+            const currentDiff = Math.abs(currentFileNameBase.length - thisFileNameBase.length);
+
+            if (smallestDiff === undefined || currentDiff < smallestDiff) {
+                bestMatch = location;
+                smallestDiff = currentDiff;
+            }
+        }
+
+        return bestMatch;
     }
 
     /**
