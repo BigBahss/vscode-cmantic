@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
@@ -6,7 +7,7 @@ import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from '
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingSourceFile, pushDisposable } from './extension';
 
 
 export class CodeAction implements vscode.CodeAction {
@@ -63,6 +64,20 @@ export class SourceAction extends CodeAction {
 }
 
 export class CodeActionProvider implements vscode.CodeActionProvider {
+    private addDefinitionEnabled: boolean = cfg.enableAddDefinition();
+    private moveDefinitionEnabled: boolean = cfg.enableMoveDefinition();
+    private generateGetterSetterEnabled: boolean = cfg.enableGenerateGetterSetter();
+
+    constructor() {
+        pushDisposable(vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
+            if (event.affectsConfiguration(cfg.baseConfigurationString)) {
+                this.addDefinitionEnabled = cfg.enableAddDefinition();
+                this.moveDefinitionEnabled = cfg.enableMoveDefinition();
+                this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+            }
+        }));
+    }
+
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
@@ -90,11 +105,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
-        if (symbol?.isFunctionDeclaration()) {
+        if (this.addDefinitionEnabled && symbol?.isFunctionDeclaration()) {
             return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (symbol?.isFunctionDefinition() && symbol.selectionRange.contains(rangeOrSelection.start)) {
+        } else if (this.moveDefinitionEnabled && symbol?.selectionRange.contains(rangeOrSelection.start)
+                && symbol.isFunctionDefinition()) {
             return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (symbol?.isMemberVariable() && symbol.selectionRange.contains(rangeOrSelection.start)) {
+        } else if (this.generateGetterSetterEnabled && symbol?.selectionRange.contains(rangeOrSelection.start)
+                && symbol.isMemberVariable()) {
             return await this.getMemberVariableRefactorings(symbol, sourceDoc);
         }
         return [];

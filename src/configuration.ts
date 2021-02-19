@@ -39,9 +39,12 @@ const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
+const defaultEnableCodeAction = true;
+
+export const baseConfigurationString = 'C_mantic';
 
 function configuration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration('C_mantic');
+    return vscode.workspace.getConfiguration(baseConfigurationString);
 }
 
 export function headerExtensions(): string[] {
@@ -164,4 +167,16 @@ export function revealNewDefinition(): boolean {
 
 export function alwaysMoveComments(): boolean {
     return configuration().get<boolean>('alwaysMoveComments', defaultAlwaysMoveComments);
+}
+
+export function enableAddDefinition(): boolean {
+    return configuration().get<boolean>('codeActions.enableAddDefinition', defaultEnableCodeAction);
+}
+
+export function enableMoveDefinition(): boolean {
+    return configuration().get<boolean>('codeActions.enableMoveDefinition', defaultEnableCodeAction);
+}
+
+export function enableGenerateGetterSetter(): boolean {
+    return configuration().get<boolean>('codeActions.enableGenerateGetterSetter', defaultEnableCodeAction);
 }

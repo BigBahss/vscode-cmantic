@@ -101,6 +101,21 @@
         "title": "C-mantic",
         "type": "object",
         "properties": {
+          "C_mantic.codeActions.enableAddDefinition": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+          },
+          "C_mantic.codeActions.enableMoveDefinition": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether the 'Move Definition' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+          },
+          "C_mantic.codeActions.enableGenerateGetterSetter": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether the 'Generate Getter/Setter' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+          },
           "C_mantic.extensions.headerFiles": {
             "type": "array",
             "default": [

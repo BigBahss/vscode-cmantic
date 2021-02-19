@@ -20,7 +20,7 @@ const disposables: vscode.Disposable[] = [];
 const headerSourceCache: Map<string, vscode.Uri> = new Map<string, vscode.Uri>();
 
 export function activate(context: vscode.ExtensionContext): void {
-    disposables.push(logger);
+    pushDisposable(logger);
 
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInSourceFile", addDefinitionInSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInCurrentFile", addDefinitionInCurrentFile));
@@ -43,12 +43,13 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.languages.registerCodeActionsProvider(
             [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
-            new CodeActionProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
+            new CodeActionProvider(),
+            { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
-    disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
-    disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
-    disposables.push(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
-    disposables.push(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
+    pushDisposable(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
+    pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
+    pushDisposable(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
+    pushDisposable(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
 
     logger.logInfo('C-mantic extension activated.');
 
@@ -57,6 +58,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
     disposables.forEach(disposable => disposable.dispose());
+}
+
+export function pushDisposable(disposable: vscode.Disposable): void {
+    disposables.push(disposable);
 }
 
 export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
