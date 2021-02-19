@@ -176,13 +176,12 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             declarationDoc = sourceDoc;
         } else {
             const declarationLocation = await definition.findDeclaration();
-            if (declarationLocation !== undefined
-                    && (declarationLocation?.uri.fsPath === definition.uri.fsPath
-                    || declarationLocation?.uri.fsPath === matchingUri?.fsPath)) {
+            if (declarationLocation) {
                 declarationDoc = declarationLocation.uri.fsPath === sourceDoc.uri.fsPath
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
+                matchingUri = declarationLocation.uri;
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
                     moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`);

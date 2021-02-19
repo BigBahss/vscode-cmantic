@@ -58,10 +58,13 @@ export async function moveDefinitionToMatchingSourceFile(
         }
 
         definition = symbol;
-        targetUri = matchingUri;
+
         const declarationLocation = await definition.findDeclaration();
         if (declarationLocation) {
             declaration = await SourceFile.getSymbol(declarationLocation);
+            targetUri = declarationLocation.uri;
+        } else {
+            targetUri = matchingUri;
         }
     }
 
@@ -103,10 +106,7 @@ export async function moveDefinitionIntoOrOutOfClass(
 
         const sourceDoc = new SourceDocument(editor.document);
 
-        const [matchingUri, symbol] = await Promise.all([
-            getMatchingSourceFile(sourceDoc.uri),
-            sourceDoc.getSymbol(editor.selection.start)
-        ]);
+        const symbol = await sourceDoc.getSymbol(editor.selection.start);
 
         if (!symbol?.isFunctionDefinition()) {
             logger.alertWarning(failure.noFunctionDefinition);
@@ -118,9 +118,7 @@ export async function moveDefinitionIntoOrOutOfClass(
             classDoc = sourceDoc;
         } else {
             const declarationLocation = await definition.findDeclaration();
-            if (declarationLocation !== undefined
-                    && (declarationLocation?.uri.fsPath === definition.uri.fsPath
-                    || declarationLocation?.uri.fsPath === matchingUri?.fsPath)) {
+            if (declarationLocation) {
                 classDoc = declarationLocation.uri.fsPath === sourceDoc.uri.fsPath
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
