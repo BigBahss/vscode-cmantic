@@ -59,15 +59,14 @@ export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): 
 }
 
 export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
-    if (!input || input.length === 0) {
+    if (!input) {
         return [];
     }
 
     const locations: vscode.Location[] = [];
     for (const element of input) {
-        const location = (element instanceof vscode.Location)
-                ? element
-                : new vscode.Location(element.targetUri, element.targetRange);
+        const location = (element instanceof vscode.Location) ?
+                element : new vscode.Location(element.targetUri, element.targetRange);
         locations.push(location);
     }
 
