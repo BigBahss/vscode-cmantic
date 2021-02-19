@@ -86,7 +86,7 @@ The `cmantic.switchHeaderSourceInWorkspace` command will open and switch to the 
 
 The features that require a C/C++ language server extension are: `Add Definition`, `Move Definition`, `Generate Getter and Setter Member Functions`, and namespace generation for `Create Matching Source File`. If you find that these features aren't working, make sure your language server is working correctly. To do this, check out the Outline view, usually found in Explorer in the side-bar. The Outline view should show all symbols for the current file. Also, make sure 'Go to Definition' and 'Go to Declaration' are working.
 
-C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works with `clangd` (llvm-vs-code-extensions.vscode-clangd) and `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but extensively testing each one is difficult. If you find bug while using a language server other than `C/C++` (ms-vscode.cpptools), please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and include what language server you are using.
+C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools), but also works with `clangd` (llvm-vs-code-extensions.vscode-clangd) and `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but extensively testing each one is difficult. If you find a bug while using a language server other than `C/C++` (ms-vscode.cpptools), please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and include what language server you are using.
 
 ## **Planned Features**
 
