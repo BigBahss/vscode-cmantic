@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { SourceFile } from './SourceFile';
+import * as cfg from './configuration';
 import * as util from './utility';
+import { SourceFile } from './SourceFile';
 
 
 /**
@@ -199,37 +200,25 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         return this.name;
     }
 
-    getterName(memberBaseName?: string): string {
+    getterName(): string {
         if (!this.isMemberVariable()) {
             return '';
         }
 
-        if (!memberBaseName) {
-            memberBaseName = this.baseName();
+        const formattedBaseName = cfg.formatToCaseStyle(this.baseName());
+        if (formattedBaseName !== this.name) {
+            return formattedBaseName;
         }
 
-        if (memberBaseName === this.name) {
-            if (util.is_snake_case(memberBaseName)) {
-                return 'get_' + memberBaseName;
-            }
-            return 'get' + util.firstCharToUpper(memberBaseName);
-        }
-        return memberBaseName;
+        return cfg.formatToCaseStyle('get_' + formattedBaseName);
     }
 
-    setterName(memberBaseName?: string): string {
+    setterName(): string {
         if (!this.isMemberVariable()) {
             return '';
         }
 
-        if (!memberBaseName) {
-            memberBaseName = this.baseName();
-        }
-
-        if (util.is_snake_case(memberBaseName)) {
-            return 'set_' + memberBaseName;
-        }
-        return 'set' + util.firstCharToUpper(memberBaseName);
+        return cfg.formatToCaseStyle('set_' + this.baseName());
     }
 
     findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {

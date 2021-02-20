@@ -136,10 +136,6 @@ export function firstCharToLower(str: string): string {
     return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
-export function is_snake_case(label: string): boolean {
-    return /[\w\d]_[\w\d]/.test(label);
-}
-
 export function make_snake_case(text: string): string {
     return text.replace(/(?<!^|_)[A-Z]/g, match => '_' + match).toLowerCase();
 }
