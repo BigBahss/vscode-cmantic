@@ -222,3 +222,14 @@ export function caseStyle(): CaseStyle {
         return defaultCaseStyle;
     }
 }
+
+export function formatToCaseStyle(text: string): string {
+    switch (caseStyle()) {
+    case CaseStyle.snake_case:
+        return util.make_snake_case(text);
+    case CaseStyle.camelCase:
+        return util.makeCamelCase(text);
+    case CaseStyle.PascalCase:
+        return util.MakePascalCase(text);
+    }
+}
