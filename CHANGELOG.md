@@ -2,8 +2,11 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Added a setting `Case Style` to control whether getters and setters are generated with names in snake_case, camelCase, or PascalCase. (#11)
+
 ### Fixed
-- Fixed setter generation for reference types.
+- Fixed setter generation for reference types. (#12)
 
 ## [0.4.1] - February 19, 2021
 ### Added
