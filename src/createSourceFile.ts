@@ -93,7 +93,7 @@ interface FolderItem extends vscode.QuickPickItem {
 // Returns an array of FolderItem's that contain C/C++ source files.
 async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(relativeUri);
-    let directories: FolderItem[] = [];
+    const directories: FolderItem[] = [];
     let foundSourceFile = false;
     for (const fileSystemItem of fileSystemItems) {
         if (fileSystemItem[1] === vscode.FileType.Directory) {

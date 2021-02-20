@@ -243,7 +243,17 @@
           "C_mantic.alwaysMoveComments": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place."
+            "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place. If false, leading comments will be left behind with the new declaration."
+          },
+          "C_mantic.caseStyle": {
+            "type": "string",
+            "enum": [
+              "snake_case",
+              "camelCase",
+              "PascalCase"
+            ],
+            "default": "camelCase",
+            "description": "Controls what style of names are generated for getters and setters."
           }
         }
       }

@@ -33,11 +33,17 @@ export enum AccessorDefinitionLocation {
     SourceFile
 }
 
+export enum CaseStyle {
+    snake_case,
+    camelCase,
+    PascalCase
+}
+
 const defaultAlertLevel = AlertLevel.Info;
 const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
-const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.SameLine;
+const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.Auto;
 const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
@@ -47,6 +53,7 @@ const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
 const defaultEnableCodeAction = true;
+const defaultCaseStyle = CaseStyle.camelCase;
 
 export const baseConfigurationString = 'C_mantic';
 
@@ -200,4 +207,18 @@ export function enableMoveDefinition(): boolean {
 
 export function enableGenerateGetterSetter(): boolean {
     return configuration().get<boolean>('codeActions.enableGenerateGetterSetter', defaultEnableCodeAction);
+}
+
+export function caseStyle(): CaseStyle {
+    const style = configuration().get<string>('caseStyle');
+    switch (style) {
+    case 'snake_case':
+        return CaseStyle.snake_case;
+    case 'camelCase':
+        return CaseStyle.camelCase;
+    case 'PascalCase':
+        return CaseStyle.PascalCase;
+    default:
+        return defaultCaseStyle;
+    }
 }
