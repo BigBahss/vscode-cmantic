@@ -659,10 +659,14 @@ export class Setter implements Accessor {
         const leadingText = memberVariable.leadingText();
         const type = leadingText.replace(/\b(static|mutable)\s*/g, '');
         setter.isStatic = /\bstatic\b/.test(leadingText);
-        setter.parameter = (!await memberVariable.isPrimitive() && !memberVariable.isPointer()
-            ? 'const ' + type + '&'
-            : type
-        ) + 'value';
+        if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
+            setter.parameter = (memberVariable.isReference()
+                ? 'const ' + type
+                : 'const ' + type + '&'
+            ) + 'value';
+        } else {
+            setter.parameter = type + 'value';
+        }
 
         return setter;
     }
