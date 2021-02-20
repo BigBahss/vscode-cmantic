@@ -5,6 +5,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added a setting `Case Style` to control whether getters and setters are generated with names in snake_case, camelCase, or PascalCase. (#11)
 
+### Changed
+- `volatile` qualifier will now be stripped from getter return types as it has no effect.
+
 ### Fixed
 - Fixed setter generation for reference types. (#12)
 
@@ -81,7 +84,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Improved performance of `Add Definition` commands/code-actions.
 - Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens, but less often. It is unclear why.)
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
-- Improve parameter parsing of `Add Definition`.
+- Improved parameter parsing of `Add Definition`.
 - Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
 - Fixed `Add Definition` parsing of function templates.
 

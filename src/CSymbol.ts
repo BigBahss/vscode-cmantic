@@ -7,10 +7,10 @@ import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
 
 const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
-const re_blockComments = /\/\*(\*(?!\/)|[^*])*\*\//gm;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
+const re_strippedReturnQualifiers = /\b(static|const|volatile|mutable)\s*/g;
 
 
 /**
@@ -619,10 +619,10 @@ export class Getter implements Accessor {
         this.isStatic = /\bstatic\b/.test(parsableLeadingText);
         if (parsableLeadingText.includes('<')) {
             const templateParamStart = parsableLeadingText.indexOf('<');
-            this.returnType = leadingText.substring(0, templateParamStart).replace(/\b(static|const|mutable)\s*/g, '')
+            this.returnType = leadingText.substring(0, templateParamStart).replace(re_strippedReturnQualifiers, '')
                     + leadingText.substring(templateParamStart);
         } else {
-            this.returnType = leadingText.replace(/\b(static|const|mutable)\s*/g, '');
+            this.returnType = leadingText.replace(re_strippedReturnQualifiers, '');
         }
         this.parameter = '';
         this.body = 'return ' + memberVariable.name + ';';
