@@ -238,6 +238,10 @@ export class CSymbol extends SourceSymbol {
         return util.maskAngleBrackets(this.parsableLeadingText).includes('*');
     }
 
+    isReference(): boolean {
+        return util.maskAngleBrackets(this.parsableLeadingText).includes('&');
+    }
+
     isConst(): boolean {
         return /\bconst\b/.test(util.maskAngleBrackets(this.parsableLeadingText));
     }
