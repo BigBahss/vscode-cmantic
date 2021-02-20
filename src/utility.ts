@@ -141,7 +141,7 @@ export function is_snake_case(label: string): boolean {
 }
 
 export function make_snake_case(text: string): string {
-    return text.replace(/(?!^|_)[A-Z]/g, match => '_' + match).toLowerCase();
+    return text.replace(/(?<!^|_)[A-Z]/g, match => '_' + match).toLowerCase();
 }
 
 export function makeCamelCase(text: string): string {
