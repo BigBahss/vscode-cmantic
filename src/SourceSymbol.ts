@@ -58,14 +58,6 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         this.children = convertedChildren;
     }
 
-    findChild(compareFn: (child: SourceSymbol) => boolean): SourceSymbol | undefined {
-        for (const child of this.children) {
-            if (compareFn(child)) {
-                return child;
-            }
-        }
-    }
-
     /**
      * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
      * Returns undefined if the most likely definition is this SourceSymbol.
@@ -228,7 +220,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
         const getterName = memberVariable.getterName();
 
-        return this.findChild(child => child.name === getterName);
+        return this.children.find(child => child.name === getterName);
     }
 
     findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {
@@ -238,6 +230,6 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
         const setterName = memberVariable.setterName();
 
-        return this.findChild(child => child.name === setterName);
+        return this.children.find(child => child.name === setterName);
     }
 }

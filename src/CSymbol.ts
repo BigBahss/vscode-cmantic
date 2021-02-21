@@ -37,15 +37,6 @@ export class CSymbol extends SourceSymbol {
         this.range = this.range.with(this.range.start, util.getEndOfStatement(this.document, this.range.end));
     }
 
-    findChild(compareFn: (child: CSymbol) => boolean): CSymbol | undefined {
-        for (const symbol of this.children) {
-            const child = new CSymbol(symbol, this.document);
-            if (compareFn(child)) {
-                return child;
-            }
-        }
-    }
-
     /**
      * Returns the text contained in this symbol.
      */
