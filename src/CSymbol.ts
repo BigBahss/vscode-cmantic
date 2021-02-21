@@ -6,7 +6,7 @@ import { ProposedPosition } from './ProposedPosition';
 import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
 
-const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/g;
+const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
