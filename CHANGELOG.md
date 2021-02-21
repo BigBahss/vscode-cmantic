@@ -11,6 +11,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - Fixed setter generation for reference types. (#12)
 - Fixed a bug where primitive/pointer types would sometimes generate setters with a const-reference parameter.
+- Fixed a bug where 'east' `const` and `mutable` qualifiers would not be stripped from getter return types.
 
 ## [0.4.1] - February 19, 2021
 ### Added

@@ -10,7 +10,7 @@ const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|i
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
-const re_strippedReturnQualifiers = /\b(static|const|volatile|mutable)\s*/g;
+const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;
 
 
 /**
@@ -612,18 +612,22 @@ export class Getter implements Accessor {
     body: string;
 
     constructor(memberVariable: CSymbol) {
-        const leadingText = memberVariable.leadingText();
+        const leadingText = memberVariable.parsableLeadingText;
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
-        const parsableLeadingText = memberVariable.parsableLeadingText;
-        this.isStatic = /\bstatic\b/.test(parsableLeadingText);
-        if (parsableLeadingText.includes('<')) {
-            const templateParamStart = parsableLeadingText.indexOf('<');
-            this.returnType = leadingText.substring(0, templateParamStart).replace(re_strippedReturnQualifiers, '')
-                    + leadingText.substring(templateParamStart);
+        this.isStatic = /\bstatic\b/.test(leadingText);
+
+        const templateParamStart = leadingText.indexOf('<');
+        const templateParamEnd = leadingText.lastIndexOf('>');
+        if (templateParamStart !== -1 && templateParamEnd !== -1) {
+            this.returnType = leadingText.slice(0, templateParamStart).replace(re_qualifiers, '')
+                    + leadingText.slice(templateParamStart, templateParamEnd + 1)
+                    + leadingText.slice(templateParamEnd + 1).replace(re_qualifiers, '');
+            this.returnType = this.returnType.replace(/\s{2,}/g, ' ').trimStart();
         } else {
-            this.returnType = leadingText.replace(re_strippedReturnQualifiers, '');
+            this.returnType = leadingText.replace(re_qualifiers, '').replace(/\s{2,}/g, ' ').trimStart();
         }
+
         this.parameter = '';
         this.body = 'return ' + memberVariable.name + ';';
     }
@@ -656,16 +660,16 @@ export class Setter implements Accessor {
      */
     static async create(memberVariable: CSymbol): Promise<Setter> {
         const setter = new Setter(memberVariable);
-        const leadingText = memberVariable.leadingText();
-        const type = leadingText.replace(/\b(static|mutable)\s*/g, '');
-        setter.isStatic = /\bstatic\b/.test(leadingText);
+        const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '').trimStart();
+        setter.isStatic = /\bstatic\b/.test(memberVariable.parsableLeadingText);
+
         if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
             setter.parameter = (memberVariable.isReference()
                 ? 'const ' + type
                 : 'const ' + type + '&'
             ) + 'value';
         } else {
-            setter.parameter = type + 'value';
+            setter.parameter = type.replace(/&(?!.*>)/, '') + 'value';
         }
 
         return setter;
