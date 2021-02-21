@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.4.2] - February 20, 2021
 ### Added
 - Added a setting `Case Style` to control whether getters and setters are generated with names in snake_case, camelCase, or PascalCase. (#11)
 
