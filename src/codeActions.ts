@@ -10,16 +10,9 @@ import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { getMatchingSourceFile, pushDisposable } from './extension';
 
 
-export class CodeAction implements vscode.CodeAction {
-    title: string;
-    edit?: vscode.WorkspaceEdit;
-    diagnostics?: vscode.Diagnostic[];
-    command?: vscode.Command;
-    kind?: vscode.CodeActionKind;
-    isPreferred?: boolean;
-    disabled?: { readonly reason: string };
-
-    constructor(kind: vscode.CodeActionKind, title: string, command?: string) {
+export class CodeAction extends vscode.CodeAction {
+    constructor(title: string, kind: vscode.CodeActionKind, command?: string) {
+        super(title, kind);
         this.kind = kind;
         this.title = title;
         if (command) {
@@ -53,13 +46,13 @@ export class CodeAction implements vscode.CodeAction {
 
 export class RefactorAction extends CodeAction {
     constructor(title: string, command?: string) {
-        super(vscode.CodeActionKind.Refactor, title, command);
+        super(title, vscode.CodeActionKind.Refactor, command);
     }
 }
 
 export class SourceAction extends CodeAction {
     constructor(title: string, command?: string) {
-        super(vscode.CodeActionKind.Source, title, command);
+        super(title, vscode.CodeActionKind.Source, command);
     }
 }
 
@@ -82,8 +75,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
         _context: vscode.CodeActionContext,
-        _token: vscode.CancellationToken
-    ): Promise<vscode.CodeAction[]> {
+        token: vscode.CancellationToken
+    ): Promise<CodeAction[]> {
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
@@ -91,10 +84,18 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 
+        if (token.isCancellationRequested) {
+            return [];
+        }
+
         const [refactorings, sourceActions] = await Promise.all([
             this.getRefactorings(symbol, rangeOrSelection, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
+
+        if (token.isCancellationRequested) {
+            return [];
+        }
 
         return [...refactorings, ...sourceActions];
     }
