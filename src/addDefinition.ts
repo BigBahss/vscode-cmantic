@@ -6,6 +6,7 @@ import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { SourceSymbol } from './SourceSymbol';
 
 
 export const title = {
@@ -95,12 +96,15 @@ export async function addDefinition(
         return;
     }
 
+    const p_membersToInitialize = getMembersToInitializeIfConstructor(functionDeclaration);
+
     // Find the position for the new function definition.
     const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
-            ? declarationDoc : await SourceDocument.open(targetUri);
+            ? declarationDoc
+            : await SourceDocument.open(targetUri);
     const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
-    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos);
+    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos, p_membersToInitialize);
 
     let editor: vscode.TextEditor | undefined;
     if (shouldReveal) {
@@ -132,15 +136,50 @@ export async function addDefinition(
     }
 }
 
+interface QuickPickMemberVariable extends vscode.QuickPickItem {
+    memberVariable: SourceSymbol;
+}
+
+async function getMembersToInitializeIfConstructor(functionDeclaration: CSymbol): Promise<SourceSymbol[] | undefined> {
+    if (!functionDeclaration.isConstructor()) {
+        return;
+    }
+
+    const memberVariables = functionDeclaration.parent?.memberVariables();
+
+    const memberVariableItems: QuickPickMemberVariable[] = [];
+    memberVariables?.forEach(memberVariable => {
+        memberVariableItems.push({
+            label: memberVariable.name,
+            memberVariable: memberVariable
+        });
+    });
+
+    const selectedIems = await vscode.window.showQuickPick<QuickPickMemberVariable>(memberVariableItems, {
+        canPickMany: true, placeHolder: 'What members would you like to initialize?'
+    });
+
+    const selectedMemberVariables: SourceSymbol[] = [];
+    selectedIems?.forEach(item => selectedMemberVariables.push(item.memberVariable));
+    return selectedMemberVariables;
+}
+
 async function constructFunctionSkeleton(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
     targetDoc: SourceDocument,
-    position: ProposedPosition
+    position: ProposedPosition,
+    p_membersToInitialize?: Promise<SourceSymbol[] | undefined>
 ): Promise<string> {
-    const definition = await functionDeclaration.newFunctionDefinition(targetDoc, position);
-    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
+    const [definition, membersToInitialize] = await Promise.all([
+        functionDeclaration.newFunctionDefinition(targetDoc, position),
+        p_membersToInitialize
+    ]);
+
     const eol = targetDoc.endOfLine;
+    const initializerList = constructMemberInitializerList(membersToInitialize, eol);
+
+    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
     const indentation = util.indentation();
 
     let functionSkeleton: string;
@@ -148,10 +187,10 @@ async function constructFunctionSkeleton(
             || (curlyBraceFormat === cfg.CurlyBraceFormat.NewLineCtorDtor
             && (functionDeclaration.isConstructor() || functionDeclaration.isDestructor()))) {
         // Opening brace on new line.
-        functionSkeleton = definition + eol + '{' + eol + indentation + eol + '}';
+        functionSkeleton = definition + initializerList + eol + '{' + eol + indentation + eol + '}';
     } else {
         // Opening brace on same line.
-        functionSkeleton = definition + ' {' + eol + indentation + eol + '}';
+        functionSkeleton = definition + initializerList + ' {' + eol + indentation + eol + '}';
     }
 
     const cfgIndent = cfg.indentNamespaceBody();
@@ -161,6 +200,19 @@ async function constructFunctionSkeleton(
     }
 
     return position.formatTextToInsert(functionSkeleton, targetDoc);
+}
+
+function constructMemberInitializerList(memberVariables: SourceSymbol[] | undefined, eol: string): string {
+    if (!memberVariables) {
+        return '';
+    }
+
+    const indentation = util.indentation();
+
+    let initializerList = eol + indentation + ': ';
+    memberVariables.forEach(memberVariable => initializerList += memberVariable.name + '(),' + eol + indentation + '  ');
+
+    return initializerList.trimEnd().slice(0, -1);
 }
 
 function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position {

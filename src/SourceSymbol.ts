@@ -232,4 +232,12 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
         return this.children.find(child => child.name === setterName);
     }
+
+    memberVariables(): SourceSymbol[] {
+        if (!this.isClassOrStruct()) {
+            return [];
+        }
+
+        return this.children.filter(child => child.isMemberVariable());
+    }
 }
