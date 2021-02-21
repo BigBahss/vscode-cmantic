@@ -10,7 +10,6 @@ const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|i
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
-const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;
 
 
 /**
@@ -582,116 +581,5 @@ export class CSymbol extends SourceSymbol {
 
     private matchesPrimitiveType(text: string): boolean {
         return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);
-    }
-}
-
-
-/**
- * Represents a new accessor member function for a member variable.
- */
-export interface Accessor {
-    readonly memberVariable: CSymbol;
-    name: string;
-    isStatic: boolean;
-    returnType: string;
-    parameter: string;
-    body: string;
-    declaration: string;
-    definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
-}
-
-/**
- * Represents a new getter member function for a member variable.
- */
-export class Getter implements Accessor {
-    readonly memberVariable: CSymbol;
-    name: string;
-    isStatic: boolean;
-    returnType: string;
-    parameter: string;
-    body: string;
-
-    constructor(memberVariable: CSymbol) {
-        const leadingText = memberVariable.parsableLeadingText;
-        this.memberVariable = memberVariable;
-        this.name = memberVariable.getterName();
-        this.isStatic = /\bstatic\b/.test(leadingText);
-
-        const templateParamStart = leadingText.indexOf('<');
-        const templateParamEnd = leadingText.lastIndexOf('>');
-        if (templateParamStart !== -1 && templateParamEnd !== -1) {
-            this.returnType = leadingText.slice(0, templateParamStart).replace(re_qualifiers, '')
-                    + leadingText.slice(templateParamStart, templateParamEnd + 1)
-                    + leadingText.slice(templateParamEnd + 1).replace(re_qualifiers, '');
-            this.returnType = this.returnType.replace(/\s{2,}/g, ' ').trimStart();
-        } else {
-            this.returnType = leadingText.replace(re_qualifiers, '').replace(/\s{2,}/g, ' ').trimStart();
-        }
-
-        this.parameter = '';
-        this.body = 'return ' + memberVariable.name + ';';
-    }
-
-    get declaration(): string {
-        return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string> {
-        const eol = target.endOfLine;
-        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
-                + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
-                + '{' + eol + util.indentation() + this.body + eol + '}';
-    }
-}
-
-/**
- * Represents a new setter member function for a member variable.
- */
-export class Setter implements Accessor {
-    readonly memberVariable: CSymbol;
-    name: string;
-    isStatic: boolean;
-    returnType: string;
-    parameter: string;
-    body: string;
-
-    /**
-     * This builder method is necessary since CSymbol.isPrimitive() is asynchronous.
-     */
-    static async create(memberVariable: CSymbol): Promise<Setter> {
-        const setter = new Setter(memberVariable);
-        const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '').trimStart();
-        setter.isStatic = /\bstatic\b/.test(memberVariable.parsableLeadingText);
-
-        if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
-            setter.parameter = (memberVariable.isReference()
-                ? 'const ' + type
-                : 'const ' + type + '&'
-            ) + 'value';
-        } else {
-            setter.parameter = type.replace(/&(?!.*>)/, '') + 'value';
-        }
-
-        return setter;
-    }
-
-    private constructor(memberVariable: CSymbol) {
-        this.memberVariable = memberVariable;
-        this.name = memberVariable.setterName();
-        this.isStatic = false;
-        this.returnType = 'void ';
-        this.parameter = '';
-        this.body = memberVariable.name + ' = value;';
-    }
-
-    get declaration(): string {
-        return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string> {
-        const eol = target.endOfLine;
-        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
-                + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
-                + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import { ProposedPosition } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
-import { Accessor, CSymbol, Getter, Setter } from './CSymbol';
+import { CSymbol } from './CSymbol';
+import { Accessor, Getter, Setter } from "./Accessor";
 import { getMatchingSourceFile } from './extension';
 import { logger } from './logger';
 
