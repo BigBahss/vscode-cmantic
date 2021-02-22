@@ -97,7 +97,7 @@ export async function addDefinition(
         return;
     }
 
-    const p_initializers = ifConstructorGetInitializers(functionDeclaration);
+    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
 
     // Find the position for the new function definition.
     const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
@@ -105,7 +105,12 @@ export async function addDefinition(
             : await SourceDocument.open(targetUri);
     const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
-    const functionSkeleton = await constructFunctionSkeleton(functionDeclaration, declarationDoc, targetDoc, targetPos, p_initializers);
+    const functionSkeleton = await constructFunctionSkeleton(
+            functionDeclaration, declarationDoc, targetDoc, targetPos, p_initializers);
+
+    if (functionSkeleton === undefined) {
+        return;
+    }
 
     let editor: vscode.TextEditor | undefined;
     if (shouldReveal) {
@@ -143,31 +148,53 @@ interface QuickPickInitializerItem extends vscode.QuickPickItem {
     initializer: Initializer;
 }
 
-async function ifConstructorGetInitializers(functionDeclaration: CSymbol): Promise<Initializer[]> {
-    if (!functionDeclaration.isConstructor() || !functionDeclaration.parent) {
+async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymbol): Promise<Initializer[] | undefined> {
+    if (!functionDeclaration.isConstructor() || !functionDeclaration.parent?.isClassOrStruct()) {
         return [];
     }
+    const parentClass = functionDeclaration.parent;
 
-    const initializers: Initializer[] = [
-        ...functionDeclaration.parent.baseClasses(),
-        ...functionDeclaration.parent.memberVariables()
-    ];
+    const initializers: Initializer[] = [];
+    if (parentClass.constructors().length > 1) {
+        initializers.push(parentClass);
+    }
+    initializers.push(...parentClass.baseClasses(), ...parentClass.memberVariables());
 
     const initializerItems: QuickPickInitializerItem[] = [];
     initializers?.forEach(initializer => {
-        initializerItems.push({
-            label: initializer.name,
-            initializer: initializer
-        });
+        const initializerItem: QuickPickInitializerItem = { label: '', initializer: initializer };
+        if (initializer === parentClass) {
+            initializerItem.label = '$(symbol-class) ' + initializer.name;
+            initializerItem.description = 'Delegated constructor (cannot be used with any other initializers)';
+        } else if (initializer instanceof SubSymbol) {
+            initializerItem.label = '$(symbol-class) ' + initializer.name;
+            initializerItem.description = 'Base class constructor';
+        } else {
+            initializerItem.label = '$(symbol-field) ' + initializer.name;
+            initializerItem.description = 'Member variable';
+        }
+        initializerItems.push(initializerItem);
     });
 
     const selectedIems = await vscode.window.showQuickPick<QuickPickInitializerItem>(initializerItems, {
-        canPickMany: true, placeHolder: 'What members would you like to initialize?'
+        matchOnDescription: true,
+        placeHolder: 'What would you like to initialize in this constructor?',
+        canPickMany: true,
+        onDidSelectItem: (initializerItem: QuickPickInitializerItem) => {
+            if (initializerItem.initializer === parentClass) {
+                initializerItems.forEach(item => item.picked = false);
+                initializerItem.picked = true;
+            }
+        }
     });
 
-    const selectedMemberVariables: Initializer[] = [];
-    selectedIems?.forEach(item => selectedMemberVariables.push(item.initializer));
-    return selectedMemberVariables;
+    if (!selectedIems) {
+        return;
+    }
+
+    const selectedInitializers: Initializer[] = [];
+    selectedIems?.forEach(item => selectedInitializers.push(item.initializer));
+    return selectedInitializers;
 }
 
 async function constructFunctionSkeleton(
@@ -175,18 +202,22 @@ async function constructFunctionSkeleton(
     declarationDoc: SourceDocument,
     targetDoc: SourceDocument,
     position: ProposedPosition,
-    p_initializers: Promise<Initializer[]>
-): Promise<string> {
+    p_initializers: Promise<Initializer[] | undefined>
+): Promise<string | undefined> {
     const [definition, initializers] = await Promise.all([
         functionDeclaration.newFunctionDefinition(targetDoc, position),
         p_initializers
     ]);
 
-    const eol = targetDoc.endOfLine;
-    const initializerList = constructInitializerList(initializers, eol);
+    if (!initializers) {
+        return;
+    }
 
     const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
+    const eol = targetDoc.endOfLine;
     const indentation = util.indentation();
+
+    const initializerList = constructInitializerList(initializers, eol);
 
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine
@@ -209,14 +240,14 @@ async function constructFunctionSkeleton(
 }
 
 function constructInitializerList(initializers: Initializer[], eol: string): string {
-    if (!initializers || initializers.length === 0) {
+    if (initializers.length === 0) {
         return '';
     }
 
     const indentation = util.indentation();
 
     let initializerList = eol + indentation + ': ';
-    initializers.forEach(memberVariable => initializerList += memberVariable.name + '(),' + eol + indentation + '  ');
+    initializers.forEach(initializer => initializerList += initializer.name + '(),' + eol + indentation + '  ');
 
     return initializerList.trimEnd().slice(0, -1);
 }
