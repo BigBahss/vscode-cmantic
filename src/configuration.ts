@@ -54,6 +54,7 @@ const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
 const defaultEnableCodeAction = true;
 const defaultCaseStyle = CaseStyle.camelCase;
+const defaultBracedInitialization = false;
 
 export const baseConfigurationString = 'C_mantic';
 
@@ -232,4 +233,8 @@ export function formatToCaseStyle(text: string): string {
     case CaseStyle.PascalCase:
         return util.MakePascalCase(text);
     }
+}
+
+export function bracedInitialization(): boolean {
+    return configuration().get<boolean>('cpp.bracedInitialization', defaultBracedInitialization);
 }
