@@ -248,9 +248,10 @@ function constructInitializerList(initializers: Initializer[], eol: string): str
     }
 
     const indentation = util.indentation();
+    const initializerBody = cfg.bracedInitialization() ? '{},' : '(),';
 
     let initializerList = eol + indentation + ': ';
-    initializers.forEach(initializer => initializerList += initializer.name + '(),' + eol + indentation + '  ');
+    initializers.forEach(initializer => initializerList += initializer.name + initializerBody + eol + indentation + '  ');
 
     return initializerList.trimEnd().slice(0, -1);
 }
