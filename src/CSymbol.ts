@@ -5,6 +5,7 @@ import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
 import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
+import { SubSymbol } from './SubSymbol';
 
 const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
@@ -196,6 +197,28 @@ export class CSymbol extends SourceSymbol {
         }
 
         return fallbackPosition;
+    }
+
+    baseClasses(): SubSymbol[] {
+        if (!this.isClassOrStruct()) {
+            return [];
+        }
+
+        const startOffset = this.document.offsetAt(this.selectionRange.end);
+        let trailingText = this.document.getText(new vscode.Range(this.selectionRange.end, this.bodyStart()));
+        trailingText = trailingText.replace(/\b(public|protected|private)\b/g, util.masker);
+
+
+        const baseClasses: SubSymbol[] = [];
+        for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*\b/g)) {
+            if (match.index !== undefined) {
+                const start = this.document.positionAt(startOffset + match.index);
+                const end = this.document.positionAt(startOffset + match.index + match[0].length);
+                baseClasses.push(new SubSymbol(new vscode.Range(start, end), this.document));
+            }
+        }
+
+        return baseClasses;
     }
 
     isFunctionDeclaration(): boolean {
