@@ -259,6 +259,16 @@ function constructInitializerList(initializers: Initializer[], eol: string): str
 function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position {
     const lines = functionSkeleton.split('\n');
     for (let i = 0; i < lines.length; ++i) {
+        if (lines[i].trimStart().startsWith(':')) {
+            let index = lines[i].lastIndexOf(')');
+            if (index === -1) {
+                index = lines[i].lastIndexOf('}');
+                if (index === -1) {
+                    return new vscode.Position(0, 0);
+                }
+            }
+            return new vscode.Position(i + position.line, index);
+        }
         if (lines[i].trimEnd().endsWith('{')) {
             return new vscode.Position(i + 1 + position.line, lines[i + 1].length);
         }
