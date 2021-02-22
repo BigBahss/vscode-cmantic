@@ -179,13 +179,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     const selectedIems = await vscode.window.showQuickPick<QuickPickInitializerItem>(initializerItems, {
         matchOnDescription: true,
         placeHolder: 'What would you like to initialize in this constructor?',
-        canPickMany: true,
-        onDidSelectItem: (initializerItem: QuickPickInitializerItem) => {
-            if (initializerItem.initializer === parentClass) {
-                initializerItems.forEach(item => item.picked = false);
-                initializerItem.picked = true;
-            }
-        }
+        canPickMany: true
     });
 
     if (!selectedIems) {
@@ -193,7 +187,16 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     }
 
     const selectedInitializers: Initializer[] = [];
-    selectedIems?.forEach(item => selectedInitializers.push(item.initializer));
+    if (selectedIems.length > 0 && selectedIems[0].initializer === parentClass) {
+        selectedInitializers.push(parentClass);
+    } else {
+        selectedIems?.forEach(item => {
+            if (item.initializer !== parentClass) {
+                selectedInitializers.push(item.initializer);
+            }
+        });
+    }
+
     return selectedInitializers;
 }
 
