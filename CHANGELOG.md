@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Performance of finding header/source pairs has been improved for complex/remote workspaces. (#13)
+- Fixed an issue where the header/source cache could be invalidated by file changes outside of VS Code. (#13)
+
 ## [0.4.2] - February 20, 2021
 ### Added
 - Added a setting `Case Style` to control whether getters and setters are generated with names in snake_case, camelCase, or PascalCase. (#11)
