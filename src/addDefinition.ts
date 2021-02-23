@@ -189,18 +189,25 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
         return;
     }
 
-    const selectedInitializers: Initializer[] = [];
     if (selectedIems.length > 0 && selectedIems[0].initializer === parentClass) {
-        selectedInitializers.push(parentClass);
-    } else {
-        selectedIems?.forEach(item => {
-            if (item.initializer !== parentClass) {
-                selectedInitializers.push(item.initializer);
-            }
-        });
+        /* Disregard other initializers that the user may have selected because
+         * other initializers cannot be used with a delegated constructor. */
+        return [parentClass];
     }
 
-    return selectedInitializers;
+    const selectedInitializers: Initializer[] = [];
+    selectedIems.forEach(item => {
+        if (item.initializer !== parentClass) {
+            selectedInitializers.push(item.initializer);
+        }
+    });
+
+    selectedInitializers.push(...parentClass.memberVariablesThatRequireInitialization());
+    selectedInitializers.sort((a: Initializer, b: Initializer) => {
+        return a.range.end.isAfter(b.range.end) ? 1 : -1;
+    });
+
+    return [...new Set(selectedInitializers)];
 }
 
 async function constructFunctionSkeleton(
@@ -210,6 +217,10 @@ async function constructFunctionSkeleton(
     position: ProposedPosition,
     p_initializers: Promise<Initializer[] | undefined>
 ): Promise<string | undefined> {
+    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
+    const eol = targetDoc.endOfLine;
+    const indentation = util.indentation();
+
     const [definition, initializers] = await Promise.all([
         functionDeclaration.newFunctionDefinition(targetDoc, position),
         p_initializers
@@ -219,10 +230,6 @@ async function constructFunctionSkeleton(
         // Undefined only when the user cancels the QuickPick, so return.
         return;
     }
-
-    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
-    const eol = targetDoc.endOfLine;
-    const indentation = util.indentation();
 
     const initializerList = constructInitializerList(initializers, eol);
 
