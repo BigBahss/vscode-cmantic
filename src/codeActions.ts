@@ -74,7 +74,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     async provideCodeActions(
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
-        _context: vscode.CodeActionContext,
+        context: vscode.CodeActionContext,
         token: vscode.CancellationToken
     ): Promise<CodeAction[]> {
         const sourceDoc = new SourceDocument(document);
@@ -89,7 +89,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(symbol, rangeOrSelection, sourceDoc, matchingUri),
+            this.getRefactorings(context, symbol, rangeOrSelection, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
@@ -101,21 +101,54 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getRefactorings(
+        context: vscode.CodeActionContext,
         symbol: CSymbol | undefined,
         rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
-        if (this.addDefinitionEnabled && symbol?.isFunctionDeclaration()) {
-            return await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (this.moveDefinitionEnabled && symbol?.selectionRange.contains(rangeOrSelection.start)
-                && symbol.isFunctionDefinition()) {
-            return await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri);
-        } else if (this.generateGetterSetterEnabled && symbol?.selectionRange.contains(rangeOrSelection.start)
-                && symbol.isMemberVariable()) {
-            return await this.getMemberVariableRefactorings(symbol, sourceDoc);
+        if (this.shouldProvideAddDefinition(context, symbol, rangeOrSelection)) {
+            return await this.getFunctionDeclarationRefactorings(symbol!, sourceDoc, matchingUri);
         }
+
+        if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
+            return await this.getFunctionDefinitionRefactorings(symbol!, sourceDoc, matchingUri);
+        }
+
+        if (this.shouldProvideGetterSetter(context, symbol, rangeOrSelection)) {
+            return await this.getMemberVariableRefactorings(symbol!, sourceDoc);
+        }
+
         return [];
+    }
+
+    private shouldProvideAddDefinition(
+        context: vscode.CodeActionContext,
+        symbol: CSymbol | undefined,
+        rangeOrSelection: vscode.Range | vscode.Selection
+    ): boolean {
+        return symbol?.isFunctionDeclaration() === true
+            && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+    }
+
+    private shouldProvideMoveDefinition(
+        context: vscode.CodeActionContext,
+        symbol: CSymbol | undefined,
+        rangeOrSelection: vscode.Range | vscode.Selection
+    ): boolean {
+        return symbol?.isFunctionDefinition() === true
+            && ((this.moveDefinitionEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
+                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+    }
+
+    private shouldProvideGetterSetter(
+        context: vscode.CodeActionContext,
+        symbol: CSymbol | undefined,
+        rangeOrSelection: vscode.Range | vscode.Selection
+    ): boolean {
+        return symbol?.isMemberVariable() === true
+            && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
+                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 
     private async getFunctionDeclarationRefactorings(
@@ -297,8 +330,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const relativePath = vscode.workspace.asRelativePath(uri);
         // Arbitrary limit, as to not display a path that's running all the way across the screen.
         if (relativePath.length > 60) {
-            const length = relativePath.length;
-            return relativePath.substring(0, 28) + '....' + relativePath.substring(length - 28, length);
+            return relativePath.slice(0, 28) + '....' + relativePath.slice(-28);
         }
         return relativePath;
     }
