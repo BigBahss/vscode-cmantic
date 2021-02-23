@@ -144,7 +144,7 @@ export async function addDefinition(
 
 type Initializer = SourceSymbol | SubSymbol;
 
-interface QuickPickInitializerItem extends vscode.QuickPickItem {
+interface InitializerQuickPickItem extends vscode.QuickPickItem {
     initializer: Initializer;
 }
 
@@ -160,9 +160,9 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     }
     initializers.push(...parentClass.baseClasses(), ...parentClass.memberVariables());
 
-    const initializerItems: QuickPickInitializerItem[] = [];
-    initializers?.forEach(initializer => {
-        const initializerItem: QuickPickInitializerItem = { label: '', initializer: initializer };
+    const initializerItems: InitializerQuickPickItem[] = [];
+    initializers.forEach(initializer => {
+        const initializerItem: InitializerQuickPickItem = { label: '', initializer: initializer };
         if (initializer === parentClass) {
             initializerItem.label = '$(symbol-class) ' + initializer.name;
             initializerItem.description = 'Delegated constructor (cannot be used with any other initializers)';
@@ -170,13 +170,14 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
             initializerItem.label = '$(symbol-class) ' + initializer.name;
             initializerItem.description = 'Base class constructor';
         } else {
-            initializerItem.label = '$(symbol-field) ' + initializer.name;
-            initializerItem.description = 'Member variable';
+            const memberVariable = new CSymbol(initializer, parentClass.document);
+            initializerItem.label = '$(symbol-field) ' + memberVariable.name;
+            initializerItem.description = memberVariable.text();
         }
         initializerItems.push(initializerItem);
     });
 
-    const selectedIems = await vscode.window.showQuickPick<QuickPickInitializerItem>(initializerItems, {
+    const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
         placeHolder: 'What would you like to initialize in this constructor?',
         canPickMany: true
@@ -212,7 +213,7 @@ async function constructFunctionSkeleton(
         p_initializers
     ]);
 
-    if (!initializers) {
+    if (initializers === undefined) {
         return;
     }
 
@@ -260,6 +261,7 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
     const lines = functionSkeleton.split('\n');
     for (let i = 0; i < lines.length; ++i) {
         if (lines[i].trimStart().startsWith(':')) {
+            // The function is a constructor, so we want to position the cursor in the first initializer.
             let index = lines[i].lastIndexOf(')');
             if (index === -1) {
                 index = lines[i].lastIndexOf('}');
