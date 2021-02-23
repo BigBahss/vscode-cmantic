@@ -12,7 +12,9 @@ import { SubSymbol } from './SubSymbol';
 
 export const title = {
     currentFile: 'Add Definition in this file',
-    matchingSourceFile: 'Add Definition in matching source file'
+    matchingSourceFile: 'Add Definition in matching source file',
+    constructorCurrentFile: 'Generate Constructor in this file',
+    constructorMatchingSourceFile: 'Generate Constructor in matching source file'
 };
 
 export const failure = {
@@ -214,6 +216,7 @@ async function constructFunctionSkeleton(
     ]);
 
     if (initializers === undefined) {
+        // Undefined only when the user cancels the QuickPick, so return.
         return;
     }
 

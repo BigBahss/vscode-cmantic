@@ -132,6 +132,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
         addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri);
 
+        if (declaration.isConstructor()) {
+            addDefinitionInCurrentFile.setTitle(addDefinitionTitle.constructorCurrentFile);
+            addDefinitionInMatchingSourceFile.setTitle(addDefinitionTitle.constructorMatchingSourceFile);
+        }
+
         if (declaration.isInline()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isInline);
         } else if (declaration.isConstexpr()) {
@@ -147,7 +152,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.notHeaderFile);
         } else if (matchingUri) {
             const displayPath = this.formatPathToDisplay(matchingUri);
-            addDefinitionInMatchingSourceFile.setTitle(`Add Definition in "${displayPath}"`);
+            if (declaration.isConstructor()) {
+                addDefinitionInMatchingSourceFile.setTitle(`Generate Constructor in "${displayPath}"`);
+            } else {
+                addDefinitionInMatchingSourceFile.setTitle(`Add Definition in "${displayPath}"`);
+            }
         } else {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.noMatchingSourceFile);
         }
