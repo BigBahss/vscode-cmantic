@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as path from 'path';
+import * as fs from 'fs';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
@@ -48,8 +49,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
     pushDisposable(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
     pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
-    pushDisposable(vscode.workspace.onDidDeleteFiles(onDidDeleteFiles));
-    pushDisposable(vscode.workspace.onDidRenameFiles(onDidRenameFiles));
 
     logger.logInfo('C-mantic extension activated.');
 
@@ -67,7 +66,11 @@ export function pushDisposable(disposable: vscode.Disposable): void {
 export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
     const cachedMatchingUri = headerSourceCache.get(uri.toString());
     if (cachedMatchingUri) {
-        return cachedMatchingUri;
+        if (fs.existsSync(cachedMatchingUri.fsPath)) {
+            return cachedMatchingUri;
+        } else {
+            removeHeaderSourcePairFromCache(uri, cachedMatchingUri);
+        }
     }
 
     const matchingUri = await findMatchingSourceFile(uri);
@@ -167,20 +170,6 @@ async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
         const ext = util.fileExtension(uri.fsPath);
         if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
             return cacheMatchingSourceFile(uri);
-        }
-    });
-}
-
-function onDidDeleteFiles(event: vscode.FileDeleteEvent): void {
-    event.files.forEach(uri => removeHeaderSourcePairFromCache(uri));
-}
-
-function onDidRenameFiles(event: vscode.FileRenameEvent): void {
-    event.files.forEach(file => {
-        const matchingUri = headerSourceCache.get(file.oldUri.toString());
-        if (matchingUri) {
-            removeHeaderSourcePairFromCache(file.oldUri, matchingUri);
-            addHeaderSourcePairToCache(file.newUri, matchingUri);
         }
     });
 }
