@@ -203,9 +203,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     });
 
     selectedInitializers.push(...parentClass.memberVariablesThatRequireInitialization());
-    selectedInitializers.sort((a: Initializer, b: Initializer) => {
-        return a.range.end.isAfter(b.range.end) ? 1 : -1;
-    });
+    selectedInitializers.sort(util.sortByRange);
 
     return [...new Set(selectedInitializers)];
 }

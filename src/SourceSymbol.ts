@@ -45,9 +45,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         }
 
         // Sort docSymbol.children based on their relative position to eachother.
-        docSymbol.children.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-            return a.range.end.isAfter(b.range.end) ? 1 : -1;
-        });
+        docSymbol.children.sort(util.sortByRange);
 
         // Convert docSymbol.children to SourceSymbols to set the children property.
         const convertedChildren: SourceSymbol[] = [];

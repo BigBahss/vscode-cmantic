@@ -128,6 +128,14 @@ export function getIndentationRegExp(symbol: CSymbol): RegExp {
     return new RegExp('^' + indentation, 'gm');
 }
 
+interface RangedObject {
+    range: vscode.Range;
+}
+
+export function sortByRange(a: RangedObject, b: RangedObject): number {
+    return a.range.end.isAfter(b.range.end) ? 1 : -1;
+}
+
 export function firstCharToUpper(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
