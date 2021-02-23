@@ -108,14 +108,14 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
     async scopeString(target: SourceFile, position: vscode.Position): Promise<string> {
         let scopeString = '';
-        this.scopes().forEach(async scope => {
+        for (const scope of this.scopes()) {
             const targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
             if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
                     || targetScope.range.end.isBeforeOrEqual(position)) {
                 scopeString += scope.name + '::';
             }
-        });
+        }
 
         return scopeString;
     }
