@@ -104,22 +104,40 @@ function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri):
 }
 
 async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (!workspaceFolder) {
+        return;
+    }
+
     const extension = util.fileExtension(uri.fsPath);
     const baseName = util.fileNameBase(uri.fsPath);
     const directory = path.dirname(uri.fsPath);
+    const parentDirectory = path.dirname(directory);
     const headerExtensions = cfg.headerExtensions();
     const sourceExtensions = cfg.sourceExtensions();
 
     let globPattern: string;
-    if (headerExtensions.indexOf(extension) !== -1) {
+    if (headerExtensions.includes(extension)) {
         globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
-    } else if (sourceExtensions.indexOf(extension) !== -1) {
+    } else if (sourceExtensions.includes(extension)) {
         globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
     } else {
         return;
     }
 
-    const uris = await vscode.workspace.findFiles(globPattern);
+    const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
+    const parentDirRelativeUris = await vscode.workspace.findFiles(parentDirRelativePattern);
+    const bestParentDirRelativeMatch = findBestMatchingUri(directory, parentDirRelativeUris);
+    if (bestParentDirRelativeMatch) {
+        return bestParentDirRelativeMatch;
+    }
+
+    const workspaceRelativePattern = new vscode.RelativePattern(workspaceFolder, globPattern);
+    const workspaceRelativeUris = await vscode.workspace.findFiles(workspaceRelativePattern, parentDirectory);
+    return findBestMatchingUri(directory, workspaceRelativeUris);
+}
+
+function findBestMatchingUri(directoryToCompare: string, uris: vscode.Uri[]): vscode.Uri | undefined {
     let bestMatch: vscode.Uri | undefined;
     let smallestDiff: number | undefined;
 
@@ -128,7 +146,7 @@ async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | und
             continue;
         }
 
-        const diff = util.compareDirectoryPaths(path.dirname(uri.fsPath), directory);
+        const diff = util.compareDirectoryPaths(path.dirname(uri.fsPath), directoryToCompare);
         if (smallestDiff === undefined || diff < smallestDiff) {
             smallestDiff = diff;
             bestMatch = uri;
