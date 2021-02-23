@@ -221,6 +221,22 @@ export class CSymbol extends SourceSymbol {
         return baseClasses;
     }
 
+    /**
+     * Retruns the member variables of this class/struct that are const or a reference.
+     */
+    memberVariablesThatRequireInitialization(): SourceSymbol[] {
+        if (!this.isClassOrStruct()) {
+            return [];
+        }
+
+        return this.children.filter(child => {
+            if (child.isMemberVariable()) {
+                const memberVariable = new CSymbol(child, this.document);
+                return memberVariable.isConst() || memberVariable.isReference();
+            }
+        });
+    }
+
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !this.parsableText.endsWith('}')
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
