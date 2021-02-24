@@ -25,6 +25,16 @@ export class SubSymbol {
         this.name = document.getText(selectionRange);
     }
 
+    text(): string { return this.document.getText(this.range); }
+
+    startOffset(): number { return this.document.offsetAt(this.range.start); }
+
+    endOffset(): number { return this.document.offsetAt(this.range.end); }
+
+    isBefore(offset: number): boolean { return this.endOffset() < offset; }
+
+    isAfter(offset: number): boolean { return this.startOffset() > offset; }
+
     /**
      * Finds the most likely definition of this SubSymbol and only returns a result with the same base file name.
      * Returns undefined if the most likely definition is this SubSymbol.
