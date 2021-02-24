@@ -214,9 +214,18 @@ export class CSymbol extends SourceSymbol {
         const baseClasses: SubSymbol[] = [];
         for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*(\s*::\s*[\w_][\w\d_]*)*\b(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {
-                const start = this.document.positionAt(startOffset + match.index);
+                const matchStartOffset = startOffset + match.index;
+                const start = this.document.positionAt(matchStartOffset);
                 const end = this.document.positionAt(startOffset + match.index + match[0].length);
-                baseClasses.push(new SubSymbol(new vscode.Range(start, end), this.document));
+                const selectionMatch = match[0].match(re_scopeResolvedIdentifier);
+                let selectionRange: vscode.Range | undefined;
+                if (selectionMatch?.index !== undefined) {
+                    const selectionStart = this.document.positionAt(matchStartOffset + selectionMatch.index);
+                    const selectionEnd = this.document.positionAt(
+                            matchStartOffset + selectionMatch.index + selectionMatch[0].length);
+                    selectionRange = new vscode.Range(selectionStart, selectionEnd);
+                }
+                baseClasses.push(new SubSymbol(this.document, new vscode.Range(start, end), selectionRange));
             }
         }
 
