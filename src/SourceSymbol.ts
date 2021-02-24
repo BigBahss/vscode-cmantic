@@ -61,9 +61,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
      * Returns undefined if the most likely definition is this SourceSymbol.
      */
     async findDefinition(): Promise<vscode.Location | undefined> {
-        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
-                'vscode.executeDefinitionProvider', this.uri, this.selectionRange.start);
-        return this.findMostLikelyResult(definitionResults);
+        return util.findDefinition(this);
     }
 
     /**
@@ -71,23 +69,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
      * Returns undefined if the most likely declaration is this SourceSymbol.
      */
     async findDeclaration(): Promise<vscode.Location | undefined> {
-        const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
-                'vscode.executeDeclarationProvider', this.uri, this.selectionRange.start);
-        return this.findMostLikelyResult(declarationResults);
-    }
-
-    private findMostLikelyResult(results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined {
-        const thisFileNameBase = util.fileNameBase(this.uri.fsPath);
-        for (const location of util.makeLocationArray(results)) {
-            if (!util.existsInWorkspace(location)) {
-                continue;
-            }
-
-            if (util.fileNameBase(location.uri.fsPath) === thisFileNameBase
-                    && !(location.uri.fsPath === this.uri.fsPath && this.range.contains(location.range))) {
-                return location;
-            }
-        }
+        return util.findDeclaration(this);
     }
 
     /**

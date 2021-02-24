@@ -4,6 +4,8 @@ import * as xregexp from 'xregexp';
 import { ProposedPosition } from './ProposedPosition';
 import { CSymbol } from './CSymbol';
 import { logger } from './logger';
+import { SourceSymbol } from './SourceSymbol';
+import { SubSymbol } from './SubSymbol';
 
 /**
  * Returns the file extension without the dot.
@@ -56,21 +58,6 @@ export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): 
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;
     }
     return vscode.workspace.asRelativePath(locationOrUri) !== locationOrUri.fsPath;
-}
-
-export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
-    if (!input) {
-        return [];
-    }
-
-    const locations: vscode.Location[] = [];
-    for (const element of input) {
-        const location = (element instanceof vscode.Location) ?
-                element : new vscode.Location(element.targetUri, element.targetRange);
-        locations.push(location);
-    }
-
-    return locations;
 }
 
 export function indentation(options?: vscode.TextEditorOptions): string {
@@ -134,6 +121,58 @@ interface RangedObject {
 
 export function sortByRange(a: RangedObject, b: RangedObject): number {
     return a.range.end.isAfter(b.range.end) ? 1 : -1;
+}
+
+type AnySymbol = SourceSymbol | SubSymbol;
+
+/**
+ * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely definition is this SourceSymbol.
+ */
+export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location | undefined> {
+    const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+            'vscode.executeDefinitionProvider', symbol.uri, symbol.selectionRange.start);
+    return findMostLikelyResult(symbol, definitionResults);
+}
+
+/**
+ * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely declaration is this SourceSymbol.
+ */
+export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Location | undefined> {
+    const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+            'vscode.executeDeclarationProvider', symbol.uri, symbol.selectionRange.start);
+    return findMostLikelyResult(symbol, declarationResults);
+}
+
+function findMostLikelyResult(symbol: AnySymbol, results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined {
+    const thisFileNameBase = fileNameBase(symbol.uri.fsPath);
+    for (const location of makeLocationArray(results)) {
+        if (!existsInWorkspace(location)) {
+            continue;
+        }
+
+        if (fileNameBase(location.uri.fsPath) === thisFileNameBase
+                && !(location.uri.fsPath === symbol.uri.fsPath && symbol.range.contains(location.range))) {
+            return location;
+        }
+    }
+}
+
+export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
+    if (!input) {
+        return [];
+    }
+
+    const locations: vscode.Location[] = [];
+    for (const element of input) {
+        const location = (element instanceof vscode.Location)
+                ? element
+                : new vscode.Location(element.targetUri, element.targetRange);
+        locations.push(location);
+    }
+
+    return locations;
 }
 
 export function firstCharToUpper(str: string): string {
