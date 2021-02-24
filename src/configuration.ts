@@ -27,9 +27,9 @@ export enum HeaderGuardStyle {
     Both
 }
 
-export enum AccessorDefinitionLocation {
+export enum DefinitionLocation {
     Inline,
-    BelowClass,
+    CurrentFile,
     SourceFile
 }
 
@@ -48,7 +48,7 @@ const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
-const defaultAccessorDefinitionLocation = AccessorDefinitionLocation.Inline;
+const defaultAccessorDefinitionLocation = DefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
@@ -158,29 +158,29 @@ export function headerGuardDefine(fileName: string): string {
             .replace(re_charactersNotAllowedInIdentifiers, '_');
 }
 
-export function getterDefinitionLocation(): AccessorDefinitionLocation {
+export function getterDefinitionLocation(): DefinitionLocation {
     const location = configuration().get<string>('cpp.accessor.getterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
-        return AccessorDefinitionLocation.Inline;
+        return DefinitionLocation.Inline;
     case 'Generate definition below class body':
-        return AccessorDefinitionLocation.BelowClass;
+        return DefinitionLocation.CurrentFile;
     case 'Generate definition in matching source file':
-        return AccessorDefinitionLocation.SourceFile;
+        return DefinitionLocation.SourceFile;
     default:
         return defaultAccessorDefinitionLocation;
     }
 }
 
-export function setterDefinitionLocation(): AccessorDefinitionLocation {
+export function setterDefinitionLocation(): DefinitionLocation {
     const location = configuration().get<string>('cpp.accessor.setterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
-        return AccessorDefinitionLocation.Inline;
+        return DefinitionLocation.Inline;
     case 'Generate definition below class body':
-        return AccessorDefinitionLocation.BelowClass;
+        return DefinitionLocation.CurrentFile;
     case 'Generate definition in matching source file':
-        return AccessorDefinitionLocation.SourceFile;
+        return DefinitionLocation.SourceFile;
     default:
         return defaultAccessorDefinitionLocation;
     }

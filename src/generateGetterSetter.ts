@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import { ProposedPosition } from './ProposedPosition';
+import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { Accessor, Getter, Setter } from "./Accessor";
@@ -202,27 +202,23 @@ async function getTargetForAccessorDefinition(
     accessor: Accessor,
     declarationPosition: ProposedPosition,
     classDoc: SourceDocument
-): Promise<{ position: ProposedPosition; sourceDoc: SourceDocument }> {
+): Promise<TargetLocation> {
     const accessorDefinitionLocation = (accessor instanceof Getter) ?
             cfg.getterDefinitionLocation() : cfg.setterDefinitionLocation();
 
     switch (accessorDefinitionLocation) {
-    case cfg.AccessorDefinitionLocation.Inline:
-        return { position: declarationPosition, sourceDoc: classDoc };
-    case cfg.AccessorDefinitionLocation.SourceFile:
-        // If the class is not in a header file then control will pass down to BelowClass.
+    case cfg.DefinitionLocation.Inline:
+        return new TargetLocation(declarationPosition, classDoc);
+    case cfg.DefinitionLocation.SourceFile:
+        // If the class is not in a header file then control will pass down to CurrentFile.
         if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
             const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
-            return {
-                position: await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc),
-                sourceDoc: targetDoc
-            };
+            return new TargetLocation(
+                    await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc), targetDoc);
         }
-    case cfg.AccessorDefinitionLocation.BelowClass:
-        return {
-            position: await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc),
-            sourceDoc: classDoc
-        };
+    case cfg.DefinitionLocation.CurrentFile:
+        return new TargetLocation(
+                await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc), classDoc);
     }
 }

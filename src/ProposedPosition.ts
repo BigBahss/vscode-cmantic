@@ -1,4 +1,5 @@
-import { Position, Range, TextDocument } from 'vscode';
+import { Position, Range, TextDocument, TreeViewSelectionChangeEvent } from 'vscode';
+import { SourceDocument } from './SourceDocument';
 import { endOfLine } from './utility';
 
 
@@ -28,31 +29,49 @@ export class ProposedPosition extends Position {
     }
 
     formatTextToInsert(insertText: string, document: TextDocument): string {
-        // Indent text to match the relative position.
-        const line = this.options.relativeTo ? document.lineAt(this.options.relativeTo.start) : document.lineAt(this);
-        const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
-        if (!this.options.before) {
-            insertText = insertText.replace(/^/gm, indentation);
-        } else {
-            insertText = insertText.replace(/\n/gm, '\n' + indentation);
-        }
-
-        const eol = endOfLine(document);
-        const newLines = this.options.nextTo ? eol : eol + eol;
-        if (this.options.after) {
-            insertText = newLines + insertText;
-        } else if (this.options.before) {
-            insertText += newLines;
-        }
-
-        if (this.line === document.lineCount - 1) {
-            insertText += eol;
-        }
-
-        if (this.options.before) {
-            insertText += indentation;
-        }
-
-        return insertText;
+        return formatTextToInsert(insertText, this, document);
     }
+}
+
+export class TargetLocation {
+    position: ProposedPosition;
+    sourceDoc: SourceDocument;
+
+    constructor(position: ProposedPosition, sourceDoc: SourceDocument) {
+        this.position = position;
+        this.sourceDoc = sourceDoc;
+    }
+
+    formatTextToInsert(insertText: string): string {
+        return formatTextToInsert(insertText, this.position, this.sourceDoc);
+    }
+}
+
+function formatTextToInsert(insertText: string, position: ProposedPosition, document: TextDocument): string {
+    // Indent text to match the relative position.
+    const line = position.options.relativeTo ? document.lineAt(position.options.relativeTo.start) : document.lineAt(position);
+    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    if (!position.options.before) {
+        insertText = insertText.replace(/^/gm, indentation);
+    } else {
+        insertText = insertText.replace(/\n/gm, '\n' + indentation);
+    }
+
+    const eol = endOfLine(document);
+    const newLines = position.options.nextTo ? eol : eol + eol;
+    if (position.options.after) {
+        insertText = newLines + insertText;
+    } else if (position.options.before) {
+        insertText += newLines;
+    }
+
+    if (position.line === document.lineCount - 1) {
+        insertText += eol;
+    }
+
+    if (position.options.before) {
+        insertText += indentation;
+    }
+
+    return insertText;
 }
