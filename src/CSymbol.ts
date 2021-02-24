@@ -206,11 +206,13 @@ export class CSymbol extends SourceSymbol {
 
         const startOffset = this.document.offsetAt(this.selectionRange.end);
         let trailingText = this.document.getText(new vscode.Range(this.selectionRange.end, this.bodyStart()));
+        trailingText = util.maskComments(trailingText, false);
+        trailingText = util.maskAngleBrackets(trailingText);
         trailingText = trailingText.replace(/\b(public|protected|private)\b/g, util.masker);
 
 
         const baseClasses: SubSymbol[] = [];
-        for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*(\s*::\s*[\w_][\w\d_]*)*\b/g)) {
+        for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*(\s*::\s*[\w_][\w\d_]*)*\b(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {
                 const start = this.document.positionAt(startOffset + match.index);
                 const end = this.document.positionAt(startOffset + match.index + match[0].length);
