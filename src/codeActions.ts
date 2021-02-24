@@ -7,6 +7,7 @@ import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from '
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
+import { failure as equalityFailure, title as equalityTitle } from './generateEqualityOperators';
 import { getMatchingSourceFile, pushDisposable } from './extension';
 
 
@@ -119,6 +120,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return await this.getMemberVariableRefactorings(symbol!, sourceDoc);
         }
 
+        if (this.shouldProvideClassRefactorings(context, symbol, rangeOrSelection)) {
+            return await this.getClassRefactorings(symbol!, sourceDoc, matchingUri);
+        }
+
         return [];
     }
 
@@ -149,6 +154,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         return symbol?.isMemberVariable() === true
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
                 || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+    }
+
+    private shouldProvideClassRefactorings(
+        context: vscode.CodeActionContext,
+        symbol: CSymbol | undefined,
+        rangeOrSelection: vscode.Range | vscode.Selection
+    ): boolean {
+        return symbol?.isClassOrStruct() === true && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
     }
 
     private async getFunctionDeclarationRefactorings(
@@ -228,9 +241,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
-                    moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`);
+                    moveDefinitionIntoOrOutOfClass.setTitle(
+                            `${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`);
                 } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
-                    moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
+                    moveDefinitionIntoOrOutOfClass.setTitle(
+                            `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
                 } else {
                     moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
                 }
@@ -299,6 +314,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         return [generateGetterSetter, generateGetter, generateSetter];
+    }
+
+    private async getClassRefactorings(
+        classOrStruct: CSymbol,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<RefactorAction[]> {
+        const generateEqualityOperators = new RefactorAction(equalityTitle, 'cmantic.generateEqualityOperators');
+        generateEqualityOperators.setArguments(classOrStruct, sourceDoc, matchingUri);
+        return [generateEqualityOperators];
     }
 
     private async getSourceActions(

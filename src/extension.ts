@@ -9,6 +9,7 @@ import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
 } from './generateGetterSetter';
+import { generateEqualityOperators } from './generateEqualityOperators';
 import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
 import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
@@ -36,6 +37,8 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetterFor", generateGetterSetterFor));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterFor", generateGetterFor));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateSetterFor", generateSetterFor));
+
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateEqualityOperators", generateEqualityOperators));
 
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.createMatchingSourceFile", createMatchingSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));
