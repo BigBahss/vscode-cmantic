@@ -16,13 +16,13 @@ export class SubSymbol {
     constructor(document: vscode.TextDocument, range: vscode.Range, selectionRange?: vscode.Range) {
         this.document = document;
         this.uri = document.uri;
-        this.name = document.getText(range);
         this.range = range;
         if (selectionRange) {
             this.selectionRange = selectionRange;
         } else {
             this.selectionRange = range;
         }
+        this.name = document.getText(selectionRange);
     }
 
     /**
