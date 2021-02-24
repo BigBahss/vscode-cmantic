@@ -110,7 +110,7 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
 }
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp {
-    const line = symbol.document.lineAt(symbol.getTrueStart());
+    const line = symbol.document.lineAt(symbol.trueStart);
     const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     return new RegExp('^' + indentation, 'gm');
 }

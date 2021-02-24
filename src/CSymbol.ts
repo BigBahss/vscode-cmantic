@@ -19,7 +19,6 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 export class CSymbol extends SourceSymbol {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
-    private trueStart?: vscode.Position;
     private leadingCommentStart?: vscode.Position;
 
     /**
@@ -83,13 +82,13 @@ export class CSymbol extends SourceSymbol {
      * including potential template statement.
      */
     getFullLeadingText(): string {
-        return this.document.getText(new vscode.Range(this.getTrueStart(), this.selectionRange.start));
+        return this.document.getText(new vscode.Range(this.trueStart, this.selectionRange.start));
     }
 
     /**
      * Returns the range of this symbol including potential template statement.
      */
-    getFullRange(): vscode.Range { return new vscode.Range(this.getTrueStart(), this.range.end); }
+    getFullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.range.end); }
 
     getRangeWithLeadingComment(): vscode.Range {
         return new vscode.Range(this.getLeadingCommentStart(), this.range.end);
@@ -376,7 +375,7 @@ export class CSymbol extends SourceSymbol {
 
         let comment: string;
         if (cfg.alwaysMoveComments()) {
-            comment = this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.getTrueStart()));
+            comment = this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.trueStart));
             comment = comment.replace(util.getIndentationRegExp(this), '');
         } else {
             comment = '';
@@ -403,14 +402,14 @@ export class CSymbol extends SourceSymbol {
             scopeString = await this.scopeString(targetDoc, position);
         }
 
-        const declarationRange = new vscode.Range(this.getTrueStart(), this.bodyStart());
+        const declarationRange = new vscode.Range(this.trueStart, this.bodyStart());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
         let maskedDeclaration = util.maskComments(declaration, false);
         maskedDeclaration = util.maskRawStringLiterals(maskedDeclaration);
         maskedDeclaration = util.maskQuotes(maskedDeclaration);
         maskedDeclaration = util.maskParentheses(maskedDeclaration);
 
-        const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.getTrueStart());
+        const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.trueStart);
         const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex) + 1;
         const paramEndIndex = maskedDeclaration.indexOf(')');
         if (paramStartIndex === -1 || paramEndIndex === -1) {
@@ -420,7 +419,7 @@ export class CSymbol extends SourceSymbol {
 
         // Intelligently align the definition in the case of a multi-line declaration.
         const scopeStringStart = this.scopeStringStart();
-        let leadingText = this.document.getText(new vscode.Range(this.getTrueStart(), scopeStringStart));
+        let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
@@ -440,7 +439,7 @@ export class CSymbol extends SourceSymbol {
         if (!this.isFunctionDefinition()) {
             return '';
         }
-        return this.document.getText(new vscode.Range(this.getTrueStart(), this.bodyStart())).trimEnd() + ';';
+        return this.document.getText(new vscode.Range(this.trueStart, this.bodyStart())).trimEnd() + ';';
     }
 
     combineDefinition(definition: CSymbol): string {
@@ -451,7 +450,7 @@ export class CSymbol extends SourceSymbol {
 
         // If this CSymbol (declaration) doesn't have a comment, then we want to pull the comment from the definition.
         if (!this.hasLeadingComment() && definition.hasLeadingComment()) {
-            const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.getTrueStart());
+            const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.trueStart);
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
                     + newIndentation + this.getFullText().replace(/\s*;$/, '')
@@ -465,17 +464,17 @@ export class CSymbol extends SourceSymbol {
     /**
      * clangd and ccls don't include template statements in provided DocumentSymbols.
      */
-    getTrueStart(): vscode.Position {
-        if (this.trueStart) {
-            return this.trueStart;
+    get trueStart(): vscode.Position {
+        if (this._trueStart) {
+            return this._trueStart;
         }
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = util.maskComments(this.document.getText(before), false);
         maskedText = util.maskAngleBrackets(maskedText).trimEnd();
         if (!maskedText.endsWith('>')) {
-            this.trueStart = this.range.start;
-            return this.trueStart;
+            this._trueStart = this.range.start;
+            return this._trueStart;
         }
 
         let lastMatch: RegExpMatchArray | undefined;
@@ -483,13 +482,14 @@ export class CSymbol extends SourceSymbol {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {
-            this.trueStart = this.range.start;
-            return this.trueStart;
+            this._trueStart = this.range.start;
+            return this._trueStart;
         }
 
-        this.trueStart = this.document.positionAt(lastMatch.index);
-        return this.trueStart;
+        this._trueStart = this.document.positionAt(lastMatch.index);
+        return this._trueStart;
     }
+    private _trueStart?: vscode.Position;
 
     /**
      * Less of the body start, and more of "the end of the declaration part of the definition", but that's really long.
@@ -559,7 +559,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     hasLeadingComment(): boolean {
-        if (this.getLeadingCommentStart().isEqual(this.getTrueStart())) {
+        if (this.getLeadingCommentStart().isEqual(this.trueStart)) {
             return false;
         }
         return true;
@@ -570,10 +570,10 @@ export class CSymbol extends SourceSymbol {
             return this.leadingCommentStart;
         }
 
-        const before = new vscode.Range(new vscode.Position(0, 0), this.getTrueStart());
+        const before = new vscode.Range(new vscode.Position(0, 0), this.trueStart);
         const maskedText = util.maskComments(this.document.getText(before)).trimEnd();
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
-            this.leadingCommentStart = this.getTrueStart();
+            this.leadingCommentStart = this.trueStart;
             return this.leadingCommentStart;
         }
 
@@ -583,11 +583,11 @@ export class CSymbol extends SourceSymbol {
                 this.leadingCommentStart = this.document.positionAt(commentStartOffset);
                 return this.leadingCommentStart;
             }
-            this.leadingCommentStart = this.getTrueStart();
+            this.leadingCommentStart = this.trueStart;
             return this.leadingCommentStart;
         }
 
-        for (let i = this.getTrueStart().line - 1; i >= 0; --i) {
+        for (let i = this.trueStart.line - 1; i >= 0; --i) {
             const line = this.document.lineAt(i);
             if (!line.text.trimStart().startsWith('//')) {
                 const indexOfComment = this.document.lineAt(i + 1).text.indexOf('//');
@@ -599,7 +599,7 @@ export class CSymbol extends SourceSymbol {
             }
         }
 
-        this.leadingCommentStart = this.getTrueStart();
+        this.leadingCommentStart = this.trueStart;
         return this.leadingCommentStart;
     }
 
