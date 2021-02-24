@@ -189,9 +189,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
         return;
     }
 
-    if (selectedIems.length > 0 && selectedIems[0].initializer === parentClass) {
-        /* Disregard other initializers that the user may have selected because
-         * other initializers cannot be used with a delegated constructor. */
+    if (selectedIems.length === 1 && selectedIems[0].initializer === parentClass) {
         return [parentClass];
     }
 
