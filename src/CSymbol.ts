@@ -19,7 +19,6 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 export class CSymbol extends SourceSymbol {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
-    private leadingCommentStart?: vscode.Position;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
@@ -91,7 +90,7 @@ export class CSymbol extends SourceSymbol {
     getFullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.range.end); }
 
     getRangeWithLeadingComment(): vscode.Range {
-        return new vscode.Range(this.getLeadingCommentStart(), this.range.end);
+        return new vscode.Range(this.leadingCommentStart, this.range.end);
     }
 
     startOffset(): number { return this.document.offsetAt(this.range.start); }
@@ -181,7 +180,7 @@ export class CSymbol extends SourceSymbol {
             if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
                     && symbol.name === relativeName) {
                 if (isGetter) {
-                    return new ProposedPosition(symbol.getLeadingCommentStart(), {
+                    return new ProposedPosition(symbol.leadingCommentStart, {
                         relativeTo: symbol.range,
                         before: true,
                         nextTo: true
@@ -375,7 +374,7 @@ export class CSymbol extends SourceSymbol {
 
         let comment: string;
         if (cfg.alwaysMoveComments()) {
-            comment = this.document.getText(new vscode.Range(this.getLeadingCommentStart(), this.trueStart));
+            comment = this.document.getText(new vscode.Range(this.leadingCommentStart, this.trueStart));
             comment = comment.replace(util.getIndentationRegExp(this), '');
         } else {
             comment = '';
@@ -450,7 +449,7 @@ export class CSymbol extends SourceSymbol {
 
         // If this CSymbol (declaration) doesn't have a comment, then we want to pull the comment from the definition.
         if (!this.hasLeadingComment() && definition.hasLeadingComment()) {
-            const leadingCommentRange = new vscode.Range(definition.getLeadingCommentStart(), definition.trueStart);
+            const leadingCommentRange = new vscode.Range(definition.leadingCommentStart, definition.trueStart);
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
                     + newIndentation + this.getFullText().replace(/\s*;$/, '')
@@ -559,32 +558,32 @@ export class CSymbol extends SourceSymbol {
     }
 
     hasLeadingComment(): boolean {
-        if (this.getLeadingCommentStart().isEqual(this.trueStart)) {
+        if (this.leadingCommentStart.isEqual(this.trueStart)) {
             return false;
         }
         return true;
     }
 
-    getLeadingCommentStart(): vscode.Position {
-        if (this.leadingCommentStart) {
-            return this.leadingCommentStart;
+    get leadingCommentStart(): vscode.Position {
+        if (this._leadingCommentStart) {
+            return this._leadingCommentStart;
         }
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.trueStart);
         const maskedText = util.maskComments(this.document.getText(before)).trimEnd();
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
-            this.leadingCommentStart = this.trueStart;
-            return this.leadingCommentStart;
+            this._leadingCommentStart = this.trueStart;
+            return this._leadingCommentStart;
         }
 
         if (maskedText.endsWith('*/')) {
             const commentStartOffset = maskedText.lastIndexOf('/*');
             if (commentStartOffset !== -1) {
-                this.leadingCommentStart = this.document.positionAt(commentStartOffset);
-                return this.leadingCommentStart;
+                this._leadingCommentStart = this.document.positionAt(commentStartOffset);
+                return this._leadingCommentStart;
             }
-            this.leadingCommentStart = this.trueStart;
-            return this.leadingCommentStart;
+            this._leadingCommentStart = this.trueStart;
+            return this._leadingCommentStart;
         }
 
         for (let i = this.trueStart.line - 1; i >= 0; --i) {
@@ -594,14 +593,15 @@ export class CSymbol extends SourceSymbol {
                 if (indexOfComment === -1) {
                     break;  // This shouldn't happen, but just in-case.
                 }
-                this.leadingCommentStart = new vscode.Position(i + 1, indexOfComment);
-                return this.leadingCommentStart;
+                this._leadingCommentStart = new vscode.Position(i + 1, indexOfComment);
+                return this._leadingCommentStart;
             }
         }
 
-        this.leadingCommentStart = this.trueStart;
-        return this.leadingCommentStart;
+        this._leadingCommentStart = this.trueStart;
+        return this._leadingCommentStart;
     }
+    private _leadingCommentStart?: vscode.Position;
 
     private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean {
         if (child.isFunction() && child.isAfter(afterOffset) && child.isBefore(beforeOffset)) {

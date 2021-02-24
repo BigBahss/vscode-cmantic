@@ -183,7 +183,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
             const definition = await targetDoc.getSymbol(definitionLocation.range.start);
             if (definition) {
-                const leadingCommentStart = definition.getLeadingCommentStart();
+                const leadingCommentStart = definition.leadingCommentStart;
                 return new ProposedPosition(leadingCommentStart, {
                     relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
                     before: true
