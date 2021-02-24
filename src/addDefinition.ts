@@ -169,7 +169,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
             initializerItem.label = '$(symbol-class) ' + initializer.name;
             initializerItem.description = 'Delegated constructor (cannot be used with any other initializers)';
         } else if (initializer instanceof SubSymbol) {
-            initializerItem.label = '$(symbol-class) ' + initializer.name;
+            initializerItem.label = '$(symbol-class) ' + initializer.text();
             initializerItem.description = 'Base class constructor';
         } else {
             const memberVariable = new CSymbol(initializer, parentClass.document);
