@@ -210,7 +210,7 @@ export class CSymbol extends SourceSymbol {
 
 
         const baseClasses: SubSymbol[] = [];
-        for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*\b/g)) {
+        for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*(\s*::\s*[\w_][\w\d_]*)*\b/g)) {
             if (match.index !== undefined) {
                 const start = this.document.positionAt(startOffset + match.index);
                 const end = this.document.positionAt(startOffset + match.index + match[0].length);
