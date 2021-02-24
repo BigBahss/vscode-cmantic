@@ -125,20 +125,12 @@ export function sortByRange(a: RangedObject, b: RangedObject): number {
 
 type AnySymbol = SourceSymbol | SubSymbol;
 
-/**
- * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
- * Returns undefined if the most likely definition is this SourceSymbol.
- */
 export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location | undefined> {
     const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
             'vscode.executeDefinitionProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, definitionResults);
 }
 
-/**
- * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
- * Returns undefined if the most likely declaration is this SourceSymbol.
- */
 export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Location | undefined> {
     const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
             'vscode.executeDeclarationProvider', symbol.uri, symbol.selectionRange.start);
