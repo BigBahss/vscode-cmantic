@@ -9,12 +9,11 @@ import { Operator, OpEqual, OpNotEqual } from './Operator';
 import { getMatchingSourceFile } from './extension';
 
 
-export const title = 'Generate equality operators';
+export const title = 'Generate Equality Operators';
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     noClassOrStruct: 'No class or struct detected.',
-    operatorExists: 'An equality operator already exists.',
     positionNotFound: 'Could not find a position for a new public member function.'
 };
 
@@ -97,7 +96,7 @@ async function promptUserForMemberVariables(classOrStruct: CSymbol): Promise<CSy
 
     const selectedIems = await vscode.window.showQuickPick<MemberVariableQuickPickItem>(memberVariablesItems, {
         matchOnDescription: true,
-        placeHolder: 'What member variables would you like to compare?',
+        placeHolder: 'Select what member variables you would like to compare:',
         canPickMany: true
     });
 
@@ -137,14 +136,14 @@ async function promptUserForDefinitionLocations(
 ): Promise<TargetLocations | undefined> {
     const equalityDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
             new DefinitionLocationQuickPickItems(classDoc),
-            { placeHolder: 'Select where the definition of operator== should be placed' });
+            { placeHolder: 'Select where the definition of operator== should be placed:' });
     if (!equalityDefinitionItem) {
         return;
     }
 
     const p_inequalityDefinitionItem = vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
             new DefinitionLocationQuickPickItems(classDoc),
-            { placeHolder: 'Select where the definition of operator!= should be placed' });
+            { placeHolder: 'Select where the definition of operator!= should be placed:' });
 
     const matchingUri = await getMatchingSourceFile(classDoc.uri);
 

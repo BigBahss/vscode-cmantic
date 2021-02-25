@@ -72,7 +72,7 @@
       },
       {
         "command": "cmantic.generateEqualityOperators",
-        "title": "C-mantic: Generate equality operators"
+        "title": "C-mantic: Generate Equality Operators"
       },
       {
         "command": "cmantic.createMatchingSourceFile",

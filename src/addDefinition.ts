@@ -181,7 +181,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
 
     const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
-        placeHolder: 'What would you like to initialize in this constructor?',
+        placeHolder: 'Select what you would like to initialize in this constructor:',
         canPickMany: true
     });
 
