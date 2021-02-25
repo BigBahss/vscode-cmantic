@@ -16,14 +16,23 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
     get location(): vscode.Location { return new vscode.Location(this.uri, this.range); }
 
-    constructor(docSymbol: vscode.DocumentSymbol, uri: vscode.Uri, parent?: SourceSymbol) {
-        super(docSymbol.name, docSymbol.detail, docSymbol.kind, docSymbol.range, docSymbol.selectionRange);
+    constructor(symbol: vscode.DocumentSymbol, uri: vscode.Uri, parent?: SourceSymbol) {
+        super(symbol.name, symbol.detail, symbol.kind, symbol.range, symbol.selectionRange);
         this.uri = uri;
-        this.signature = docSymbol.name;
+
+        if (symbol instanceof SourceSymbol) {
+            // This was called from CSymbol's constructor, so short-circuit.
+            this.signature = symbol.signature;
+            this.parent = symbol.parent;
+            this.children = symbol.children;
+            return;
+        }
+
+        this.signature = symbol.name;
         this.parent = parent;
 
         // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
-        let name = docSymbol.name;
+        let name = symbol.name;
         if (name.includes('(')) {
             name = name.substring(0, name.indexOf('('));
         }
@@ -36,24 +45,20 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         this.name = name;
 
         // ccls puts function signatures in the detail property.
-        if (docSymbol.detail.includes(docSymbol.name + '(')) {
-            this.signature = docSymbol.detail;
+        if (symbol.detail.includes(symbol.name + '(')) {
+            this.signature = symbol.detail;
             // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
-            if (docSymbol.kind === vscode.SymbolKind.Property) {
+            if (symbol.kind === vscode.SymbolKind.Property) {
                 this.kind = vscode.SymbolKind.Method;
             }
         }
 
         // Sort docSymbol.children based on their relative position to eachother.
-        docSymbol.children.sort(util.sortByRange);
+        symbol.children.sort(util.sortByRange);
 
         // Convert docSymbol.children to SourceSymbols to set the children property.
-        const convertedChildren: SourceSymbol[] = [];
-        docSymbol.children.forEach(child => {
-            convertedChildren.push(new SourceSymbol(child, uri, this));
-        });
-
-        this.children = convertedChildren;
+        this.children = [];
+        symbol.children.forEach(child => this.children.push(new SourceSymbol(child, uri, this)));
     }
 
     /**

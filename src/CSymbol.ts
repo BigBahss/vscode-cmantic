@@ -19,19 +19,18 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 export class CSymbol extends SourceSymbol {
     readonly document: vscode.TextDocument;
     parent?: CSymbol;
+    children: CSymbol[];
 
-    /**
-     * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
-     */
-    constructor(symbol: vscode.DocumentSymbol | SourceSymbol, document: vscode.TextDocument, parent?: CSymbol) {
-        super(symbol, document.uri, parent);
+    constructor(symbol: SourceSymbol, document: vscode.TextDocument) {
+        super(symbol, document.uri);
         this.document = document;
 
-        if (symbol instanceof SourceSymbol && symbol.parent && !parent) {
+        if (symbol.parent) {
             this.parent = new CSymbol(symbol.parent, document);
-        } else {
-            this.parent = parent;
         }
+
+        this.children = [];
+        symbol.children.forEach(child => this.children.push(new CSymbol(child, document)));
 
         this.range = this.range.with(this.range.start, util.getEndOfStatement(this.document, this.range.end));
     }
@@ -119,9 +118,8 @@ export class CSymbol extends SourceSymbol {
         this.children.forEach(child => {
             // Mask inner classes/structs to prevent matching access specifiers within them.
             if (child.isClassOrStruct()) {
-                const subClassOrStruct = new CSymbol(child, this.document);
-                const relativeStartOffset = subClassOrStruct.startOffset() - startOffset;
-                const relativeEndOffset = subClassOrStruct.endOffset() - startOffset;
+                const relativeStartOffset = child.startOffset() - startOffset;
+                const relativeEndOffset = child.endOffset() - startOffset;
                 parsableText = parsableText.slice(0, relativeStartOffset)
                         + ' '.repeat(relativeEndOffset - relativeStartOffset)
                         + parsableText.slice(relativeEndOffset);
@@ -157,10 +155,10 @@ export class CSymbol extends SourceSymbol {
         let fallbackPosition: ProposedPosition | undefined;
         let fallbackIndex: number | undefined;
         for (let i = this.children.length - 1; i >= 0; --i) {
-            const symbol = new CSymbol(this.children[i], this.document, this);
-            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = new ProposedPosition(symbol.range.end, {
-                    relativeTo: symbol.range,
+            const child = this.children[i];
+            if (this.isChildFunctionBetween(child, publicSpecifierOffset, nextAccessSpecifierOffset)) {
+                fallbackPosition = new ProposedPosition(child.range.end, {
+                    relativeTo: child.range,
                     after: true
                 });
                 fallbackIndex = i;
@@ -183,18 +181,18 @@ export class CSymbol extends SourceSymbol {
         const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
         for (let i = fallbackIndex; i >= 0; --i) {
-            const symbol = new CSymbol(this.children[i], this.document, this);
-            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
-                    && symbol.name === relativeName) {
+            const child = this.children[i];
+            if (this.isChildFunctionBetween(child, publicSpecifierOffset, nextAccessSpecifierOffset)
+                    && child.name === relativeName) {
                 if (isGetter) {
-                    return new ProposedPosition(symbol.leadingCommentStart, {
-                        relativeTo: symbol.range,
+                    return new ProposedPosition(child.leadingCommentStart, {
+                        relativeTo: child.range,
                         before: true,
                         nextTo: true
                     });
                 }
-                return new ProposedPosition(symbol.range.end, {
-                    relativeTo: symbol.range,
+                return new ProposedPosition(child.range.end, {
+                    relativeTo: child.range,
                     after: true,
                     nextTo: true
                 });
@@ -247,8 +245,7 @@ export class CSymbol extends SourceSymbol {
 
         return this.children.filter(child => {
             if (child.isMemberVariable()) {
-                const memberVariable = new CSymbol(child, this.document);
-                return memberVariable.isConst() || memberVariable.isReference();
+                return child.isConst() || child.isReference();
             }
         });
     }
@@ -630,9 +627,9 @@ export class CSymbol extends SourceSymbol {
 
     private getPositionForNewChild(): ProposedPosition {
         if (this.children.length > 0) {
-            const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
+            const lastChild = this.children[this.children.length - 1];
             return new ProposedPosition(lastChild.range.end, {
-                relativeTo: this.children[this.children.length - 1].range,
+                relativeTo: lastChild.range,
                 after: true
             });
         }
