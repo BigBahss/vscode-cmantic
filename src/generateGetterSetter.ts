@@ -180,11 +180,11 @@ async function addNewAccessorToWorkspaceEdit(
 ): Promise<void> {
     const target = await getTargetForAccessorDefinition(newAccessor, declarationPos, classDoc);
 
-    if (target.position === declarationPos && target.sourceDoc === classDoc) {
+    if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = target.formatTextToInsert(inlineDefinition);
+        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
 
-        workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
+        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedInlineDefinition);
     } else {
         const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
                 ? target.sourceDoc.endOfLine

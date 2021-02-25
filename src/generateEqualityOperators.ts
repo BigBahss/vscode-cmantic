@@ -5,7 +5,7 @@ import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { OpEqual, Operator, OpNotEqual } from './Operator';
+import { Operator, OpEqual, OpNotEqual } from './Operator';
 
 
 export const title = 'Generate equality operators';
@@ -43,10 +43,16 @@ export async function generateEqualityOperators(
         return;
     }
 
+    const notEqualPosition = new ProposedPosition(position, {
+        relativeTo: position.options.relativeTo,
+        after: true,
+        nextTo: true
+    });
+
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewOperatorToWorkspaceEdit(opEqual, position, classDoc, targets.equal, workspaceEdit);
     if (targets.notEqual) {
-        await addNewOperatorToWorkspaceEdit(opNotEqual, position, classDoc, targets.notEqual, workspaceEdit);
+        await addNewOperatorToWorkspaceEdit(opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit);
     }
     await vscode.workspace.applyEdit(workspaceEdit);
 }
@@ -66,7 +72,7 @@ async function addNewOperatorToWorkspaceEdit(
         const inlineDefinition = (newOperator.body.includes('\n'))
                 ? await newOperator.definition(target.sourceDoc, target.position, curlySeparator)
                 : newOperator.declaration + ' { ' + newOperator.body + ' }';
-        const formattedInlineDefinition = target.formatTextToInsert(inlineDefinition);
+        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
