@@ -5,6 +5,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - `Add Definition` for constructors will now prompt the user for what they want to initialize in the constructor (delegated constructor, base class constructor(s), and member variables) and generate the boiler-plate for the initializer list.
 - Added a setting `Cpp: Braced Initialization` to control whether member initializers use parentheses or curly braces.
+- Added `cmantic.generateEqualityOperators` command/code-action.
 
 ### Changed
 - Code-actions (refactorings) will now always appear in the `Refactor...` menu, even if they are disabled from being suggested in the light-bulb menu.

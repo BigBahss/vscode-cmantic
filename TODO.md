@@ -1,12 +1,14 @@
 # TODO
 
-Things higher on the list generally correspond to higher priority.
+Things higher on the list generally correspond to higher priority, although the first few are in no particular order.
 
 ## Ideas/Plans for features and improvements
 
 - Generate all definitions from a header file. Additionally, add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
 
-- Enhance `Add Definition` to properly generate constructors with a member initializer list. This would probably require additional input from the user to specify what data members add to the list. Unclear what the best way to do that would be.
+- Generate relational operators.
+
+- Generate stream output operator.
 
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and synchronize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to synchronize the change across references for trivial changes, such as re-ordering parameters.
 
