@@ -81,7 +81,7 @@ interface MemberVariableQuickPickItem extends vscode.QuickPickItem {
 }
 
 async function promptUserForMemberVariables(classOrStruct: CSymbol): Promise<CSymbol[] | undefined> {
-    const memberVariables = classOrStruct.memberVariables();
+    const memberVariables = classOrStruct.nonStaticMemberVariables();
 
     const memberVariablesItems: MemberVariableQuickPickItem[] = [];
     memberVariables.forEach(memberVariable => {

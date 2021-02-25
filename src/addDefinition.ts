@@ -160,7 +160,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     if (parentClass.constructors().length > 1) {
         initializers.push(parentClass);
     }
-    initializers.push(...parentClass.baseClasses(), ...parentClass.memberVariables());
+    initializers.push(...parentClass.baseClasses(), ...parentClass.nonStaticMemberVariables());
 
     const initializerItems: InitializerQuickPickItem[] = [];
     initializers.forEach(initializer => {

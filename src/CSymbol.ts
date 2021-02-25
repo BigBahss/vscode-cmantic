@@ -259,7 +259,7 @@ export class CSymbol extends SourceSymbol {
         return this.children.filter(child => {
             if (child.isMemberVariable()) {
                 const memberVariable = new CSymbol(child, this.document);
-                return memberVariable.isStatic();
+                return !memberVariable.isStatic();
             }
         });
     }
