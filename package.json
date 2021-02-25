@@ -71,6 +71,10 @@
         "title": "C-mantic: Generate Setter Member Function"
       },
       {
+        "command": "cmantic.generateEqualityOperators",
+        "title": "C-mantic: Generate equality operators"
+      },
+      {
         "command": "cmantic.createMatchingSourceFile",
         "title": "C-mantic: Create Matching Source File"
       },

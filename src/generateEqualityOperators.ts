@@ -6,6 +6,7 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import { Operator, OpEqual, OpNotEqual } from './Operator';
+import { getMatchingSourceFile } from './extension';
 
 
 export const title = 'Generate equality operators';
@@ -18,10 +19,29 @@ export const failure = {
 };
 
 export async function generateEqualityOperators(
-    classOrStruct: CSymbol,
-    classDoc: SourceDocument,
-    matchingUri?: vscode.Uri
+    classOrStruct?: CSymbol,
+    classDoc?: SourceDocument
 ): Promise<void> {
+    if (!classOrStruct || !classDoc) {
+        // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        classDoc = new SourceDocument(editor.document);
+
+        const symbol = await classDoc.getSymbol(editor.selection.start);
+
+        classOrStruct = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
+
+        if (!classOrStruct?.isClassOrStruct()) {
+            logger.alertWarning(failure.noClassOrStruct);
+            return;
+        }
+    }
+
     const p_memberVariables = promptUserForMemberVariables(classOrStruct);
 
     const position = classOrStruct.findPositionForNewMemberFunction();
@@ -38,7 +58,7 @@ export async function generateEqualityOperators(
     const opEqual = new OpEqual(classOrStruct, memberVariables);
     const opNotEqual = new OpNotEqual(classOrStruct);
 
-    const targets = await promptUserForDefinitionLocations(classDoc, position, matchingUri);
+    const targets = await promptUserForDefinitionLocations(classDoc, position);
     if (!targets) {
         return;
     }
@@ -55,34 +75,6 @@ export async function generateEqualityOperators(
         await addNewOperatorToWorkspaceEdit(opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit);
     }
     await vscode.workspace.applyEdit(workspaceEdit);
-}
-
-async function addNewOperatorToWorkspaceEdit(
-    newOperator: Operator,
-    declarationPos: ProposedPosition,
-    classDoc: SourceDocument,
-    target: TargetLocation,
-    workspaceEdit: vscode.WorkspaceEdit
-): Promise<void> {
-    const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
-            ? target.sourceDoc.endOfLine
-            : ' ';
-
-    if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
-        const inlineDefinition = (newOperator.body.includes('\n'))
-                ? await newOperator.definition(target.sourceDoc, target.position, curlySeparator)
-                : newOperator.declaration + ' { ' + newOperator.body + ' }';
-        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
-
-        workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
-    } else {
-        const formattedDeclaration = declarationPos.formatTextToInsert(newOperator.declaration + ';', classDoc);
-        const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
-
-        workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
-        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
-    }
 }
 
 interface MemberVariableQuickPickItem extends vscode.QuickPickItem {
@@ -123,27 +115,15 @@ interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
     location: cfg.DefinitionLocation;
 }
 
-class DefinitionLocationQuickPickItems {
-    inline: DefinitionLocationQuickPickItem;
-    currentFile: DefinitionLocationQuickPickItem;
-    sourceFile: DefinitionLocationQuickPickItem;
+class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPickItem> {
+    constructor(sourceDoc: SourceDocument) {
+        super({ label: 'Inline', location: cfg.DefinitionLocation.Inline },
+              { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile });
 
-    constructor(defaultLocation: cfg.DefinitionLocation) {
-        this.inline = { label: 'Inline', location: cfg.DefinitionLocation.Inline };
-        this.currentFile = { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile };
-        this.sourceFile = { label: 'Source File', location: cfg.DefinitionLocation.SourceFile };
-
-        switch (defaultLocation) {
-        case cfg.DefinitionLocation.Inline:
-            this.inline.picked = true;
-        case cfg.DefinitionLocation.CurrentFile:
-            this.currentFile.picked = true;
-        case cfg.DefinitionLocation.SourceFile:
-            this.sourceFile.picked = true;
+        if (sourceDoc.isHeader()) {
+            this.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
         }
     }
-
-    get items(): DefinitionLocationQuickPickItem[] { return [this.inline, this.currentFile, this.sourceFile]; }
 }
 
 interface TargetLocations {
@@ -153,19 +133,20 @@ interface TargetLocations {
 
 async function promptUserForDefinitionLocations(
     classDoc: SourceDocument,
-    declarationPos: ProposedPosition,
-    matchingUri?: vscode.Uri
+    declarationPos: ProposedPosition
 ): Promise<TargetLocations | undefined> {
     const equalityDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(cfg.DefinitionLocation.SourceFile).items,
-            { placeHolder: 'Choose where to place the definition of operator==' });
+            new DefinitionLocationQuickPickItems(classDoc),
+            { placeHolder: 'Select where the definition of operator== should be placed' });
     if (!equalityDefinitionItem) {
         return;
     }
 
     const p_inequalityDefinitionItem = vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(cfg.DefinitionLocation.Inline).items,
-            { placeHolder: 'Choose where to place the definition of operator!= (Uncheck to only generate operator==)' });
+            new DefinitionLocationQuickPickItems(classDoc),
+            { placeHolder: 'Select where the definition of operator!= should be placed' });
+
+    const matchingUri = await getMatchingSourceFile(classDoc.uri);
 
     const equalityTargetDoc = (equalityDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri)
             ? await SourceDocument.open(matchingUri)
@@ -197,4 +178,32 @@ async function promptUserForDefinitionLocations(
     }
 
     return { equal: equalityTargetLocation, notEqual: inequalityTargetLocation };
+}
+
+async function addNewOperatorToWorkspaceEdit(
+    newOperator: Operator,
+    declarationPos: ProposedPosition,
+    classDoc: SourceDocument,
+    target: TargetLocation,
+    workspaceEdit: vscode.WorkspaceEdit
+): Promise<void> {
+    const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
+            ? target.sourceDoc.endOfLine
+            : ' ';
+
+    if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
+        const inlineDefinition = (newOperator.body.includes('\n'))
+                ? await newOperator.definition(target.sourceDoc, target.position, curlySeparator)
+                : newOperator.declaration + ' { ' + newOperator.body + ' }';
+        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
+
+        workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
+    } else {
+        const formattedDeclaration = declarationPos.formatTextToInsert(newOperator.declaration + ';', classDoc);
+        const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
+
+        workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
+        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
+    }
 }

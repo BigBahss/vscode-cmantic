@@ -127,7 +127,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         if (this.shouldProvideClassRefactorings(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getClassRefactorings(symbol, sourceDoc, matchingUri));
+            refactorActions.push(...await this.getClassRefactorings(symbol, sourceDoc));
         }
 
         return refactorActions;
@@ -325,12 +325,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
     private async getClassRefactorings(
         symbol: CSymbol,
-        sourceDoc: SourceDocument,
-        matchingUri?: vscode.Uri
+        sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {
         const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
         const generateEqualityOperators = new RefactorAction(equalityTitle, 'cmantic.generateEqualityOperators');
-        generateEqualityOperators.setArguments(classOrStruct, sourceDoc, matchingUri);
+        generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
         return [generateEqualityOperators];
     }
 
