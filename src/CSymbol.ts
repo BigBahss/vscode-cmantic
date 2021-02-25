@@ -110,7 +110,7 @@ export class CSymbol extends SourceSymbol {
         relativeName?: string, memberVariable?: SourceSymbol
     ): ProposedPosition | undefined {
         if (!this.isClassOrStruct()) {
-            return this.positionAfterLastChildOrUndefined();
+            return;
         }
 
         const startOffset = this.startOffset();
@@ -128,9 +128,12 @@ export class CSymbol extends SourceSymbol {
             }
         });
 
-        let publicSpecifierOffset = parsableText.search(/\bpublic\s*:/);
-        if (publicSpecifierOffset === -1) {
-            return this.positionAfterLastChildOrUndefined();
+        let publicSpecifierOffset: number | undefined;
+        const publicSpeciferMatch = parsableText.match(/\bpublic\s*:/);
+        if (publicSpeciferMatch === null || publicSpeciferMatch.index === undefined) {
+            return this.getPositionForNewChild();
+        } else {
+            publicSpecifierOffset = publicSpeciferMatch.index;
         }
 
         let nextAccessSpecifierOffset: number | undefined;
@@ -166,7 +169,11 @@ export class CSymbol extends SourceSymbol {
         }
 
         if (!fallbackPosition || fallbackIndex === undefined) {
-            return this.positionAfterLastChildOrUndefined();
+            return new ProposedPosition(this.document.positionAt(publicSpecifierOffset + publicSpeciferMatch[0].length), {
+                after: true,
+                nextTo: true,
+                emptyScope: true
+            });
         } else if (!relativeName) {
             return fallbackPosition;
         }
@@ -203,7 +210,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         const startOffset = this.document.offsetAt(this.selectionRange.end);
-        let trailingText = this.document.getText(new vscode.Range(this.selectionRange.end, this.bodyStart()));
+        let trailingText = this.document.getText(new vscode.Range(this.selectionRange.end, this.declarationEnd()));
         trailingText = util.maskComments(trailingText, false);
         trailingText = util.maskAngleBrackets(trailingText);
         trailingText = trailingText.replace(/\b(public|protected|private)\b/g, util.masker);
@@ -368,7 +375,7 @@ export class CSymbol extends SourceSymbol {
     async getTextForTargetPosition(
         target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
     ): Promise<string> {
-        const bodyRange = new vscode.Range(this.bodyStart(), this.range.end);
+        const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
         const scopeString = await declaration?.scopeString(target, position);
 
@@ -401,7 +408,7 @@ export class CSymbol extends SourceSymbol {
             scopeString = await this.scopeString(targetDoc, position);
         }
 
-        const declarationRange = new vscode.Range(this.trueStart, this.bodyStart());
+        const declarationRange = new vscode.Range(this.trueStart, this.declarationEnd());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
         let maskedDeclaration = util.maskComments(declaration, false);
         maskedDeclaration = util.maskRawStringLiterals(maskedDeclaration);
@@ -438,11 +445,11 @@ export class CSymbol extends SourceSymbol {
         if (!this.isFunctionDefinition()) {
             return '';
         }
-        return this.document.getText(new vscode.Range(this.trueStart, this.bodyStart())).trimEnd() + ';';
+        return this.document.getText(new vscode.Range(this.trueStart, this.declarationEnd())).trimEnd() + ';';
     }
 
     combineDefinition(definition: CSymbol): string {
-        const body = definition.document.getText(new vscode.Range(definition.bodyStart(this), definition.range.end));
+        const body = definition.document.getText(new vscode.Range(definition.declarationEnd(this), definition.range.end));
         const re_oldIndentation = util.getIndentationRegExp(definition);
         const line = this.document.lineAt(this.range.start);
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
@@ -490,10 +497,7 @@ export class CSymbol extends SourceSymbol {
     }
     private _trueStart?: vscode.Position;
 
-    /**
-     * Less of the body start, and more of "the end of the declaration part of the definition", but that's really long.
-     */
-    private bodyStart(declaration?: CSymbol): vscode.Position {
+    private declarationEnd(declaration?: CSymbol): vscode.Position {
         const maskedText = util.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
@@ -512,6 +516,16 @@ export class CSymbol extends SourceSymbol {
             return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
         }
         return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
+    }
+
+    private bodyStart(): vscode.Position {
+        const maskedText = util.maskBraces(util.maskParentheses(this.parsableText));
+        const bodyStartIndex = maskedText.lastIndexOf('{');
+        if (bodyStartIndex === -1) {
+            return this.range.end;
+        }
+
+        return this.document.positionAt(this.startOffset() + bodyStartIndex + 1);
     }
 
     private stripDefaultValues(parameters: string): string {
@@ -610,7 +624,7 @@ export class CSymbol extends SourceSymbol {
         return false;
     }
 
-    private positionAfterLastChildOrUndefined(): ProposedPosition | undefined {
+    private getPositionForNewChild(): ProposedPosition {
         if (this.children.length > 0) {
             const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
             return new ProposedPosition(lastChild.range.end, {
@@ -618,6 +632,12 @@ export class CSymbol extends SourceSymbol {
                 after: true
             });
         }
+
+        return new ProposedPosition(this.bodyStart(), {
+            after: true,
+            nextTo: true,
+            emptyScope: true
+        });
     }
 
     private matchesPrimitiveType(text: string): boolean {
