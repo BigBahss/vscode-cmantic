@@ -55,7 +55,7 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol | undefined => {
+        function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
                 if (!sourceSymbol.range.contains(position)) {
                     continue;
@@ -64,10 +64,11 @@ export class SourceFile {
                 if (sourceSymbol.children.length === 0 || sourceSymbol.selectionRange.contains(position)) {
                     return sourceSymbol;
                 } else {
-                    return searchSymbolTree(sourceSymbol.children);
+                    const child = searchSymbolTree(sourceSymbol.children);
+                    return child ? child : sourceSymbol;
                 }
             }
-        };
+        }
 
         return searchSymbolTree(this.symbols);
     }

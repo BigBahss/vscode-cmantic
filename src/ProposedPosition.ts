@@ -1,4 +1,4 @@
-import { Position, Range, TextDocument, TreeViewSelectionChangeEvent } from 'vscode';
+import { Position, Range, TextDocument } from 'vscode';
 import { SourceDocument } from './SourceDocument';
 import { endOfLine } from './utility';
 
