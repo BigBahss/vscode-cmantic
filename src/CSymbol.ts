@@ -291,6 +291,10 @@ export class CSymbol extends SourceSymbol {
         return /\bconst\b/.test(util.maskAngleBrackets(this.parsableLeadingText));
     }
 
+    isStatic(): boolean {
+        return /\bstatic\b/.test(this.parsableLeadingText);
+    }
+
     isTypedef(): boolean {
         return this.mightBeTypedefOrTypeAlias() && /\btypedef\b/.test(this.parsableText);
     }
