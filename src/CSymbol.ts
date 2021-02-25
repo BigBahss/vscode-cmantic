@@ -238,16 +238,20 @@ export class CSymbol extends SourceSymbol {
     /**
      * Retruns the member variables of this class/struct that are const or a reference.
      */
-    memberVariablesThatRequireInitialization(): SourceSymbol[] {
+    memberVariablesThatRequireInitialization(): CSymbol[] {
         if (!this.isClassOrStruct()) {
             return [];
         }
 
-        return this.children.filter(child => {
-            if (child.isMemberVariable()) {
-                return child.isConst() || child.isReference();
-            }
-        });
+        return this.children.filter(child => child.isMemberVariable() && (child.isConst() || child.isReference()));
+    }
+
+    nonStaticMemberVariables(): CSymbol[] {
+        if (!this.isClassOrStruct()) {
+            return [];
+        }
+
+        return this.children.filter(child => child.isMemberVariable() && !child.isStatic());
     }
 
     isFunctionDeclaration(): boolean {
