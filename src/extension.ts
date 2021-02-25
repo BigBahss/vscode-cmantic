@@ -54,12 +54,49 @@ export function activate(context: vscode.ExtensionContext): void {
     pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
 
     logger.logInfo('C-mantic extension activated.');
+    showMessageOnVersionUpdate(context);
 
     vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
 }
 
 export function deactivate(): void {
     disposables.forEach(disposable => disposable.dispose());
+}
+
+const re_semVer = /^\d+\.\d+\.\d+$/;
+const versionKey = 'version';
+const extensionId = 'tdennis4496.cmantic';
+
+function showMessageOnVersionUpdate(context: vscode.ExtensionContext): void {
+    const previousVersion = context.globalState.get<string>(versionKey);
+	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version as string;
+    if (!re_semVer.test(currentVersion)) {
+        return;
+    }
+
+    const [,currentMinor,] = currentVersion.split('.');
+    if (previousVersion !== undefined && re_semVer.test(previousVersion)) {
+        const [,previousMinor,] = previousVersion.split('.');
+        if (+previousMinor < +currentMinor) {
+            showUpdateMessage();
+        }
+    } else {
+        showUpdateMessage();
+    }
+
+    context.globalState.update(versionKey, currentVersion);
+}
+
+const updateMessage = 'C-mantic v0.5.0: Generate constructors and equality operators. See the readme for more information.';
+const readmeButton = 'Open README';
+const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/README.md');
+
+function showUpdateMessage(): void {
+    vscode.window.showInformationMessage(updateMessage, readmeButton).then(value => {
+        if (value === readmeButton) {
+            vscode.env.openExternal(readmeUri);
+        }
+    });
 }
 
 export function pushDisposable(disposable: vscode.Disposable): void {
