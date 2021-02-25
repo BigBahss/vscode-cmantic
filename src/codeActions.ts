@@ -108,60 +108,67 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        if (!symbol) {
+            return [];
+        }
+
+        const refactorActions: RefactorAction[] = [];
+
         if (this.shouldProvideAddDefinition(context, symbol, rangeOrSelection)) {
-            return await this.getFunctionDeclarationRefactorings(symbol!, sourceDoc, matchingUri);
+            refactorActions.push(...await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
-            return await this.getFunctionDefinitionRefactorings(symbol!, sourceDoc, matchingUri);
+            refactorActions.push(...await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideGetterSetter(context, symbol, rangeOrSelection)) {
-            return await this.getMemberVariableRefactorings(symbol!, sourceDoc);
+            refactorActions.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
         }
 
         if (this.shouldProvideClassRefactorings(context, symbol, rangeOrSelection)) {
-            return await this.getClassRefactorings(symbol!, sourceDoc, matchingUri);
+            refactorActions.push(...await this.getClassRefactorings(symbol, sourceDoc, matchingUri));
         }
 
-        return [];
+        return refactorActions;
     }
 
     private shouldProvideAddDefinition(
         context: vscode.CodeActionContext,
-        symbol: CSymbol | undefined,
+        symbol: CSymbol,
         rangeOrSelection: vscode.Range | vscode.Selection
     ): boolean {
-        return symbol?.isFunctionDeclaration() === true
+        return symbol.isFunctionDeclaration()
             && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 
     private shouldProvideMoveDefinition(
         context: vscode.CodeActionContext,
-        symbol: CSymbol | undefined,
+        symbol: CSymbol,
         rangeOrSelection: vscode.Range | vscode.Selection
     ): boolean {
-        return symbol?.isFunctionDefinition() === true
+        return symbol.isFunctionDefinition()
             && ((this.moveDefinitionEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
                 || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 
     private shouldProvideGetterSetter(
         context: vscode.CodeActionContext,
-        symbol: CSymbol | undefined,
+        symbol: CSymbol,
         rangeOrSelection: vscode.Range | vscode.Selection
     ): boolean {
-        return symbol?.isMemberVariable() === true
+        return symbol.isMemberVariable()
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
                 || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 
     private shouldProvideClassRefactorings(
         context: vscode.CodeActionContext,
-        symbol: CSymbol | undefined,
+        symbol: CSymbol,
         rangeOrSelection: vscode.Range | vscode.Selection
     ): boolean {
-        return symbol?.isClassOrStruct() === true && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
+        return (symbol.isClassOrStruct() || symbol.parent?.isClassOrStruct() === true)
+            && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
     }
 
     private async getFunctionDeclarationRefactorings(
@@ -317,10 +324,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getClassRefactorings(
-        classOrStruct: CSymbol,
+        symbol: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
         const generateEqualityOperators = new RefactorAction(equalityTitle, 'cmantic.generateEqualityOperators');
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc, matchingUri);
         return [generateEqualityOperators];
