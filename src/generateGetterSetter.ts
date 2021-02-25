@@ -19,7 +19,7 @@ export const failure = {
     notCpp: 'Detected language is not C++, cannot create a member function.',
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
-    positionNotFound: 'Could not find a position for a new accessor member function.',
+    positionNotFound: 'Could not find a position for a new public member function.',
     getterOrSetterExists: 'There already exists a getter or setter member function.',
     getterAndSetterExists: 'There already exists getter and setter member functions.',
     getterExists: 'There already exists a getter member function.',
@@ -174,51 +174,53 @@ function getPositionForNewAccessorDeclaration(
 
 async function addNewAccessorToWorkspaceEdit(
     newAccessor: Accessor,
-    memberFunctionPos: ProposedPosition,
+    declarationPos: ProposedPosition,
     classDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit
 ): Promise<void> {
-    const target = await getTargetForAccessorDefinition(newAccessor, memberFunctionPos, classDoc);
+    const target = await getTargetForAccessorDefinition(newAccessor, declarationPos, classDoc);
 
-    if (target.position === memberFunctionPos && target.sourceDoc === classDoc) {
+    if (target.position === declarationPos && target.sourceDoc === classDoc) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = memberFunctionPos.formatTextToInsert(inlineDefinition, classDoc);
+        const formattedInlineDefinition = target.formatTextToInsert(inlineDefinition);
 
-        workspaceEdit.insert(classDoc.uri, memberFunctionPos, formattedInlineDefinition);
+        workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = memberFunctionPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
-        const definition = await newAccessor.definition(
-                target.sourceDoc,
-                target.position,
-                cfg.functionCurlyBraceFormat(target.sourceDoc.languageId) === cfg.CurlyBraceFormat.NewLine);
-        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
+        const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
+                ? target.sourceDoc.endOfLine
+                : ' ';
 
-        workspaceEdit.insert(classDoc.uri, memberFunctionPos, formattedDeclaration);
+        const formattedDeclaration = declarationPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
+        const definition = await newAccessor.definition(target.sourceDoc, target.position, curlySeparator);
+        const formattedDefinition = target.formatTextToInsert(definition);
+
+        workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
     }
 }
 
 async function getTargetForAccessorDefinition(
     accessor: Accessor,
-    declarationPosition: ProposedPosition,
+    declarationPos: ProposedPosition,
     classDoc: SourceDocument
 ): Promise<TargetLocation> {
-    const accessorDefinitionLocation = (accessor instanceof Getter) ?
-            cfg.getterDefinitionLocation() : cfg.setterDefinitionLocation();
+    const accessorDefinitionLocation = (accessor instanceof Getter)
+            ? cfg.getterDefinitionLocation()
+            : cfg.setterDefinitionLocation();
 
     switch (accessorDefinitionLocation) {
     case cfg.DefinitionLocation.Inline:
-        return new TargetLocation(declarationPosition, classDoc);
+        return new TargetLocation(declarationPos, classDoc);
     case cfg.DefinitionLocation.SourceFile:
         // If the class is not in a header file then control will pass down to CurrentFile.
         if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
             const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
             return new TargetLocation(
-                    await classDoc.findPositionForFunctionDefinition(declarationPosition, targetDoc), targetDoc);
+                    await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
         }
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(
-                await classDoc.findPositionForFunctionDefinition(declarationPosition, classDoc), classDoc);
+                await classDoc.findPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
     }
 }

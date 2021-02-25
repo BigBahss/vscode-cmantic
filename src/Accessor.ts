@@ -9,8 +9,7 @@ const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;
 /**
  * Represents a new accessor member function for a member variable.
  */
-export interface Accessor
-{
+export interface Accessor {
     readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
@@ -18,7 +17,7 @@ export interface Accessor
     parameter: string;
     body: string;
     declaration: string;
-    definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string>;
+    definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string>;
 }
 
 /**
@@ -57,10 +56,10 @@ export class Getter implements Accessor {
         return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
     }
 
-    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string> {
+    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
-                + (this.isStatic ? '' : ' const') + (newLineCurlyBrace ? eol : ' ')
+                + (this.isStatic ? '' : ' const') + curlySeparator
                 + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }
@@ -109,10 +108,9 @@ export class Setter implements Accessor {
         return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
     }
 
-    async definition(target: SourceDocument, position: vscode.Position, newLineCurlyBrace: boolean): Promise<string> {
+    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name
-                + '(' + this.parameter + ')' + (newLineCurlyBrace ? eol : ' ')
-                + '{' + eol + util.indentation() + this.body + eol + '}';
+        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '('
+                + this.parameter + ')' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }
