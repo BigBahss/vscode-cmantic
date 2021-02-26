@@ -224,6 +224,11 @@
             "default": false,
             "description": "Controls whether member initializer lists for constructors will use curly braces instead of parentheses."
           },
+          "C_mantic.cpp.useExplicitThisPointer": {
+            "type": "boolean",
+            "default": false,
+            "description": "Controls whether generated member functions will explicitly prefix members with 'this->'."
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,

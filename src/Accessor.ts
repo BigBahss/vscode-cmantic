@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -49,7 +50,8 @@ export class Getter implements Accessor {
         }
 
         this.parameter = '';
-        this.body = 'return ' + memberVariable.name + ';';
+        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
+        this.body = 'return ' + thisPointer + memberVariable.name + ';';
     }
 
     get declaration(): string {
@@ -101,7 +103,8 @@ export class Setter implements Accessor {
         this.isStatic = false;
         this.returnType = 'void ';
         this.parameter = '';
-        this.body = memberVariable.name + ' = value;';
+        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
+        this.body = thisPointer + memberVariable.name + ' = value;';
     }
 
     get declaration(): string {
