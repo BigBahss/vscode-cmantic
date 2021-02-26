@@ -1,9 +1,9 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.5.0] - February 25, 2021
 ### Added
-- `Add Definition` for constructors will now prompt the user for what they want to initialize in the constructor (delegated constructor, base class constructor(s), and member variables) and generate the boiler-plate for the initializer list.
+- `Add Definition` for constructors will now prompt the user for what they want to initialize (delegating constructor, base class constructor(s), member variables) and generate the boiler-plate for the initializer list.
 - Added a setting `Cpp: Braced Initialization` to control whether member initializers use parentheses or curly braces.
 - Added `cmantic.generateEqualityOperators` command/code-action.
 

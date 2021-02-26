@@ -42,7 +42,7 @@ The `Add Definition in this file` command generates an empty definition for a fu
 
 #### **Generate Constructor**
 
-`Generate Constructor` extends `Add Definition` by prompting you to select what you want to initialize in the constructor (delegated constructor, base class constructor(s), member variables) and will generate the boiler-plate for the initializer list.
+`Generate Constructor` extends `Add Definition` by prompting you to select what you want to initialize in the constructor (delegating constructor, base class constructor(s), member variables) and will generate the boiler-plate for the initializer list.
 
 ### **Move Definition**
 

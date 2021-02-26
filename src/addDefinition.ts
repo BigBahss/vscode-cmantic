@@ -167,7 +167,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
         const initializerItem: InitializerQuickPickItem = { label: '', initializer: initializer };
         if (initializer === parentClass) {
             initializerItem.label = '$(symbol-class) ' + initializer.name;
-            initializerItem.description = 'Delegated constructor (cannot be used with any other initializers)';
+            initializerItem.description = 'Delegating constructor (cannot be used with any other initializers)';
         } else if (initializer instanceof SubSymbol) {
             initializerItem.label = '$(symbol-class) ' + initializer.text();
             initializerItem.description = 'Base class constructor';
