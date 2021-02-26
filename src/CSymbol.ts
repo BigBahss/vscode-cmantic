@@ -464,7 +464,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     combineDefinition(definition: CSymbol): string {
-        const body = definition.document.getText(new vscode.Range(definition.declarationEnd(this), definition.range.end));
+        const body = definition.document.getText(new vscode.Range(definition.declarationEnd(), definition.range.end));
         const re_oldIndentation = util.getIndentationRegExp(definition);
         const line = this.document.lineAt(this.range.start);
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
@@ -512,7 +512,7 @@ export class CSymbol extends SourceSymbol {
     }
     private _trueStart?: vscode.Position;
 
-    private declarationEnd(declaration?: CSymbol): vscode.Position {
+    private declarationEnd(): vscode.Position {
         const maskedText = util.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
@@ -521,7 +521,7 @@ export class CSymbol extends SourceSymbol {
             return this.range.end;
         }
 
-        if (!this.isConstructor() && !declaration?.isConstructor()) {
+        if (!this.isConstructor()) {
             return this.document.positionAt(startOffset + nameEndIndex + bodyStartIndex);
         }
 

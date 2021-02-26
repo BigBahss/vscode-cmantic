@@ -133,9 +133,9 @@ export class SourceSymbol extends vscode.DocumentSymbol {
     isConstructor(): boolean {
         switch (this.kind) {
         case vscode.SymbolKind.Constructor:
-            return true;
         case vscode.SymbolKind.Method:
-            return this.name === this.parent?.name;
+        case vscode.SymbolKind.Function:
+            return this.name === this.parent?.name || /^(?<name>[\w_][\w\d_]*)::\k<name>/.test(this.signature);
         default:
             return false;
         }
@@ -145,7 +145,8 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         switch (this.kind) {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
-            return this.name === '~' + this.parent?.name;
+        case vscode.SymbolKind.Function:
+            return this.name === '~' + this.parent?.name || /^(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
         default:
             return false;
         }
