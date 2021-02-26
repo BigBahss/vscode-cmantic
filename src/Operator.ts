@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -50,8 +51,9 @@ export class OpEqual implements Operator {
             this.body = '';
         }
 
+        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
         memberVariables.forEach(memberVariable => {
-            this.body += `${memberVariable.name} == other.${memberVariable.name}${eol}${indent}${indent}&& `;
+            this.body += `${thisPointer}${memberVariable.name} == other.${memberVariable.name}${eol}${indent}${indent}&& `;
         });
 
         if (this.body.length > 3) {
@@ -72,7 +74,11 @@ export class OpNotEqual implements Operator {
         this.name = 'operator!=';
         this.returnType = 'bool ';
         this.parameter = 'const ' + parent.name + ' &other';
-        this.body = 'return !operator==(other);';
+        if (cfg.useExplicitThisPointer()) {
+            this.body = 'return !(*this == other);';
+        } else {
+            this.body = 'return !operator==(other);';
+        }
     }
 
     get declaration(): string {
