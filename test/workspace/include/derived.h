@@ -12,12 +12,9 @@ public:
     explicit Derived(const std::string &name, const std::string &description = std::string());
     ~Derived();
 
-    std::string description() const noexcept;
-    void setDescription(const std::string &description);
-
-    int fooBar(const double &foo,
+    int fooBar(const std::string &foo,
                int bar = 47,
-               double *baz = nullptr);
+               const std::string &baz = R"(const std::string &baz = "default")");
 
     inline std::string foo() const;
 
