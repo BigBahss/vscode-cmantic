@@ -76,7 +76,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         document: vscode.TextDocument,
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
-        token: vscode.CancellationToken
+        token?: vscode.CancellationToken
     ): Promise<CodeAction[]> {
         const sourceDoc = new SourceDocument(document);
 
@@ -85,7 +85,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 
-        if (token.isCancellationRequested) {
+        if (token && token.isCancellationRequested) {
             return [];
         }
 
@@ -94,7 +94,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
-        if (token.isCancellationRequested) {
+        if (token && token.isCancellationRequested) {
             return [];
         }
 
