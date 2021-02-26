@@ -12,6 +12,8 @@ Things higher on the list generally correspond to higher priority, although the 
 
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and synchronize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to synchronize the change across references for trivial changes, such as re-ordering parameters.
 
+- Add more options for generating header guard `#define`'s, such as prefixing with the directory name, or a path relative to the workspace folder.
+
 - Check for the existence of `.vscode/c_cpp_properties.json` or `compile_commands.json` to parse include paths and improve the generation of the include statement in `cmantic.createMatchingSourceFile`, amongst other things.
 
 - Investigate a way to provide completion suggestions to `cmantic.addInclude`.
