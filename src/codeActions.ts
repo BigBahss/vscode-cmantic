@@ -85,7 +85,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 
-        if (token && token.isCancellationRequested) {
+        if (token?.isCancellationRequested) {
             return [];
         }
 
@@ -94,7 +94,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
-        if (token && token.isCancellationRequested) {
+        if (token?.isCancellationRequested) {
             return [];
         }
 
