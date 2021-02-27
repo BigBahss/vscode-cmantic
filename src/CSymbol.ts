@@ -115,15 +115,13 @@ export class CSymbol extends SourceSymbol {
 
         let parsableText = this.parsableText;
         this.children.forEach(child => {
-            // Mask inner classes/structs to prevent matching access specifiers within them.
-            if (child.isClassOrStruct()) {
-                const subClassOrStruct = new CSymbol(child, this.document);
-                const relativeStartOffset = subClassOrStruct.startOffset() - startOffset;
-                const relativeEndOffset = subClassOrStruct.endOffset() - startOffset;
-                parsableText = parsableText.slice(0, relativeStartOffset)
-                        + ' '.repeat(relativeEndOffset - relativeStartOffset)
-                        + parsableText.slice(relativeEndOffset);
-            }
+            // Mask children to make finding access specifiers easy.
+            const childCSymbol = new CSymbol(child, this.document);
+            const relativeStartOffset = childCSymbol.startOffset() - startOffset;
+            const relativeEndOffset = childCSymbol.endOffset() - startOffset;
+            parsableText = parsableText.slice(0, relativeStartOffset)
+                    + ' '.repeat(relativeEndOffset - relativeStartOffset)
+                    + parsableText.slice(relativeEndOffset);
         });
 
         let publicSpecifierOffset: number | undefined;
@@ -135,7 +133,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         let nextAccessSpecifierOffset: number | undefined;
-        for (const match of parsableText.matchAll(/(?<!\b(class|struct)\s+)\b[\w_][\w\d_]*\s*:(?!:)/g)) {
+        for (const match of parsableText.matchAll(/\b[\w_][\w\d_]*\s*:(?!:)/g)) {
             if (match.index === undefined) {
                 continue;
             }
