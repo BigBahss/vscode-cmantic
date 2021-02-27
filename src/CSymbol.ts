@@ -400,12 +400,12 @@ export class CSymbol extends SourceSymbol {
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
         const declaration = await this.formatDeclarationForNewDefinition(target, position, scopeString);
-        if (this.isInline() && declarationSymbol) {
-            return comment + declaration.replace(/\binline\b\s*/, '') + bodyText;
-        } else if (!declarationSymbol?.range.contains(position)
-                && declarationSymbol?.uri.fsPath === target.uri.fsPath) {
-            return comment + 'inline ' + declaration + bodyText;
-        }
+        // if (this.isInline() && declarationSymbol) {
+        //     return comment + declaration.replace(/\binline\b\s*/, '') + bodyText;
+        // } else if (!declarationSymbol?.range.contains(position)
+        //         && declarationSymbol?.uri.fsPath === target.uri.fsPath) {
+        //     return comment + 'inline ' + declaration + bodyText;
+        // }
         return comment + declaration + bodyText;
     }
 
@@ -456,14 +456,17 @@ export class CSymbol extends SourceSymbol {
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment =
                 new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
-        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\s*/g, '');
+        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
+        if (!targetDoc.isHeader()) {
+            leadingText = leadingText.replace(/\binline\b\s*/, '');
+        }
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
         definition = definition.replace(
                 re_newLineAlignment, ' '.repeat(alignLength + inlineSpecifier.length + scopeString.length));
         definition = inlineSpecifier + leadingText + scopeString + definition;
-        return definition.replace(/\s*(override|final)\b/g, '');
+        return definition.replace(/\s*\b(override|final)\b/g, '');
     }
 
     newFunctionDeclaration(): string {
