@@ -441,7 +441,7 @@ export class CSymbol extends SourceSymbol {
         // Intelligently align the definition in the case of a multi-line declaration.
         const scopeStringStart = this.scopeStringStart();
         let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
-        const newInlineSpecifier =
+        const inlineSpecifier =
                 (!this.parent?.range.contains(position) && this.document.fileName === targetDoc.fileName
                         && !this.isInline() && !this.isConstexpr())
                 ? 'inline '
@@ -458,8 +458,8 @@ export class CSymbol extends SourceSymbol {
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
         definition = definition.replace(
-                re_newLineAlignment, ' '.repeat(alignLength + newInlineSpecifier.length + scopeString.length));
-        definition = newInlineSpecifier + leadingText + scopeString + definition;
+                re_newLineAlignment, ' '.repeat(alignLength + inlineSpecifier.length + scopeString.length));
+        definition = inlineSpecifier + leadingText + scopeString + definition;
         return definition.replace(/\s*(override|final)\b/g, '');
     }
 
