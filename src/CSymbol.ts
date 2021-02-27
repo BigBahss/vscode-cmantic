@@ -388,22 +388,27 @@ export class CSymbol extends SourceSymbol {
     }
 
     async getTextForTargetPosition(
-        target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
+        target: SourceDocument, position: vscode.Position, declarationSymbol?: SourceSymbol
     ): Promise<string> {
         const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
-        const scopeString = await declaration?.scopeString(target, position);
+        const scopeString = await declarationSymbol?.scopeString(target, position);
 
-        let comment: string;
+        let comment = '';
         if (cfg.alwaysMoveComments()) {
             comment = this.document.getText(new vscode.Range(this.leadingCommentStart, this.trueStart));
             comment = comment.replace(util.getIndentationRegExp(this), '');
-        } else {
-            comment = '';
         }
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        return comment + await this.formatDeclarationForNewDefinition(target, position, scopeString) + bodyText;
+        const declaration = await this.formatDeclarationForNewDefinition(target, position, scopeString);
+        if (this.isInline() && declarationSymbol) {
+            return comment + declaration.replace(/\binline\b\s*/, '') + bodyText;
+        } else if (!declarationSymbol?.range.contains(position)
+                && declarationSymbol?.uri.fsPath === target.uri.fsPath) {
+            return comment + 'inline ' + declaration + bodyText;
+        }
+        return comment + declaration + bodyText;
     }
 
     /**
