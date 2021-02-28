@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.5.2] - February 28, 2021
 ### Added
 - Template support has been expanded to properly generate member functions of class templates. Template parameter packs and default template arguments are now handled properly. (#18)
 
