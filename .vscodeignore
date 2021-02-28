@@ -2,11 +2,11 @@
 .vscode-test
 out/test
 src
+test
 .gitignore
 tsconfig.json
 .eslintrc.js
 .editorconfig
 **/*.map
 **/*.ts
-test_workspace
 TODO.md
