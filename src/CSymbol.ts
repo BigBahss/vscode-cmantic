@@ -207,11 +207,14 @@ export class CSymbol extends SourceSymbol {
                 : this.scopes();
 
         for (const scope of scopes) {
-            const targetScope = await target.findMatchingSymbol(scope);
+            let targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
             if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
                     || targetScope.range.end.isBeforeOrEqual(position)) {
-                const templateParameters = targetScope
+                if (!targetScope) {
+                    targetScope = new CSymbol(scope, this.document);
+                }
+                const templateParameters = targetScope.isTemplate()
                         ? targetScope.templateParameters()
                         : '';
                 scopeString += scope.name + templateParameters + '::';
@@ -298,7 +301,7 @@ export class CSymbol extends SourceSymbol {
         const templateParamEndPos = this.document.positionAt(templateParamEndOffset);
         const templateStatement = this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
 
-        return removeDefaultArgs ? templateStatement.replace(/\s*=.+(?=,|>)/g, '') : templateStatement;
+        return removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement;
     }
 
     templateParameters(): string {
