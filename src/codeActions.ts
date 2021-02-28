@@ -114,7 +114,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
         const refactorActions: RefactorAction[] = [];
 
-        if (this.shouldProvideAddDefinition(context, symbol, rangeOrSelection)) {
+        if (this.shouldProvideAddDefinition(context, symbol)) {
             refactorActions.push(...await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri));
         }
 
@@ -126,7 +126,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             refactorActions.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
         }
 
-        if (this.shouldProvideClassRefactorings(context, symbol, rangeOrSelection)) {
+        if (this.shouldProvideClassRefactorings(context, symbol)) {
             refactorActions.push(...await this.getClassRefactorings(symbol, sourceDoc));
         }
 
@@ -135,8 +135,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
     private shouldProvideAddDefinition(
         context: vscode.CodeActionContext,
-        symbol: CSymbol,
-        rangeOrSelection: vscode.Range | vscode.Selection
+        symbol: CSymbol
     ): boolean {
         return symbol.isFunctionDeclaration()
             && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
@@ -164,8 +163,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
     private shouldProvideClassRefactorings(
         context: vscode.CodeActionContext,
-        symbol: CSymbol,
-        rangeOrSelection: vscode.Range | vscode.Selection
+        symbol: CSymbol
     ): boolean {
         return (symbol.isClassOrStruct() || symbol.parent?.isClassOrStruct() === true)
             && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
