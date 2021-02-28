@@ -66,7 +66,8 @@ export class Getter implements Accessor {
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         const inlineSpecifier =
-                (!this.memberVariable.parent?.range.contains(position)
+                ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
+                    || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
@@ -128,7 +129,8 @@ export class Setter implements Accessor {
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         const inlineSpecifier =
-                (!this.memberVariable.parent?.range.contains(position)
+                ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
+                    || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';

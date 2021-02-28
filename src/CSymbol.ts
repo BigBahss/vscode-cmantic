@@ -439,7 +439,9 @@ export class CSymbol extends SourceSymbol {
         const scopeStringStart = this.scopeStringStart();
         let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
         const inlineSpecifier =
-                (!this.parent?.range.contains(position) && this.document.fileName === targetDoc.fileName
+                ((this.parent?.range.start.isAfterOrEqual(position)
+                    || this.parent?.range.end.isBeforeOrEqual(position))
+                        && this.document.fileName === targetDoc.fileName
                         && !this.isInline() && !this.isConstexpr())
                 ? 'inline '
                 : '';

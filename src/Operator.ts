@@ -40,7 +40,8 @@ export class OpEqual implements Operator {
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         const inlineSpecifier =
-                (!this.parent?.range.contains(position)
+                ((this.parent?.range.start.isAfterOrEqual(position)
+                    || this.parent?.range.end.isBeforeOrEqual(position))
                         && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
@@ -93,7 +94,8 @@ export class OpNotEqual implements Operator {
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         const inlineSpecifier =
-                (!this.parent?.range.contains(position)
+                ((this.parent?.range.start.isAfterOrEqual(position)
+                    || this.parent?.range.end.isBeforeOrEqual(position))
                         && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
