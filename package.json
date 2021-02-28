@@ -278,7 +278,8 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node ./out/test/runTest.js",
-    "lint": "eslint -c .eslintrc.js --ext .ts ./src"
+    "lint": "eslint -c .eslintrc.js --ext .ts ./src",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
