@@ -498,9 +498,9 @@ export class CSymbol extends SourceSymbol {
         }
         const parameters = this.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
 
-        // Intelligently align the definition in the case of a multi-line declaration.
-        const scopeStringStart = this.scopeStringStart();
-        let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
+        const templateStatement = this.parent?.isTemplate()
+                ? this.parent.templateStatement() + targetDoc.endOfLine
+                : '';
         const inlineSpecifier =
                 ((this.parent?.range.start.isAfterOrEqual(position)
                     || this.parent?.range.end.isBeforeOrEqual(position))
@@ -508,6 +508,10 @@ export class CSymbol extends SourceSymbol {
                         && !this.isInline() && !this.isConstexpr())
                 ? 'inline '
                 : '';
+
+        // Intelligently align the definition in the case of a multi-line declaration.
+        const scopeStringStart = this.scopeStringStart();
+        let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
@@ -526,7 +530,7 @@ export class CSymbol extends SourceSymbol {
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
         definition = definition.replace(
                 re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
-        definition = inlineSpecifier + leadingText + scopeString + definition;
+        definition = templateStatement + inlineSpecifier + leadingText + scopeString + definition;
         return definition.replace(/\s*\b(override|final)\b/g, '');
     }
 
