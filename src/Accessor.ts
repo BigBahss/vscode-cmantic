@@ -36,7 +36,7 @@ export class Getter implements Accessor {
         const leadingText = memberVariable.parsableLeadingText;
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
-        this.isStatic = /\bstatic\b/.test(leadingText);
+        this.isStatic = memberVariable.isStatic();
 
         const templateParamStart = leadingText.indexOf('<');
         const templateParamEnd = leadingText.lastIndexOf('>');
@@ -50,7 +50,7 @@ export class Getter implements Accessor {
         }
 
         this.parameter = '';
-        const thisPointer = (cfg.useExplicitThisPointer() && !memberVariable.isStatic()) ? 'this->' : '';
+        const thisPointer = (cfg.useExplicitThisPointer() && !this.isStatic) ? 'this->' : '';
         this.body = 'return ' + thisPointer + memberVariable.name + ';';
     }
 
@@ -88,7 +88,6 @@ export class Setter implements Accessor {
     static async create(memberVariable: CSymbol): Promise<Setter> {
         const setter = new Setter(memberVariable);
         const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '').trimStart();
-        setter.isStatic = /\bstatic\b/.test(memberVariable.parsableLeadingText);
 
         if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
             setter.parameter = (memberVariable.isReference()
@@ -105,10 +104,10 @@ export class Setter implements Accessor {
     private constructor(memberVariable: CSymbol) {
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();
-        this.isStatic = false;
+        this.isStatic = memberVariable.isStatic();
         this.returnType = 'void ';
         this.parameter = '';
-        const thisPointer = (cfg.useExplicitThisPointer() && !memberVariable.isStatic()) ? 'this->' : '';
+        const thisPointer = (cfg.useExplicitThisPointer() && !this.isStatic) ? 'this->' : '';
         this.body = thisPointer + memberVariable.name + ' = value;';
     }
 
