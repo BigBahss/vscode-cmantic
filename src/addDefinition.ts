@@ -162,6 +162,10 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
     }
     initializers.push(...parentClass.baseClasses(), ...parentClass.nonStaticMemberVariables());
 
+    if (initializers.length === 0) {
+        return [];
+    }
+
     const initializerItems: InitializerQuickPickItem[] = [];
     initializers.forEach(initializer => {
         const initializerItem: InitializerQuickPickItem = { label: '', initializer: initializer };
