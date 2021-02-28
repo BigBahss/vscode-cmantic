@@ -311,7 +311,7 @@ export class CSymbol extends SourceSymbol {
             return '';
         }
 
-        const parameterList = templateStatement.slice(templateParamStart + 1, -1);
+        const parameterList = util.maskAngleBrackets(templateStatement.slice(templateParamStart + 1, -1));
         const parameters: string[] = [];
 
         for (const parameter of parameterList.matchAll(/(?<=[\w_][\w\d_]*\s+)[\w_][\w\d_]*/g)) {
