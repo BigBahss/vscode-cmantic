@@ -194,6 +194,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isInline);
         } else if (declaration.isConstexpr()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isConstexpr);
+        } else if (declaration?.isTemplate()) {
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isTemplate);
+        } else if (declaration?.parent?.isTemplate()) {
+            addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isClassTemplate);
         }
 
         if (existingDefinition) {
@@ -269,6 +273,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isInline);
         } else if (definition.isConstexpr()) {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isConstexpr);
+        } else if (declaration?.isTemplate()) {
+            moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isTemplate);
+        } else if (declaration?.parent?.isTemplate() || definition?.parent?.isTemplate()) {
+            moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isClassTemplate);
         }
 
         if (matchingUri) {
