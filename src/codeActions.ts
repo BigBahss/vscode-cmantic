@@ -178,10 +178,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): Promise<RefactorAction[]> {
         const existingDefinition = await declaration.findDefinition();
 
-        const addDefinitionInMatchingSourceFile = new RefactorAction(addDefinitionTitle.matchingSourceFile);
-        const addDefinitionInCurrentFile = new RefactorAction(addDefinitionTitle.currentFile);
-        addDefinitionInMatchingSourceFile.setCommand('cmantic.addDefinition');
-        addDefinitionInCurrentFile.setCommand('cmantic.addDefinition');
+        const addDefinitionInMatchingSourceFile = new RefactorAction(
+                addDefinitionTitle.matchingSourceFile, 'cmantic.addDefinition');
+        const addDefinitionInCurrentFile = new RefactorAction(
+                addDefinitionTitle.currentFile, 'cmantic.addDefinition');
+
         addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
         addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri);
 
@@ -226,10 +227,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
-        const moveDefinitionToMatchingSourceFile = new RefactorAction(moveDefinitionTitle.matchingSourceFile);
-        const moveDefinitionIntoOrOutOfClass = new RefactorAction(moveDefinitionTitle.intoOrOutOfClass);
-        moveDefinitionToMatchingSourceFile.setCommand('cmantic.moveDefinitionToMatchingSourceFile');
-        moveDefinitionIntoOrOutOfClass.setCommand('cmantic.moveDefinitionIntoOrOutOfClass');
+        const moveDefinitionToMatchingSourceFile = new RefactorAction(
+                moveDefinitionTitle.matchingSourceFile, 'cmantic.moveDefinitionToMatchingSourceFile');
+        const moveDefinitionIntoOrOutOfClass = new RefactorAction(
+                moveDefinitionTitle.intoOrOutOfClass, 'cmantic.moveDefinitionIntoOrOutOfClass');
 
         let declaration: CSymbol | undefined;
         let declarationDoc: SourceDocument | undefined;
@@ -296,12 +297,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         memberVariable: CSymbol,
         sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {
-        const generateGetterSetter = new RefactorAction(getterSetterTitle.getterSetter);
-        const generateGetter = new RefactorAction(getterSetterTitle.getter);
-        const generateSetter = new RefactorAction(getterSetterTitle.setter);
-        generateGetterSetter.setCommand('cmantic.generateGetterSetterFor');
-        generateGetter.setCommand('cmantic.generateGetterFor');
-        generateSetter.setCommand('cmantic.generateSetterFor');
+        const generateGetterSetter = new RefactorAction(
+                getterSetterTitle.getterSetter, 'cmantic.generateGetterSetterFor');
+        const generateGetter = new RefactorAction(getterSetterTitle.getter, 'cmantic.generateGetterFor');
+        const generateSetter = new RefactorAction(getterSetterTitle.setter, 'cmantic.generateSetterFor');
+
         generateGetterSetter.setArguments(memberVariable, sourceDoc);
         generateGetter.setArguments(memberVariable, sourceDoc);
         generateSetter.setArguments(memberVariable, sourceDoc);
@@ -345,12 +345,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<SourceAction[]> {
-        const addHeaderGuard = new SourceAction('Add Header Guard');
-        const addInclude = new SourceAction('Add Include');
-        const createMatchingSourceFile = new SourceAction('Create Matching Source File');
-        addHeaderGuard.setCommand('cmantic.addHeaderGuard');
-        addInclude.setCommand('cmantic.addInclude');
-        createMatchingSourceFile.setCommand('cmantic.createMatchingSourceFile');
+        const addHeaderGuard = new SourceAction('Add Header Guard', 'cmantic.addHeaderGuard');
+        const addInclude = new SourceAction('Add Include', 'cmantic.addInclude');
+        const createMatchingSourceFile = new SourceAction(
+                'Create Matching Source File', 'cmantic.createMatchingSourceFile');
 
         if (!sourceDoc.isHeader()) {
             addHeaderGuard.disable(addHeaderGuardFailure.notHeaderFile);
