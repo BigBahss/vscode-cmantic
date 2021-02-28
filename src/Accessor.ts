@@ -60,9 +60,14 @@ export class Getter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '()'
-                + (this.isStatic ? '' : ' const') + curlySeparator
-                + '{' + eol + util.indentation() + this.body + eol + '}';
+        const inlineSpecifier =
+                (!this.memberVariable.parent?.range.contains(position)
+                        && this.memberVariable.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return inlineSpecifier + this.returnType + await this.memberVariable.scopeString(target, position)
+                + this.name + '()' + (this.isStatic ? '' : ' const') + curlySeparator + '{'
+                + eol + util.indentation() + this.body + eol + '}';
     }
 }
 
@@ -113,7 +118,13 @@ export class Setter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        return this.returnType + await this.memberVariable.scopeString(target, position) + this.name + '('
-                + this.parameter + ')' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+        const inlineSpecifier =
+                (!this.memberVariable.parent?.range.contains(position)
+                        && this.memberVariable.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return inlineSpecifier + this.returnType + await this.memberVariable.scopeString(target, position)
+                + this.name + '(' + this.parameter + ')' + curlySeparator + '{'
+                + eol + util.indentation() + this.body + eol + '}';
     }
 }

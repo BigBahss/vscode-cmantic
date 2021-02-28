@@ -39,8 +39,13 @@ export class OpEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        return this.returnType + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter
-                + ') const' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+        const inlineSpecifier =
+                (!this.parent?.range.contains(position)
+                        && this.parent.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return inlineSpecifier + this.returnType + await this.parent.scopeString(target, position) + this.name + '('
+                + this.parameter + ') const' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 
     setMemberVariables(memberVariables: SourceSymbol[]): void {
@@ -87,7 +92,12 @@ export class OpNotEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        return this.returnType + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter
-                + ') const' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+        const inlineSpecifier =
+                (!this.parent?.range.contains(position)
+                        && this.parent.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return inlineSpecifier + this.returnType + await this.parent.scopeString(target, position) + this.name + '('
+                + this.parameter + ') const' + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

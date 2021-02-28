@@ -265,7 +265,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notCpp);
         }
 
-        if (definition.isInline()) {
+        if (definition.isInline() && (!declaration || declaration.isInline())) {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isInline);
         } else if (definition.isConstexpr()) {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isConstexpr);

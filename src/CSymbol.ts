@@ -115,15 +115,13 @@ export class CSymbol extends SourceSymbol {
 
         let parsableText = this.parsableText;
         this.children.forEach(child => {
-            // Mask inner classes/structs to prevent matching access specifiers within them.
-            if (child.isClassOrStruct()) {
-                const subClassOrStruct = new CSymbol(child, this.document);
-                const relativeStartOffset = subClassOrStruct.startOffset() - startOffset;
-                const relativeEndOffset = subClassOrStruct.endOffset() - startOffset;
-                parsableText = parsableText.slice(0, relativeStartOffset)
-                        + ' '.repeat(relativeEndOffset - relativeStartOffset)
-                        + parsableText.slice(relativeEndOffset);
-            }
+            // Mask children to make finding access specifiers easy.
+            const childCSymbol = new CSymbol(child, this.document);
+            const relativeStartOffset = childCSymbol.startOffset() - startOffset;
+            const relativeEndOffset = childCSymbol.endOffset() - startOffset;
+            parsableText = parsableText.slice(0, relativeStartOffset)
+                    + ' '.repeat(relativeEndOffset - relativeStartOffset)
+                    + parsableText.slice(relativeEndOffset);
         });
 
         let publicSpecifierOffset: number | undefined;
@@ -135,7 +133,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         let nextAccessSpecifierOffset: number | undefined;
-        for (const match of parsableText.matchAll(/(?<!\b(class|struct)\s+)\b[\w_][\w\d_]*\s*:(?!:)/g)) {
+        for (const match of parsableText.matchAll(/\b[\w_][\w\d_]*\s*:(?!:)/g)) {
             if (match.index === undefined) {
                 continue;
             }
@@ -388,22 +386,21 @@ export class CSymbol extends SourceSymbol {
     }
 
     async getTextForTargetPosition(
-        target: SourceDocument, position: vscode.Position, declaration?: SourceSymbol
+        target: SourceDocument, position: vscode.Position, declarationSymbol?: SourceSymbol
     ): Promise<string> {
         const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');
-        const scopeString = await declaration?.scopeString(target, position);
+        const scopeString = await declarationSymbol?.scopeString(target, position);
 
-        let comment: string;
+        let comment = '';
         if (cfg.alwaysMoveComments()) {
             comment = this.document.getText(new vscode.Range(this.leadingCommentStart, this.trueStart));
             comment = comment.replace(util.getIndentationRegExp(this), '');
-        } else {
-            comment = '';
         }
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        return comment + await this.formatDeclarationForNewDefinition(target, position, scopeString) + bodyText;
+        const declaration = await this.formatDeclarationForNewDefinition(target, position, scopeString);
+        return comment + declaration + bodyText;
     }
 
     /**
@@ -441,21 +438,31 @@ export class CSymbol extends SourceSymbol {
         // Intelligently align the definition in the case of a multi-line declaration.
         const scopeStringStart = this.scopeStringStart();
         let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
+        const inlineSpecifier =
+                (!this.parent?.range.contains(position) && this.document.fileName === targetDoc.fileName
+                        && !this.isInline() && !this.isConstexpr())
+                ? 'inline '
+                : '';
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(util.endOfLine(this.document));
         const alignLength = leadingLines[leadingLines.length - 1].length;
-        const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
-        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\s*/g, '');
+        const re_newLineAlignment =
+                new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
+        leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
+        if (!targetDoc.isHeader()) {
+            leadingText = leadingText.replace(/\binline\b\s*/, '');
+        }
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
         const newLeadingLines = leadingText.split(targetDoc.endOfLine);
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
-        definition = definition.replace(re_newLineAlignment, ' '.repeat(newAlignLength + scopeString.length));
-        definition = leadingText + scopeString + definition;
-        return definition.replace(/\s*(override|final)\b/g, '');
+        definition = definition.replace(
+                re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
+        definition = inlineSpecifier + leadingText + scopeString + definition;
+        return definition.replace(/\s*\b(override|final)\b/g, '');
     }
 
     newFunctionDeclaration(): string {
