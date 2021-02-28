@@ -262,6 +262,23 @@ export class CSymbol extends SourceSymbol {
         });
     }
 
+    templateStatement(): string {
+        if (!this.isTemplate()) {
+            return '';
+        }
+
+        const maskedLeadingText = util.maskAngleBrackets(this.fullLeadingText());
+        const templateParamEnd = maskedLeadingText.indexOf('>');
+        if (templateParamEnd === -1) {
+            return '';
+        }
+
+        const templateParamEndOffset = this.document.offsetAt(this.trueStart) + templateParamEnd;
+        const templateParamEndPos = this.document.positionAt(templateParamEndOffset);
+
+        return this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
+    }
+
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !this.parsableText.endsWith('}')
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
