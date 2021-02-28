@@ -61,10 +61,10 @@ export class CSymbol extends SourceSymbol {
     /**
      * Returns the text of this symbol including potential template statement.
      */
-    getFullText(): string { return this.document.getText(this.getFullRange()); }
+    fullText(): string { return this.document.getText(this.fullRange()); }
 
-    getTextWithLeadingComment(): string {
-        return this.document.getText(this.getRangeWithLeadingComment());
+    fullTextWithLeadingComment(): string {
+        return this.document.getText(this.rangeWithLeadingComment());
     }
 
     /**
@@ -78,16 +78,16 @@ export class CSymbol extends SourceSymbol {
      * Returns the text contained in this symbol that comes before this.selectionRange,
      * including potential template statement.
      */
-    getFullLeadingText(): string {
+    fullLeadingText(): string {
         return this.document.getText(new vscode.Range(this.trueStart, this.selectionRange.start));
     }
 
     /**
      * Returns the range of this symbol including potential template statement.
      */
-    getFullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.range.end); }
+    fullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.range.end); }
 
-    getRangeWithLeadingComment(): vscode.Range {
+    rangeWithLeadingComment(): vscode.Range {
         return new vscode.Range(this.leadingCommentStart, this.range.end);
     }
 
@@ -305,7 +305,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     isTemplate(): boolean {
-        return this.getFullLeadingText().startsWith('template');
+        return this.fullLeadingText().startsWith('template');
     }
 
     isTypedef(): boolean {
@@ -507,11 +507,11 @@ export class CSymbol extends SourceSymbol {
             const leadingCommentRange = new vscode.Range(definition.leadingCommentStart, definition.trueStart);
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
-                    + newIndentation + this.getFullText().replace(/\s*;$/, '')
+                    + newIndentation + this.fullText().replace(/\s*;$/, '')
                     + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
         }
 
-        return this.getFullText().replace(/\s*;$/, '')
+        return this.fullText().replace(/\s*;$/, '')
                 + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
     }
 
