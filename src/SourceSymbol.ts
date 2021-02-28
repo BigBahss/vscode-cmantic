@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceFile } from './SourceFile';
 
 
 /**

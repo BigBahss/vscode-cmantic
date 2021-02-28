@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as util from './utility';
 import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';

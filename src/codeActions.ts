@@ -7,7 +7,7 @@ import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from '
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
-import { failure as equalityFailure, title as equalityTitle } from './generateEqualityOperators';
+import { title as equalityTitle } from './generateEqualityOperators';
 import { getMatchingSourceFile, pushDisposable } from './extension';
 
 
