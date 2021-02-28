@@ -200,6 +200,27 @@ export class CSymbol extends SourceSymbol {
         return fallbackPosition;
     }
 
+    async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
+        let scopeString = '';
+        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
+                ? [...this.scopes(), this]
+                : this.scopes();
+
+        for (const scope of scopes) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
+            if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
+                    || targetScope.range.end.isBeforeOrEqual(position)) {
+                const templateParameters = targetScope
+                        ? targetScope.templateParameters()
+                        : '';
+                scopeString += scope.name + templateParameters + '::';
+            }
+        }
+
+        return scopeString;
+    }
+
     baseClasses(): SubSymbol[] {
         if (!this.isClassOrStruct()) {
             return [];
@@ -293,7 +314,7 @@ export class CSymbol extends SourceSymbol {
         const parameterList = templateStatement.slice(templateParamStart + 1, -1);
         const parameters: string[] = [];
 
-        for (const parameter of parameterList.matchAll(/(?<=[\w_][\w\d_]*\s*)[\w_][\w\d_]*/g)) {
+        for (const parameter of parameterList.matchAll(/(?<=[\w_][\w\d_]*\s+)[\w_][\w\d_]*/g)) {
             parameters.push(parameter[0]);
         }
 
@@ -425,24 +446,6 @@ export class CSymbol extends SourceSymbol {
         }
 
         return false;
-    }
-
-    async scopeString(target: SourceFile, position: vscode.Position): Promise<string> {
-        let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
-                ? [...this.scopes(), this]
-                : this.scopes();
-
-        for (const scope of scopes) {
-            const targetScope = await target.findMatchingSymbol(scope);
-            // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
-            if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
-                    || targetScope.range.end.isBeforeOrEqual(position)) {
-                scopeString += scope.name + '::';
-            }
-        }
-
-        return scopeString;
     }
 
     async getTextForTargetPosition(
