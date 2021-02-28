@@ -279,6 +279,27 @@ export class CSymbol extends SourceSymbol {
         return this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
     }
 
+    templateParameters(): string {
+        const templateStatement = this.templateStatement();
+        if (!templateStatement) {
+            return '';
+        }
+
+        const templateParamStart = templateStatement.indexOf('<');
+        if (templateParamStart === -1) {
+            return '';
+        }
+
+        const parameterList = templateStatement.slice(templateParamStart + 1, -1);
+        const parameters: string[] = [];
+
+        for (const parameter of parameterList.matchAll(/(?<=[\w_][\w\d_]*\s*)[\w_][\w\d_]*/g)) {
+            parameters.push(parameter[0]);
+        }
+
+        return '<' + parameters.join(', ') + '>';
+    }
+
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !this.parsableText.endsWith('}')
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
