@@ -283,7 +283,7 @@ export class CSymbol extends SourceSymbol {
         });
     }
 
-    templateStatement(): string {
+    templateStatement(removeDefaultArgs?: boolean): string {
         if (!this.isTemplate()) {
             return '';
         }
@@ -296,12 +296,13 @@ export class CSymbol extends SourceSymbol {
 
         const templateParamEndOffset = this.document.offsetAt(this.trueStart) + templateParamEnd + 1;
         const templateParamEndPos = this.document.positionAt(templateParamEndOffset);
+        const templateStatement = this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
 
-        return this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
+        return removeDefaultArgs ? templateStatement.replace(/\s*=.+(?=,|>)/g, '') : templateStatement;
     }
 
     templateParameters(): string {
-        const templateStatement = this.templateStatement();
+        const templateStatement = this.templateStatement(true);
         if (!templateStatement) {
             return '';
         }
@@ -499,7 +500,7 @@ export class CSymbol extends SourceSymbol {
         const parameters = this.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
 
         const templateStatement = this.parent?.isTemplate()
-                ? this.parent.templateStatement() + targetDoc.endOfLine
+                ? this.parent.templateStatement(true) + targetDoc.endOfLine
                 : '';
         const inlineSpecifier =
                 ((this.parent?.range.start.isAfterOrEqual(position)
