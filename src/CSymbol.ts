@@ -447,7 +447,7 @@ export class CSymbol extends SourceSymbol {
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(util.endOfLine(this.document));
-        const alignLength = leadingLines[leadingLines.length - 1].length;
+        const alignLength = leadingLines[leadingLines.length - 1].trimStart().length;
         const re_newLineAlignment =
                 new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
