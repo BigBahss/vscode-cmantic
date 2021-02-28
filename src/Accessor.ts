@@ -50,7 +50,7 @@ export class Getter implements Accessor {
         }
 
         this.parameter = '';
-        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
+        const thisPointer = (cfg.useExplicitThisPointer() && !memberVariable.isStatic()) ? 'this->' : '';
         this.body = 'return ' + thisPointer + memberVariable.name + ';';
     }
 
@@ -108,7 +108,7 @@ export class Setter implements Accessor {
         this.isStatic = false;
         this.returnType = 'void ';
         this.parameter = '';
-        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
+        const thisPointer = (cfg.useExplicitThisPointer() && !memberVariable.isStatic()) ? 'this->' : '';
         this.body = thisPointer + memberVariable.name + ' = value;';
     }
 
