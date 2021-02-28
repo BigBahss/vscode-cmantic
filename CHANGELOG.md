@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Added
+- Added a setting `Cpp: Use Explicit This Pointer` to control whether generated member functions prefix class members with `this->`. (#17)
+
+### Fixed
+- Fixed `Add Definition`'s whitespace alignment for multi-line declarations when removing leading specifiers (such as `virtual`, `static`, etc.). (#19)
+
 ## [0.5.0] - February 25, 2021
 ### Added
 - `Add Definition` for constructors will now prompt the user for what they want to initialize (delegating constructor, base class constructor(s), member variables) and generate the boiler-plate for the initializer list.
