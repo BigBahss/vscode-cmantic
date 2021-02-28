@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
+import * as parse from './parsing';
 import * as path from 'path';
 import { CSymbol } from './CSymbol';
 import { SourceFile } from './SourceFile';
@@ -72,9 +73,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
         let offset: number | undefined;
-        let maskedText = util.maskComments(this.getText());
-        maskedText = util.maskRawStringLiterals(maskedText);
-        maskedText = util.maskQuotes(maskedText);
+        let maskedText = parse.maskComments(this.getText());
+        maskedText = parse.maskRawStringLiterals(maskedText);
+        maskedText = parse.maskQuotes(maskedText);
 
         const pragmaOnceOffset = maskedText.search(/^\s*#\s*pragma\s+once\b/);
         if (pragmaOnceOffset !== -1) {
@@ -94,7 +95,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     positionAfterHeaderComment(): ProposedPosition {
-        const maskedText = util.maskComments(this.getText(), false);
+        const maskedText = parse.maskComments(this.getText(), false);
         let offset = maskedText.search(/\S/);
         if (offset !== -1) {
             // Return position before first non-comment text.
@@ -334,6 +335,6 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     private getEndOfStatement(position: vscode.Position): vscode.Position {
-        return util.getEndOfStatement(this, position);
+        return parse.getEndOfStatement(this, position);
     }
 }
