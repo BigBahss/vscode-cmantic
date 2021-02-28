@@ -173,7 +173,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const definition = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (definition) {
+                if (definition && !(declaration.uri.fsPath === definition.uri.fsPath
+                        && declaration.parent?.range.contains(definition.selectionRange))) {
                     return new ProposedPosition(definition.range.end, {
                         relativeTo: definition.range,
                         after: true
@@ -195,7 +196,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const definition = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (definition) {
+                if (definition && !(declaration.uri.fsPath === definition.uri.fsPath
+                        && declaration.parent?.range.contains(definition.selectionRange))) {
                     const leadingCommentStart = definition.leadingCommentStart;
                     return new ProposedPosition(leadingCommentStart, {
                         relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
