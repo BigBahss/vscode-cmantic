@@ -444,14 +444,16 @@ export class CSymbol extends SourceSymbol {
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(targetDoc.endOfLine);
+        const leadingLines = leadingText.split(util.endOfLine(this.document));
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment = new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\s*/g, '');
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
-        definition = definition.replace(re_newLineAlignment, ' '.repeat(alignLength + scopeString.length));
+        const newLeadingLines = leadingText.split(targetDoc.endOfLine);
+        const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
+        definition = definition.replace(re_newLineAlignment, ' '.repeat(newAlignLength + scopeString.length));
         definition = leadingText + scopeString + definition;
         return definition.replace(/\s*(override|final)\b/g, '');
     }
