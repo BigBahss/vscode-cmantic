@@ -17,15 +17,6 @@ function getClass(symbols: SourceSymbol[]): SourceSymbol {
     throw new Error('Class not found.');
 }
 
-async function getCodeActions(uri: vscode.Uri, rangeOrSelection: vscode.Range | vscode.Selection): Promise<vscode.CodeAction[]> {
-    const codeActions = await vscode.commands.executeCommand<vscode.CodeAction[]>(
-            'vscode.executeCodeActionProvider', uri, rangeOrSelection);
-    if (!codeActions) {
-        throw new Error('CodeActions[] are undefined.');
-    }
-    return codeActions;
-}
-
 suite('Extension Test Suite', function () {
     this.timeout(60000);
     vscode.window.showInformationMessage('Start all tests.');
