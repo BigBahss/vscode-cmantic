@@ -5,6 +5,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added a setting `Cpp: Use Explicit This Pointer` to control whether generated member functions prefix class members with `this->`. (#17)
 
+### Changed
+- Handling of the `inline` specifier has changed. Definitions generated within header files will have the `inline` specifer to prevent ODR violations. Additionally, inline functions can now be moved to source files and the `inline` specifier will be removed. Definitions moved to header files will gain the `inline` specifier.
+
 ### Fixed
 - Fixed `Add Definition`'s whitespace alignment for multi-line declarations when removing leading specifiers (such as `virtual`, `static`, etc.). (#19)
 
