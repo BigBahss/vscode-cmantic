@@ -273,7 +273,7 @@ export class CSymbol extends SourceSymbol {
             return '';
         }
 
-        const templateParamEndOffset = this.document.offsetAt(this.trueStart) + templateParamEnd;
+        const templateParamEndOffset = this.document.offsetAt(this.trueStart) + templateParamEnd + 1;
         const templateParamEndPos = this.document.positionAt(templateParamEndOffset);
 
         return this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
