@@ -44,12 +44,12 @@ module.exports = {
         ],
         "@typescript-eslint/no-unused-expressions": "warn",
         "@typescript-eslint/semi": [
-            "warn",
+            "error",
             "always"
         ],
         "curly": "warn",
         "eqeqeq": [
-            "warn",
+            "error",
             "always"
         ],
         "no-redeclare": "warn",

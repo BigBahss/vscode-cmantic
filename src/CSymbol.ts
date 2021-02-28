@@ -400,12 +400,6 @@ export class CSymbol extends SourceSymbol {
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
         const declaration = await this.formatDeclarationForNewDefinition(target, position, scopeString);
-        // if (this.isInline() && declarationSymbol) {
-        //     return comment + declaration.replace(/\binline\b\s*/, '') + bodyText;
-        // } else if (!declarationSymbol?.range.contains(position)
-        //         && declarationSymbol?.uri.fsPath === target.uri.fsPath) {
-        //     return comment + 'inline ' + declaration + bodyText;
-        // }
         return comment + declaration + bodyText;
     }
 
@@ -452,7 +446,7 @@ export class CSymbol extends SourceSymbol {
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(targetDoc.endOfLine);
+        const leadingLines = leadingText.split(util.endOfLine(this.document));
         const alignLength = leadingLines[leadingLines.length - 1].length;
         const re_newLineAlignment =
                 new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
@@ -463,8 +457,10 @@ export class CSymbol extends SourceSymbol {
         leadingText = leadingText.replace(util.getIndentationRegExp(this), '');
         let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
+        const newLeadingLines = leadingText.split(targetDoc.endOfLine);
+        const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
         definition = definition.replace(
-                re_newLineAlignment, ' '.repeat(alignLength + inlineSpecifier.length + scopeString.length));
+                re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
         definition = inlineSpecifier + leadingText + scopeString + definition;
         return definition.replace(/\s*\b(override|final)\b/g, '');
     }
