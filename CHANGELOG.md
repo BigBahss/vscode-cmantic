@@ -7,6 +7,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Changed
 - Function templates and member functions of class templates can no longer be generated outside of header files. If getter/setter definition locations are set to generate in source files, it will fallback to generating in the current file. (#18)
+- Generating equality operators will no longer prompt the user to select member variables to compare if the class has no member variables, instead of showing an empty prompt.
 
 ## [0.5.1] - February 27, 2021
 ### Added
