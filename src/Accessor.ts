@@ -11,6 +11,7 @@ const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;
  * Represents a new accessor member function for a member variable.
  */
 export interface Accessor {
+    readonly parent?: CSymbol;
     readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
@@ -25,6 +26,7 @@ export interface Accessor {
  * Represents a new getter member function for a member variable.
  */
 export class Getter implements Accessor {
+    readonly parent?: CSymbol;
     readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
@@ -34,6 +36,7 @@ export class Getter implements Accessor {
 
     constructor(memberVariable: CSymbol) {
         const leadingText = memberVariable.parsableLeadingText;
+        this.parent = memberVariable.parent;
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
         this.isStatic = memberVariable.isStatic();
@@ -65,14 +68,18 @@ export class Getter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
+        const templateStatement = this.memberVariable.parent?.isTemplate()
+                ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
+                : '';
         const inlineSpecifier =
                 ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
                     || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return inlineSpecifier + this.returnType + await this.memberVariable.scopeString(target, position)
-                + this.name + '()' + (this.isStatic ? '' : ' const') + curlySeparator + '{'
+        return templateStatement + inlineSpecifier + this.returnType
+                + await this.memberVariable.scopeString(target, position) + this.name + '()'
+                + (this.isStatic ? '' : ' const') + curlySeparator + '{'
                 + eol + util.indentation() + this.body + eol + '}';
     }
 }
@@ -81,6 +88,7 @@ export class Getter implements Accessor {
  * Represents a new setter member function for a member variable.
  */
 export class Setter implements Accessor {
+    readonly parent?: CSymbol;
     readonly memberVariable: CSymbol;
     name: string;
     isStatic: boolean;
@@ -108,6 +116,7 @@ export class Setter implements Accessor {
     }
 
     private constructor(memberVariable: CSymbol) {
+        this.parent = memberVariable.parent;
         this.memberVariable = memberVariable;
         this.name = memberVariable.setterName();
         this.isStatic = memberVariable.isStatic();
@@ -128,14 +137,17 @@ export class Setter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
+        const templateStatement = this.memberVariable.parent?.isTemplate()
+                ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
+                : '';
         const inlineSpecifier =
                 ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
                     || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return inlineSpecifier + this.returnType + await this.memberVariable.scopeString(target, position)
-                + this.name + '(' + this.parameter + ')' + curlySeparator + '{'
-                + eol + util.indentation() + this.body + eol + '}';
+        return templateStatement + inlineSpecifier + this.returnType
+                + await this.memberVariable.scopeString(target, position) + this.name + '(' + this.parameter + ')'
+                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

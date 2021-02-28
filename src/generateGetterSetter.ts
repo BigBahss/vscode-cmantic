@@ -33,7 +33,6 @@ enum AccessorType {
     Both
 }
 
-
 export async function generateGetterSetter(): Promise<void> {
     await getCurrentSymbolAndCall(generateGetterSetterFor);
 }
@@ -215,9 +214,11 @@ async function getTargetForAccessorDefinition(
         // If the class is not in a header file then control will pass down to CurrentFile.
         if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
-            const targetDoc = matchingUri ? await SourceDocument.open(matchingUri) : classDoc;
-            return new TargetLocation(
-                    await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
+            if (matchingUri && !accessor.parent?.isTemplate()) {
+                const targetDoc = await SourceDocument.open(matchingUri);
+                return new TargetLocation(
+                        await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
+            }
         }
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(

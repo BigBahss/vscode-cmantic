@@ -57,7 +57,7 @@ export async function generateEqualityOperators(
     const opEqual = new OpEqual(classOrStruct, memberVariables);
     const opNotEqual = new OpNotEqual(classOrStruct);
 
-    const targets = await promptUserForDefinitionLocations(classDoc, position);
+    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, position);
     if (!targets) {
         return;
     }
@@ -115,11 +115,11 @@ interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
 }
 
 class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPickItem> {
-    constructor(sourceDoc: SourceDocument) {
+    constructor(classOrStruct: CSymbol, sourceDoc: SourceDocument) {
         super({ label: 'Inline', location: cfg.DefinitionLocation.Inline },
               { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile });
 
-        if (sourceDoc.isHeader()) {
+        if (sourceDoc.isHeader() && !classOrStruct.isTemplate()) {
             this.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
         }
     }
@@ -131,18 +131,19 @@ interface TargetLocations {
 }
 
 async function promptUserForDefinitionLocations(
+    classOrStruct: CSymbol,
     classDoc: SourceDocument,
     declarationPos: ProposedPosition
 ): Promise<TargetLocations | undefined> {
     const equalityDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(classDoc),
+            new DefinitionLocationQuickPickItems(classOrStruct, classDoc),
             { placeHolder: 'Select where the definition of operator== should be placed:' });
     if (!equalityDefinitionItem) {
         return;
     }
 
     const p_inequalityDefinitionItem = vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(classDoc),
+            new DefinitionLocationQuickPickItems(classOrStruct, classDoc),
             { placeHolder: 'Select where the definition of operator!= should be placed:' });
 
     const matchingUri = await getMatchingSourceFile(classDoc.uri);
