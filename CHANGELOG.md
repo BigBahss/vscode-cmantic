@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Added
+- Template support has been expanded to properly generate member functions of class templates. Template parameter packs and default template arguments are now handled properly. (#18)
+
+### Changed
+- Function templates and member functions of class templates can no longer be generated outside of header files. If getter/setter definition locations are set to generate in source files, it will fallback to generating in the current file. (#18)
+
 ## [0.5.1] - February 27, 2021
 ### Added
 - Added a setting `Cpp: Use Explicit This Pointer` to control whether generated member functions prefix class members with `this->`. (#17)
