@@ -167,6 +167,13 @@ export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLin
     return locations;
 }
 
+/**
+ * Test if range contains position, not including the start and end.
+ */
+export function containsExclusive(range: vscode.Range, position: vscode.Position): boolean {
+    return !range.end.isBeforeOrEqual(position) && !range.start.isAfterOrEqual(position);
+}
+
 export function firstCharToUpper(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }

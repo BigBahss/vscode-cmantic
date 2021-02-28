@@ -72,8 +72,7 @@ export class Getter implements Accessor {
                 ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
                 : '';
         const inlineSpecifier =
-                ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
-                    || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
+                ((!this.parent || !util.containsExclusive(this.parent.range, position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
@@ -141,8 +140,7 @@ export class Setter implements Accessor {
                 ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
                 : '';
         const inlineSpecifier =
-                ((this.memberVariable.parent?.range.start.isAfterOrEqual(position)
-                    || this.memberVariable.parent?.range.end.isBeforeOrEqual(position))
+                ((!this.parent || !util.containsExclusive(this.parent.range, position))
                         && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';

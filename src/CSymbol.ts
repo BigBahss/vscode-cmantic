@@ -209,8 +209,7 @@ export class CSymbol extends SourceSymbol {
         for (const scope of scopes) {
             let targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
-            if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
-                    || targetScope.range.end.isBeforeOrEqual(position)) {
+            if (!targetScope || !util.containsExclusive(targetScope.range, position)) {
                 if (!targetScope) {
                     targetScope = new CSymbol(scope, this.document);
                 }
@@ -510,9 +509,7 @@ export class CSymbol extends SourceSymbol {
                 ? this.parent.templateStatement(true) + targetDoc.endOfLine
                 : '';
         const inlineSpecifier =
-                ((!this.parent
-                    || this.parent?.range.start.isAfterOrEqual(position)
-                    || this.parent?.range.end.isBeforeOrEqual(position))
+                ((!this.parent || !util.containsExclusive(this.parent.range, position))
                         && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
                         && !this.isInline() && !this.isConstexpr())
                 ? 'inline '

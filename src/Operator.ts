@@ -43,8 +43,7 @@ export class OpEqual implements Operator {
                 ? this.parent.templateStatement(true) + target.endOfLine
                 : '';
         const inlineSpecifier =
-                ((this.parent?.range.start.isAfterOrEqual(position)
-                    || this.parent?.range.end.isBeforeOrEqual(position))
+                (!util.containsExclusive(this.parent.range, position)
                         && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
@@ -101,8 +100,7 @@ export class OpNotEqual implements Operator {
                 ? this.parent.templateStatement(true) + target.endOfLine
                 : '';
         const inlineSpecifier =
-                ((this.parent?.range.start.isAfterOrEqual(position)
-                    || this.parent?.range.end.isBeforeOrEqual(position))
+                (!util.containsExclusive(this.parent.range, position)
                         && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
