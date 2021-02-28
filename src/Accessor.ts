@@ -50,8 +50,13 @@ export class Getter implements Accessor {
         }
 
         this.parameter = '';
-        const thisPointer = (cfg.useExplicitThisPointer() && !this.isStatic) ? 'this->' : '';
-        this.body = 'return ' + thisPointer + memberVariable.name + ';';
+        let memberPrefix = '';
+        if (cfg.useExplicitThisPointer() && !this.isStatic) {
+            memberPrefix = 'this->';
+        } else if (this.isStatic && memberVariable.parent) {
+            memberPrefix = memberVariable.parent.name + '::';
+        }
+        this.body = 'return ' + memberPrefix + memberVariable.name + ';';
     }
 
     get declaration(): string {
@@ -107,8 +112,13 @@ export class Setter implements Accessor {
         this.isStatic = memberVariable.isStatic();
         this.returnType = 'void ';
         this.parameter = '';
-        const thisPointer = (cfg.useExplicitThisPointer() && !this.isStatic) ? 'this->' : '';
-        this.body = thisPointer + memberVariable.name + ' = value;';
+        let memberPrefix = '';
+        if (cfg.useExplicitThisPointer() && !this.isStatic) {
+            memberPrefix = 'this->';
+        } else if (this.isStatic && memberVariable.parent) {
+            memberPrefix = memberVariable.parent.name + '::';
+        }
+        this.body = memberPrefix + memberVariable.name + ' = value;';
     }
 
     get declaration(): string {
