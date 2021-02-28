@@ -52,6 +52,11 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         return new CSymbol(sourceSymbol, this);
     }
 
+    static async getSymbol(location: vscode.Location): Promise<CSymbol | undefined> {
+        const sourceDoc = await SourceDocument.open(location.uri);
+        return await sourceDoc.getSymbol(location.range.start);
+    }
+
     async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined> {
         const sourceSymbol = await super.findMatchingSymbol(target);
         if (!sourceSymbol) {

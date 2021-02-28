@@ -91,24 +91,6 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         return scopes.reverse();
     }
 
-    async scopeString(target: SourceFile, position: vscode.Position): Promise<string> {
-        let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
-                ? [...this.scopes(), this]
-                : this.scopes();
-
-        for (const scope of scopes) {
-            const targetScope = await target.findMatchingSymbol(scope);
-            // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
-            if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
-                    || targetScope.range.end.isBeforeOrEqual(position)) {
-                scopeString += scope.name + '::';
-            }
-        }
-
-        return scopeString;
-    }
-
     isMemberVariable(): boolean {
         return this.parent?.isClassOrStruct() === true
                 && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);

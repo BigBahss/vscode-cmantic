@@ -385,8 +385,26 @@ export class CSymbol extends SourceSymbol {
         return false;
     }
 
+    async scopeString(target: SourceFile, position: vscode.Position): Promise<string> {
+        let scopeString = '';
+        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
+                ? [...this.scopes(), this]
+                : this.scopes();
+
+        for (const scope of scopes) {
+            const targetScope = await target.findMatchingSymbol(scope);
+            // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
+            if (!targetScope || targetScope.range.start.isAfterOrEqual(position)
+                    || targetScope.range.end.isBeforeOrEqual(position)) {
+                scopeString += scope.name + '::';
+            }
+        }
+
+        return scopeString;
+    }
+
     async getTextForTargetPosition(
-        target: SourceDocument, position: vscode.Position, declarationSymbol?: SourceSymbol
+        target: SourceDocument, position: vscode.Position, declarationSymbol?: CSymbol
     ): Promise<string> {
         const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(util.getIndentationRegExp(this), '');

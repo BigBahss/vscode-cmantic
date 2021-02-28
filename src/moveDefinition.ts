@@ -32,7 +32,7 @@ export const failure = {
 export async function moveDefinitionToMatchingSourceFile(
     definition?: CSymbol,
     targetUri?: vscode.Uri,
-    declaration?: SourceSymbol
+    declaration?: CSymbol
 ): Promise<boolean> {
     if (!definition || !targetUri) {
         // Command was called from the command-palette
@@ -61,7 +61,7 @@ export async function moveDefinitionToMatchingSourceFile(
         targetUri = matchingUri;
         const declarationLocation = await definition.findDeclaration();
         if (declarationLocation) {
-            declaration = await SourceFile.getSymbol(declarationLocation);
+            declaration = await SourceDocument.getSymbol(declarationLocation);
         }
     }
 
