@@ -332,12 +332,16 @@ export class CSymbol extends SourceSymbol {
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
-    isDeletedOrDefaulted(): boolean {
-        return /\s*=\s*(delete|default)\s*;?$/.test(this.parsableText);
+    isVirtual(): boolean {
+        return /\b(virtual|override|final)\b/.test(this.parsableLeadingText);
     }
 
     isPureVirtual(): boolean {
-        return /\bvirtual\b/.test(this.parsableLeadingText) && /\s*=\s*0\s*;?$/.test(this.parsableText);
+        return this.isVirtual() && /\s*=\s*0\s*;?$/.test(this.parsableText);
+    }
+
+    isDeletedOrDefaulted(): boolean {
+        return /\s*=\s*(delete|default)\s*;?$/.test(this.parsableText);
     }
 
     isConstexpr(): boolean {
