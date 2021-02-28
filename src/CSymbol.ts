@@ -510,9 +510,10 @@ export class CSymbol extends SourceSymbol {
                 ? this.parent.templateStatement(true) + targetDoc.endOfLine
                 : '';
         const inlineSpecifier =
-                ((this.parent?.range.start.isAfterOrEqual(position)
+                ((!this.parent
+                    || this.parent?.range.start.isAfterOrEqual(position)
                     || this.parent?.range.end.isBeforeOrEqual(position))
-                        && this.document.fileName === targetDoc.fileName
+                        && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
                         && !this.isInline() && !this.isConstexpr())
                 ? 'inline '
                 : '';
