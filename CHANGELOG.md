@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.5.1] - February 27, 2021
 ### Added
 - Added a setting `Cpp: Use Explicit This Pointer` to control whether generated member functions prefix class members with `this->`. (#17)
 
