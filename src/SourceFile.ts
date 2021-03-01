@@ -97,9 +97,10 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol | undefined => {
+        function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.name === target.name) {
+                if (sourceSymbol.name === target.name
+                        && (sourceSymbol.kind === target.kind || sourceSymbol.isFunction() && target.isFunction())) {
                     return sourceSymbol;
                 }
 
