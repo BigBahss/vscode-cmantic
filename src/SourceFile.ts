@@ -95,8 +95,7 @@ export class SourceFile {
 
         function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.signature === target.signature
-                        && (sourceSymbol.kind === target.kind || sourceSymbol.isFunction() && target.isFunction())) {
+                if (sourceSymbol.equals(target)) {
                     return sourceSymbol;
                 }
 

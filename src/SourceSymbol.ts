@@ -92,6 +92,11 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         return scopes.reverse();
     }
 
+    equals(other: SourceSymbol): boolean {
+        return this.signature === other.signature
+            && (this.kind === other.kind || (this.isFunction() && other.isFunction()));
+    }
+
     isMemberVariable(): boolean {
         return this.parent?.isClassOrStruct() === true
                 && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
