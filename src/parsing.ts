@@ -109,3 +109,29 @@ export function getIndentationRegExp(symbol: CSymbol): RegExp {
     const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
     return new RegExp('^' + indentation, 'gm');
 }
+
+export function stripDefaultValues(parameters: string): string {
+    // Mask anything that might contain commas or equals-signs.
+    let maskedParameters = maskComments(parameters, false);
+    maskedParameters = maskRawStringLiterals(maskedParameters);
+    maskedParameters = maskQuotes(maskedParameters);
+    maskedParameters = maskParentheses(maskedParameters);
+    maskedParameters = maskAngleBrackets(maskedParameters);
+    maskedParameters = maskBraces(maskedParameters);
+    maskedParameters = maskBrackets(maskedParameters);
+    maskedParameters = maskComparisonOperators(maskedParameters);
+
+    const splitParameters = maskedParameters.split(',');
+    let strippedParameters = '';
+    let charPos = 0;
+    for (const parameter of splitParameters) {
+        if (parameter.includes('=')) {
+            strippedParameters += parameters.substring(charPos, charPos + parameter.indexOf('=')).trimEnd() + ',';
+        } else {
+            strippedParameters += parameters.substring(charPos, charPos + parameter.length) + ',';
+        }
+        charPos += parameter.length + 1;
+    }
+
+    return strippedParameters.substring(0, strippedParameters.length - 1);
+}

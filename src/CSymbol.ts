@@ -504,7 +504,7 @@ export class CSymbol extends SourceSymbol {
         if (paramStartIndex === -1 || paramEndIndex === -1) {
             return '';
         }
-        const parameters = this.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
+        const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
 
         const templateStatement = this.parent?.isTemplate()
                 ? this.parent.templateStatement(true) + targetDoc.endOfLine
@@ -626,32 +626,6 @@ export class CSymbol extends SourceSymbol {
         }
 
         return this.document.positionAt(this.startOffset() + bodyStartIndex + 1);
-    }
-
-    private stripDefaultValues(parameters: string): string {
-        // Mask anything that might contain commas or equals-signs.
-        let maskedParameters = parse.maskComments(parameters, false);
-        maskedParameters = parse.maskRawStringLiterals(maskedParameters);
-        maskedParameters = parse.maskQuotes(maskedParameters);
-        maskedParameters = parse.maskParentheses(maskedParameters);
-        maskedParameters = parse.maskAngleBrackets(maskedParameters);
-        maskedParameters = parse.maskBraces(maskedParameters);
-        maskedParameters = parse.maskBrackets(maskedParameters);
-        maskedParameters = parse.maskComparisonOperators(maskedParameters);
-
-        const splitParameters = maskedParameters.split(',');
-        let strippedParameters = '';
-        let charPos = 0;
-        for (const parameter of splitParameters) {
-            if (parameter.includes('=')) {
-                strippedParameters += parameters.substring(charPos, charPos + parameter.indexOf('=')).trimEnd() + ',';
-            } else {
-                strippedParameters += parameters.substring(charPos, charPos + parameter.length) + ',';
-            }
-            charPos += parameter.length + 1;
-        }
-
-        return strippedParameters.substring(0, strippedParameters.length - 1);
     }
 
     private scopeStringStart(): vscode.Position {
