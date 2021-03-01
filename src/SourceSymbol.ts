@@ -50,6 +50,8 @@ export class SourceSymbol extends vscode.DocumentSymbol {
             if (symbol.kind === vscode.SymbolKind.Property) {
                 this.kind = vscode.SymbolKind.Method;
             }
+        } else if (parent?.isClassOrStruct()) {
+            this.signature = parent.name + '::' + this.signature;
         }
 
         // Sort docSymbol.children based on their relative position to eachother.

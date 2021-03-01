@@ -38,14 +38,10 @@ export class SourceFile {
             return [];
         }
 
-        documentSymbols.sort((a: vscode.DocumentSymbol, b: vscode.DocumentSymbol) => {
-            return a.range.end.isAfter(b.range.end) ? 1 : -1;
-        });
+        documentSymbols.sort(util.sortByRange);
 
         this.symbols = [];
-        documentSymbols.forEach(newSymbol => {
-            this.symbols?.push(new SourceSymbol(newSymbol, this.uri));
-        });
+        documentSymbols.forEach(newSymbol => this.symbols?.push(new SourceSymbol(newSymbol, this.uri)));
 
         return this.symbols;
     }
@@ -99,7 +95,7 @@ export class SourceFile {
 
         function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.name === target.name
+                if (sourceSymbol.signature === target.signature
                         && (sourceSymbol.kind === target.kind || sourceSymbol.isFunction() && target.isFunction())) {
                     return sourceSymbol;
                 }
