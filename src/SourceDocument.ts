@@ -144,9 +144,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
         // Get the first 5 symbols that come before and after declaration.
         // We look for definitions of these symbols in targetDoc and return a position relative to the closest one.
-        const siblingFunctions = (declaration.parent ? declaration.parent.children : this.symbols).filter(symbol => {
-            return symbol.isFunction();
-        });
+        const siblingFunctions = SourceDocument.siblingFunctions(declaration, this.symbols);
         const declarationSelectionRange = declaration.selectionRange;
         const declarationIndex = siblingFunctions.findIndex(symbol => {
             return symbol.selectionRange.isEqual(declarationSelectionRange);
@@ -336,5 +334,11 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     private getEndOfStatement(position: vscode.Position): vscode.Position {
         return parse.getEndOfStatement(this, position);
+    }
+
+    private static siblingFunctions(symbol: SourceSymbol, topLevelSymbols: SourceSymbol[]): SourceSymbol[] {
+        return (symbol.parent ? symbol.parent.children : topLevelSymbols).filter(sibling => {
+            return sibling.isFunction();
+        });
     }
 }
