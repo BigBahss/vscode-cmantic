@@ -10,6 +10,8 @@ Things higher on the list generally correspond to higher priority, although the 
 
 - Generate stream output operator.
 
+- Add a declaration from a function definition.
+
 - Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and synchronize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to synchronize the change across references for trivial changes, such as re-ordering parameters.
 
 - Add more options for generating header guard `#define`'s, such as prefixing with the directory name, or a path relative to the workspace folder.
