@@ -499,12 +499,12 @@ export class CSymbol extends SourceSymbol {
         maskedDeclaration = parse.maskParentheses(maskedDeclaration);
 
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.trueStart);
-        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex) + 1;
+        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
         const paramEndIndex = maskedDeclaration.indexOf(')');
         if (paramStartIndex === -1 || paramEndIndex === -1) {
             return '';
         }
-        const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex, paramEndIndex));
+        const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex + 1, paramEndIndex));
 
         const templateStatement = this.parent?.isTemplate()
                 ? this.parent.templateStatement(true) + targetDoc.endOfLine
