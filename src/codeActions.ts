@@ -3,12 +3,14 @@ import * as cfg from './configuration';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
+import { failure as addDeclarationFailure, title as addDeclarationTitle } from './addDeclaration';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { title as equalityTitle } from './generateEqualityOperators';
 import { getMatchingSourceFile, pushDisposable } from './extension';
+import { SourceFile } from './SourceFile';
 
 
 export class CodeAction extends vscode.CodeAction {
@@ -115,15 +117,19 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const refactorActions: RefactorAction[] = [];
 
         if (this.shouldProvideAddDefinition(context, symbol)) {
-            refactorActions.push(...await this.getFunctionDeclarationRefactorings(symbol, sourceDoc, matchingUri));
+            refactorActions.push(...await this.getAddDefinitionRefactorings(symbol, sourceDoc, matchingUri));
+        }
+
+        if (this.shouldProvideAddDeclaration(context, symbol, rangeOrSelection)) {
+            refactorActions.push(...await this.getAddDeclarationRefactorings(symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getFunctionDefinitionRefactorings(symbol, sourceDoc, matchingUri));
+            refactorActions.push(...await this.getMoveDefinitionRefactorings(symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideGetterSetter(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getMemberVariableRefactorings(symbol, sourceDoc));
+            refactorActions.push(...await this.getGetterSetterRefactorings(symbol, sourceDoc));
         }
 
         if (this.shouldProvideClassRefactorings(context, symbol)) {
@@ -139,6 +145,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.isFunctionDeclaration()
             && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+    }
+
+    private shouldProvideAddDeclaration(
+        context: vscode.CodeActionContext,
+        symbol: CSymbol,
+        rangeOrSelection: vscode.Range | vscode.Selection
+    ): boolean {
+        return symbol.isFunctionDefinition()
+            && (symbol.selectionRange.contains(rangeOrSelection.start)
+                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 
     private shouldProvideMoveDefinition(
@@ -169,12 +185,12 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
     }
 
-    private async getFunctionDeclarationRefactorings(
+    private async getAddDefinitionRefactorings(
         declaration: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
-        const existingDefinition = await declaration.findDefinition();
+        const p_existingDefinition = declaration.findDefinition();
 
         const addDefinitionInMatchingSourceFile = new RefactorAction(
                 addDefinitionTitle.matchingSourceFile, 'cmantic.addDefinition');
@@ -199,7 +215,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isClassTemplate);
         }
 
-        if (existingDefinition) {
+        if (await p_existingDefinition !== undefined) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.definitionExists);
             addDefinitionInCurrentFile.disable(addDefinitionFailure.definitionExists);
         }
@@ -220,7 +236,50 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         return [addDefinitionInMatchingSourceFile, addDefinitionInCurrentFile];
     }
 
-    private async getFunctionDefinitionRefactorings(
+    private async getAddDeclarationRefactorings(
+        definition: CSymbol,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<RefactorAction[]> {
+        const p_existingDeclaration = definition.findDeclaration();
+
+        const addDeclarationInMatchingHeaderFile = new RefactorAction(
+                addDeclarationTitle.matchingHeaderFile, 'cmantic.addDeclaration');
+        const addDeclarationInCurrentFile = new RefactorAction(
+                addDeclarationTitle.currentFile, 'cmantic.addDeclaration');
+        addDeclarationInMatchingHeaderFile.setArguments(definition, sourceDoc, matchingUri);
+        addDeclarationInCurrentFile.setArguments(definition, sourceDoc, sourceDoc.uri);
+
+        if (sourceDoc.isHeader()) {
+            addDeclarationInMatchingHeaderFile.disable(addDeclarationFailure.notSourceFile);
+        } else if (matchingUri) {
+            const displayPath = this.formatPathToDisplay(matchingUri);
+            addDeclarationInMatchingHeaderFile.setTitle(`Add Declaration in "${displayPath}"`);
+        }
+
+        const declaration = await async function (): Promise<CSymbol | undefined> {
+            const existingDeclaration = await p_existingDeclaration;
+            if (existingDeclaration) {
+                const declarationDoc = (existingDeclaration.uri.fsPath === sourceDoc.uri.fsPath)
+                        ? sourceDoc
+                        : await SourceDocument.open(existingDeclaration.uri);
+                return declarationDoc.getSymbol(existingDeclaration.range.start);
+            }
+        } ();
+
+        if (declaration?.equals(definition)) {
+            if (SourceFile.isHeader(declaration.uri)) {
+                addDeclarationInMatchingHeaderFile.disable(addDeclarationFailure.declarationExists);
+                addDeclarationInCurrentFile.disable(addDeclarationFailure.declarationExists);
+            } else if (!sourceDoc.isHeader()) {
+                addDeclarationInCurrentFile.disable(addDeclarationFailure.declarationExists);
+            }
+        }
+
+        return [addDeclarationInMatchingHeaderFile, addDeclarationInCurrentFile];
+    }
+
+    private async getMoveDefinitionRefactorings(
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
@@ -291,7 +350,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         return [moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass];
     }
 
-    private async getMemberVariableRefactorings(
+    private async getGetterSetterRefactorings(
         memberVariable: CSymbol,
         sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {

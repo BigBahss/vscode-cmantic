@@ -109,6 +109,130 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         });
     }
 
+    async findPositionForFunctionDeclaration(
+        definition: CSymbol, targetDoc?: SourceDocument
+    ): Promise<ProposedPosition> {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+
+        if (definition?.uri.fsPath !== this.uri.fsPath || (!definition?.parent && this.symbols.length === 0)) {
+            return new ProposedPosition();
+        }
+
+        if (!targetDoc) {
+            targetDoc = this;
+        }
+        if (!targetDoc.symbols) {
+            targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
+            if (targetDoc.symbols.length === 0) {
+                return util.positionAfterLastNonEmptyLine(targetDoc);
+            }
+        }
+
+        const siblingFunctions = SourceDocument.siblingFunctions(definition, this.symbols);
+        const definitionIndex = SourceDocument.indexOfSymbol(definition, siblingFunctions);
+        const before = siblingFunctions.slice(0, definitionIndex).reverse();
+        const after = siblingFunctions.slice(definitionIndex + 1);
+
+        // Find a definition of a sibling symbol in targetDoc.
+        let functionDefinitionCount = 0;
+        for (const symbol of before) {
+            if (functionDefinitionCount > 4) {
+                break;
+            }
+            const functionSymbol = new CSymbol(symbol, this);
+            if (functionSymbol.isFunctionDefinition()) {
+                ++functionDefinitionCount;
+                const definitionLocation = await symbol.findDeclaration();
+                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
+                    continue;
+                }
+
+                const declaration = await targetDoc.getSymbol(definitionLocation.range.start);
+                if (declaration && !(definition.uri.fsPath === declaration.uri.fsPath
+                        && definition.parent?.range.contains(declaration.selectionRange))) {
+                    return new ProposedPosition(declaration.range.end, {
+                        relativeTo: declaration.range,
+                        after: true
+                    });
+                }
+            }
+        }
+        functionDefinitionCount = 0;
+        for (const symbol of after) {
+            if (functionDefinitionCount > 4) {
+                break;
+            }
+            const functionSymbol = new CSymbol(symbol, this);
+            if (functionSymbol.isFunctionDefinition()) {
+                ++functionDefinitionCount;
+                const definitionLocation = await symbol.findDeclaration();
+                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
+                    continue;
+                }
+
+                const declaration = await targetDoc.getSymbol(definitionLocation.range.start);
+                if (declaration && !(definition.uri.fsPath === declaration.uri.fsPath
+                        && definition.parent?.range.contains(declaration.selectionRange))) {
+                    const leadingCommentStart = declaration.leadingCommentStart;
+                    return new ProposedPosition(leadingCommentStart, {
+                        relativeTo: new vscode.Range(leadingCommentStart, declaration.range.end),
+                        before: true
+                    });
+                }
+            }
+        }
+
+        const parentClass = definition.immediateScope();
+        if (parentClass) {
+            const parentClassLocation = await parentClass.findDefinition();
+            if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
+                const parentClassSymbol = await targetDoc.getSymbol(parentClassLocation.range.start);
+                if (parentClassSymbol) {
+                    const position = parentClassSymbol.findPositionForNewMemberFunction();
+                    if (position) {
+                        return position;
+                    }
+                }
+            }
+        }
+
+        // If a sibling declaration couldn't be found in targetDoc, look for a cooresponding scope block.
+        for (const scope of definition.scopes().reverse()) {
+            if (scope.kind === vscode.SymbolKind.Namespace || scope.isClassOrStruct()) {
+                const targetScope = await targetDoc.findMatchingSymbol(scope);
+                if (!targetScope) {
+                    continue;
+                }
+
+                if (targetScope.children.length === 0) {
+                    const bodyStart = targetDoc.offsetAt(targetScope.range.start)
+                            + targetScope.parsableText.indexOf('{') + 1;
+                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
+                        after: true,
+                        nextTo: true,
+                        emptyScope: true
+                    });
+                }
+                const lastChild = targetScope.children[targetScope.children.length - 1];
+                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
+                return new ProposedPosition(endPosition, {
+                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
+                    after: true
+                });
+            }
+        }
+
+        // If all else fails then return a position after the last symbol in the document.
+        const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
+        const endPosition = targetDoc.getEndOfStatement(lastSymbol.range.end);
+        return new ProposedPosition(endPosition, {
+            relativeTo: new vscode.Range(lastSymbol.range.start, endPosition),
+            after: true
+        });
+    }
+
     /**
      * Returns the best position to place the definition for a function declaration.
      * If targetDoc is undefined the position will be for this SourceDocument.
