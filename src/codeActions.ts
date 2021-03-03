@@ -125,7 +125,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getMoveDefinitionRefactorings(symbol, sourceDoc, matchingUri));
+            refactorActions.push(...await this.getMoveDefinitionRefactorings(context, symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideGetterSetter(context, symbol, rangeOrSelection)) {
@@ -268,26 +268,17 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 && SourceFile.isHeader(declaration.uri) && declaration.uri.fsPath === matchingUri?.fsPath) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {
-            const immediateScope = definition.immediateScope();
-            if (immediateScope) {
-                const immediateScopeDefinition = await immediateScope.findDefinition();
-                if (immediateScopeDefinition) {
-                    const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === sourceDoc.uri.fsPath)
-                            ? sourceDoc
-                            : await SourceDocument.open(immediateScopeDefinition.uri);
-                    const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
-                    if (immediateScopeSymbol?.isClassOrStruct()) {
-                        if (immediateScopeSymbol.kind === vscode.SymbolKind.Class) {
-                            addDeclaration.setTitle(`Add Declaration in class "${immediateScopeSymbol.name}"`);
-                        } else {
-                            addDeclaration.setTitle(`Add Declaration in struct "${immediateScopeSymbol.name}"`);
-                        }
-                        addDeclaration.setArguments(definition, sourceDoc, immediateScopeDoc.uri);
-                        addDeclaration.kind = vscode.CodeActionKind.QuickFix;
-                        addDeclaration.isPreferred = true;
-                        addDeclaration.diagnostics = [...context.diagnostics];
-                    }
+            const parentClass = await this.getParentClass(definition);
+            if (parentClass) {
+                if (parentClass.kind === vscode.SymbolKind.Class) {
+                    addDeclaration.setTitle(`Add Declaration in class "${parentClass.name}"`);
+                } else {
+                    addDeclaration.setTitle(`Add Declaration in struct "${parentClass.name}"`);
                 }
+                addDeclaration.setArguments(definition, sourceDoc, parentClass.uri);
+                addDeclaration.kind = vscode.CodeActionKind.QuickFix;
+                addDeclaration.isPreferred = true;
+                addDeclaration.diagnostics = [...context.diagnostics];
             } else if (matchingUri && SourceFile.isHeader(matchingUri)) {
                 addDeclaration.setArguments(definition, sourceDoc, matchingUri);
             } else {
@@ -299,6 +290,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getMoveDefinitionRefactorings(
+        context: vscode.CodeActionContext,
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
@@ -335,7 +327,18 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
                 } else {
-                    moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
+                    const parentClass = await this.getParentClass(definition);
+                    if (parentClass) {
+                        if (parentClass.kind === vscode.SymbolKind.Class) {
+                            moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                        } else {
+                            moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                        }
+                        moveDefinitionIntoOrOutOfClass.setArguments(definition, sourceDoc, parentClass.uri);
+                        moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
+                        moveDefinitionIntoOrOutOfClass.isPreferred = true;
+                        moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                    }
                 }
             } else {
                 moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
@@ -447,5 +450,21 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return relativePath.slice(0, 28) + '....' + relativePath.slice(-28);
         }
         return relativePath;
+    }
+
+    private async getParentClass(symbol: CSymbol): Promise<CSymbol | undefined> {
+        const immediateScope = symbol.immediateScope();
+        if (immediateScope) {
+            const immediateScopeDefinition = await immediateScope.findDefinition();
+            if (immediateScopeDefinition) {
+                const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === symbol.uri.fsPath)
+                        ? symbol.document
+                        : await SourceDocument.open(immediateScopeDefinition.uri);
+                const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
+                if (immediateScopeSymbol?.isClassOrStruct()) {
+                    return immediateScopeSymbol;
+                }
+            }
+        }
     }
 }
