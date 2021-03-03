@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
@@ -223,7 +224,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         if (!sourceDoc.isHeader()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.notHeaderFile);
         } else if (matchingUri) {
-            const displayPath = this.formatPathToDisplay(matchingUri);
+            const displayPath = util.formatPathToDisplay(matchingUri);
             if (declaration.isConstructor()) {
                 addDefinitionInMatchingSourceFile.setTitle(`Generate Constructor in "${displayPath}"`);
             } else {
@@ -250,7 +251,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         if (sourceDoc.isHeader()) {
             addDeclaration.disable(addDeclarationFailure.notSourceFile);
         } else if (matchingUri) {
-            const displayPath = this.formatPathToDisplay(matchingUri);
+            const displayPath = util.formatPathToDisplay(matchingUri);
             addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
         }
 
@@ -360,7 +361,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         if (matchingUri) {
-            const displayPath = this.formatPathToDisplay(matchingUri);
+            const displayPath = util.formatPathToDisplay(matchingUri);
             moveDefinitionToMatchingSourceFile.setTitle(`Move Definition to "${displayPath}"`);
         } else {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.noMatchingSourceFile);
@@ -441,14 +442,5 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];
-    }
-
-    private formatPathToDisplay(uri: vscode.Uri): string {
-        const relativePath = vscode.workspace.asRelativePath(uri);
-        // Arbitrary limit, as to not display a path that's running all the way across the screen.
-        if (relativePath.length > 60) {
-            return relativePath.slice(0, 28) + '....' + relativePath.slice(-28);
-        }
-        return relativePath;
     }
 }
