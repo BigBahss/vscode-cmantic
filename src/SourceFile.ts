@@ -51,7 +51,7 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
+        return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
                 if (!sourceSymbol.range.contains(position)) {
                     continue;
@@ -64,9 +64,7 @@ export class SourceFile {
                     return child ? child : sourceSymbol;
                 }
             }
-        }
-
-        return searchSymbolTree(this.symbols);
+        } (this.symbols);
     }
 
     static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined> {
@@ -93,7 +91,7 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
+        return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
                 if (sourceSymbol.equals(target)) {
                     return sourceSymbol;
@@ -104,9 +102,7 @@ export class SourceFile {
                     return foundSymbol;
                 }
             }
-        };
-
-        return searchSymbolTree(this.symbols);
+        } (this.symbols);
     }
 
     isHeader(): boolean { return SourceFile.isHeader(this.uri); }
@@ -123,19 +119,19 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        const searchSymbolTree = (sourceSymbols: SourceSymbol[]): SourceSymbol[] => {
+        const uri = this.uri;
+
+        return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol[] {
             const namespaces: SourceSymbol[] = [];
             for (const sourceSymbol of sourceSymbols) {
                 if (sourceSymbol.kind === vscode.SymbolKind.Namespace) {
-                    const namespace = new SourceSymbol(sourceSymbol, this.uri, sourceSymbol.parent);
+                    const namespace = new SourceSymbol(sourceSymbol, uri, sourceSymbol.parent);
                     namespace.children = searchSymbolTree(sourceSymbol.children);
                     namespaces.push(namespace);
                 }
             }
             return namespaces;
-        };
-
-        return searchSymbolTree(this.symbols);
+        } (this.symbols);
     }
 
     async isNamespaceBodyIndented(): Promise<boolean> {
