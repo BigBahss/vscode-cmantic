@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
+import { getMatchingSourceFile } from './extension';
 
 
 export const title = {
@@ -18,10 +19,34 @@ export const failure = {
 };
 
 export async function addDeclaration(
-    functionDefinition: CSymbol,
-    definitionDoc: SourceDocument,
-    targetUri: vscode.Uri
+    functionDefinition?: CSymbol,
+    definitionDoc?: SourceDocument,
+    targetUri?: vscode.Uri
 ): Promise<void> {
+    if (!functionDefinition || !definitionDoc || !targetUri) {
+        // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        definitionDoc = new SourceDocument(editor.document);
+
+        const [matchingUri, symbol] = await Promise.all([
+            getMatchingSourceFile(definitionDoc.uri),
+            definitionDoc.getSymbol(editor.selection.start)
+        ]);
+
+        if (!symbol?.isFunctionDefinition()) {
+            logger.alertWarning(failure.noFunctionDefinition);
+            return;
+        }
+
+        functionDefinition = symbol;
+        targetUri = matchingUri ? matchingUri : definitionDoc.uri;
+    }
+
     // Find the position for the new function definition.
     const targetDoc = (targetUri.fsPath === definitionDoc.uri.fsPath)
             ? definitionDoc
