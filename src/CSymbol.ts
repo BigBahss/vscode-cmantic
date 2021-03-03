@@ -239,6 +239,22 @@ export class CSymbol extends SourceSymbol {
         return new SubSymbol(this.document, new vscode.Range(start, end));
     }
 
+    async getParentClass(): Promise<CSymbol | undefined> {
+        const immediateScope = this.immediateScope();
+        if (immediateScope) {
+            const immediateScopeDefinition = await immediateScope.findDefinition();
+            if (immediateScopeDefinition) {
+                const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === this.uri.fsPath)
+                        ? this.document
+                        : await SourceDocument.open(immediateScopeDefinition.uri);
+                const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
+                if (immediateScopeSymbol?.isClassOrStruct()) {
+                    return immediateScopeSymbol;
+                }
+            }
+        }
+    }
+
     baseClasses(): SubSymbol[] {
         if (!this.isClassOrStruct()) {
             return [];

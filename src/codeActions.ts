@@ -268,7 +268,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 && SourceFile.isHeader(declaration.uri) && declaration.uri.fsPath === matchingUri?.fsPath) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {
-            const parentClass = await this.getParentClass(definition);
+            const parentClass = await definition.getParentClass();
             if (parentClass) {
                 if (parentClass.kind === vscode.SymbolKind.Class) {
                     addDeclaration.setTitle(`Add Declaration in class "${parentClass.name}"`);
@@ -327,14 +327,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
                 } else {
-                    const parentClass = await this.getParentClass(definition);
+                    declaration = undefined;
+                    const parentClass = await definition.getParentClass();
                     if (parentClass) {
                         if (parentClass.kind === vscode.SymbolKind.Class) {
                             moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
                         } else {
                             moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
                         }
-                        moveDefinitionIntoOrOutOfClass.setArguments(definition, sourceDoc, parentClass.uri);
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                         moveDefinitionIntoOrOutOfClass.isPreferred = true;
                         moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
@@ -450,21 +450,5 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return relativePath.slice(0, 28) + '....' + relativePath.slice(-28);
         }
         return relativePath;
-    }
-
-    private async getParentClass(symbol: CSymbol): Promise<CSymbol | undefined> {
-        const immediateScope = symbol.immediateScope();
-        if (immediateScope) {
-            const immediateScopeDefinition = await immediateScope.findDefinition();
-            if (immediateScopeDefinition) {
-                const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === symbol.uri.fsPath)
-                        ? symbol.document
-                        : await SourceDocument.open(immediateScopeDefinition.uri);
-                const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
-                if (immediateScopeSymbol?.isClassOrStruct()) {
-                    return immediateScopeSymbol;
-                }
-            }
-        }
     }
 }
