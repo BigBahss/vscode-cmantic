@@ -1,4 +1,4 @@
-import { Position, Range, TextDocument } from 'vscode';
+import { Position, Range, TextDocument, TextLine } from 'vscode';
 import { SourceDocument } from './SourceDocument';
 import { endOfLine } from './utility';
 
@@ -49,8 +49,10 @@ export class TargetLocation {
 
 function formatTextToInsert(insertText: string, position: ProposedPosition, document: TextDocument): string {
     // Indent text to match the relative position.
-    const line = position.options.relativeTo ? document.lineAt(position.options.relativeTo.start) : document.lineAt(position);
-    const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
+    const indentationLine = position.options.relativeTo
+            ? document.lineAt(position.options.relativeTo.start)
+            : document.lineAt(position);
+    const indentation = indentationLine.text.substring(0, indentationLine.firstNonWhitespaceCharacterIndex);
     if (!position.options.before) {
         insertText = insertText.replace(/^/gm, indentation);
     } else {
@@ -58,7 +60,16 @@ function formatTextToInsert(insertText: string, position: ProposedPosition, docu
     }
 
     const eol = endOfLine(document);
-    const newLines = position.options.nextTo ? eol : eol + eol;
+    const nextLine = function (): TextLine | undefined {
+        if (position.options.after) {
+            return document.lineAt(position.line + 1);
+        } else if (position.options.before) {
+            return document.lineAt(position.line - 1);
+        }
+    } ();
+    const newLines = (position.options.nextTo || !nextLine?.isEmptyOrWhitespace)
+            ? eol
+            : eol + eol;
     if (position.options.after) {
         insertText = newLines + insertText;
     } else if (position.options.before) {
