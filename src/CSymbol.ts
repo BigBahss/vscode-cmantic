@@ -18,13 +18,13 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
  */
 export class CSymbol extends SourceSymbol {
-    readonly document: vscode.TextDocument;
+    readonly document: SourceDocument;
     parent?: CSymbol;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
      */
-    constructor(symbol: SourceSymbol, document: vscode.TextDocument) {
+    constructor(symbol: SourceSymbol, document: SourceDocument) {
         super(symbol, document.uri);
         this.document = document;
 
