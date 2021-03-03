@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeActionsProvider(
             [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
             new CodeActionProvider(),
-            { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
+            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
     pushDisposable(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
     pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));

@@ -121,7 +121,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         if (this.shouldProvideAddDeclaration(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getAddDeclarationRefactorings(symbol, sourceDoc, matchingUri));
+            refactorActions.push(...await this.getAddDeclarationRefactorings(context, symbol, sourceDoc, matchingUri));
         }
 
         if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
@@ -237,24 +237,21 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getAddDeclarationRefactorings(
+        context: vscode.CodeActionContext,
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
         const p_existingDeclaration = definition.findDeclaration();
 
-        const addDeclarationInMatchingHeaderFile = new RefactorAction(
+        const addDeclaration = new RefactorAction(
                 addDeclarationTitle.matchingHeaderFile, 'cmantic.addDeclaration');
-        const addDeclarationInCurrentFile = new RefactorAction(
-                addDeclarationTitle.currentFile, 'cmantic.addDeclaration');
-        addDeclarationInMatchingHeaderFile.setArguments(definition, sourceDoc, matchingUri);
-        addDeclarationInCurrentFile.setArguments(definition, sourceDoc, sourceDoc.uri);
 
         if (sourceDoc.isHeader()) {
-            addDeclarationInMatchingHeaderFile.disable(addDeclarationFailure.notSourceFile);
+            addDeclaration.disable(addDeclarationFailure.notSourceFile);
         } else if (matchingUri) {
             const displayPath = this.formatPathToDisplay(matchingUri);
-            addDeclarationInMatchingHeaderFile.setTitle(`Add Declaration in "${displayPath}"`);
+            addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
         }
 
         const declaration = await async function (): Promise<CSymbol | undefined> {
@@ -267,16 +264,38 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         } ();
 
-        if (declaration?.equals(definition)) {
-            if (SourceFile.isHeader(declaration.uri)) {
-                addDeclarationInMatchingHeaderFile.disable(addDeclarationFailure.declarationExists);
-                addDeclarationInCurrentFile.disable(addDeclarationFailure.declarationExists);
-            } else if (!sourceDoc.isHeader()) {
-                addDeclarationInCurrentFile.disable(addDeclarationFailure.declarationExists);
+        if (declaration?.equals(definition)
+                && SourceFile.isHeader(declaration.uri) && declaration.uri.fsPath === matchingUri?.fsPath) {
+            addDeclaration.disable(addDeclarationFailure.declarationExists);
+        } else {
+            const immediateScope = definition.immediateScope();
+            if (immediateScope) {
+                const immediateScopeDefinition = await immediateScope.findDefinition();
+                if (immediateScopeDefinition) {
+                    const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === sourceDoc.uri.fsPath)
+                            ? sourceDoc
+                            : await SourceDocument.open(immediateScopeDefinition.uri);
+                    const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
+                    if (immediateScopeSymbol?.isClassOrStruct()) {
+                        if (immediateScopeSymbol.kind === vscode.SymbolKind.Class) {
+                            addDeclaration.setTitle(`Add Declaration in class "${immediateScopeSymbol.name}"`);
+                        } else {
+                            addDeclaration.setTitle(`Add Declaration in struct "${immediateScopeSymbol.name}"`);
+                        }
+                        addDeclaration.setArguments(definition, sourceDoc, immediateScopeDoc.uri);
+                        addDeclaration.kind = vscode.CodeActionKind.QuickFix;
+                        addDeclaration.isPreferred = true;
+                        addDeclaration.diagnostics = [...context.diagnostics];
+                    }
+                }
+            } else if (matchingUri && SourceFile.isHeader(matchingUri)) {
+                addDeclaration.setArguments(definition, sourceDoc, matchingUri);
+            } else {
+                addDeclaration.setArguments(definition, sourceDoc, sourceDoc.uri);
             }
         }
 
-        return [addDeclarationInMatchingHeaderFile, addDeclarationInCurrentFile];
+        return [addDeclaration];
     }
 
     private async getMoveDefinitionRefactorings(
