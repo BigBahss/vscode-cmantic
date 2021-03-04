@@ -127,9 +127,12 @@ export async function moveDefinitionIntoOrOutOfClass(
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await classDoc.getSymbol(declarationLocation.range.start);
+                if (!declaration?.parent?.isClassOrStruct()) {
+                    declaration = undefined;
+                }
             }
 
-            if (!declaration?.parent?.isClassOrStruct() || !classDoc) {
+            if (declaration?.parent?.isClassOrStruct() === false || !classDoc) {
                 logger.alertWarning(failure.notMemberFunction);
                 return false;
             }
