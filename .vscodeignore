@@ -10,3 +10,4 @@ tsconfig.json
 **/*.map
 **/*.ts
 TODO.md
+images/move_definition.gif

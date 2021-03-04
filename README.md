@@ -55,8 +55,6 @@ If the function is a class member function, then the `Add Declaration` code-acti
 
 ### **Move Definition**
 
-![Move Definition](./images/move_definition.gif)
-
 Selecting the name of a function definition will suggest the following code-actions 💡.
 
 The `Move Definition to matching source file` command will move a function definition to a matching header/source file.
