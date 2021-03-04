@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as util from './utility';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -164,11 +165,11 @@ function getPositionForNewAccessorDeclaration(
     // If the new accessor is a getter, then we want to place it relative to the setter, and vice-versa.
     switch (type) {
     case AccessorType.Getter:
-        return symbol.parent?.findPositionForNewMemberFunction(symbol.setterName(), symbol);
+        return symbol.parent?.findPositionForNewMemberFunction(util.Access.public, symbol.setterName(), symbol);
     case AccessorType.Setter:
-        return symbol.parent?.findPositionForNewMemberFunction(symbol.getterName(), symbol);
+        return symbol.parent?.findPositionForNewMemberFunction(util.Access.public, symbol.getterName(), symbol);
     case AccessorType.Both:
-        return symbol.parent?.findPositionForNewMemberFunction();
+        return symbol.parent?.findPositionForNewMemberFunction(util.Access.public);
     }
 }
 

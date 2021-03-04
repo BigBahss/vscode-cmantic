@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as util from './utility';
 import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -61,8 +62,11 @@ export async function addDeclaration(
     }
 
     const parentClass = await functionDefinition.getParentClass();
+    const access = parentClass !== undefined
+            ? await util.getMemberAccessFromUser()
+            : undefined;
     const targetPos = await definitionDoc.findPositionForFunctionDeclaration(
-            functionDefinition, targetDoc, parentClass);
+            functionDefinition, targetDoc, parentClass, access);
 
     const declaration = await functionDefinition.getDeclarationForTargetPosition(targetDoc, targetPos);
     const formattedDeclaration = await targetPos.formatTextToInsert(declaration, targetDoc);

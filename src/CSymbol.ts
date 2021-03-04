@@ -103,12 +103,12 @@ export class CSymbol extends SourceSymbol {
     isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
     /**
-     * Finds a position for a new public member function within this class or struct. Optionally provide a
-     * relativeName to look for a position next to. Optionally provide a memberVariable if the new member function
-     * is an accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
+     * Finds a position for a new member function within this class or struct. Optionally provide a relativeName
+     * to look for a position next to. Optionally provide a memberVariable if the new member function is an
+     * accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
      */
     findPositionForNewMemberFunction(
-        relativeName?: string, memberVariable?: SourceSymbol
+        access: util.Access, relativeName?: string, memberVariable?: SourceSymbol
     ): ProposedPosition | undefined {
         if (!this.isClassOrStruct()) {
             return;
@@ -128,7 +128,7 @@ export class CSymbol extends SourceSymbol {
         });
 
         let publicSpecifierOffset: number | undefined;
-        const publicSpeciferMatch = parsableText.match(/\bpublic\s*:/);
+        const publicSpeciferMatch = parsableText.match(util.accessSpecifierRegexp(access));
         if (publicSpeciferMatch === null || publicSpeciferMatch.index === undefined) {
             return this.getPositionForNewChild();
         } else {

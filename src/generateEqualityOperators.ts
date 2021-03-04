@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as util from './utility';
 import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -42,7 +43,7 @@ export async function generateEqualityOperators(
 
     const p_memberVariables = promptUserForMemberVariables(classOrStruct);
 
-    const equalPosition = classOrStruct.findPositionForNewMemberFunction();
+    const equalPosition = classOrStruct.findPositionForNewMemberFunction(util.Access.public);
     if (!equalPosition) {
         logger.alertError(failure.positionNotFound);
         return;

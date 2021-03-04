@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
@@ -170,8 +171,9 @@ export async function moveDefinitionIntoOrOutOfClass(
     } else {
         const parentClass = await definition.getParentClass();
         if (parentClass) {
+            const access = await util.getMemberAccessFromUser();
             const position = await definition.document.findPositionForFunctionDeclaration(
-                    definition, parentClass.document, parentClass);
+                    definition, parentClass.document, parentClass, access);
 
             const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position);
             const formattedDefinition = await position.formatTextToInsert(definitionText, classDoc);

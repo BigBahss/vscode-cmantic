@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as parse from './parsing';
-import * as path from 'path';
 import { CSymbol } from './CSymbol';
 import { SourceFile } from './SourceFile';
 import { SourceSymbol } from './SourceSymbol';
@@ -110,7 +109,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     async findPositionForFunctionDeclaration(
-        definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol
+        definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol, access?: util.Access
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
@@ -130,6 +129,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             }
         }
 
+        if (access !== undefined) {
+            const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass, access);
+            if (memberPos) {
+                return memberPos;
+            }
+        }
+
         const siblingFunctions = SourceDocument.siblingFunctions(definition, this.symbols);
         const definitionIndex = SourceDocument.indexOfSymbol(definition, siblingFunctions);
         const before = siblingFunctions.slice(0, definitionIndex).reverse();
@@ -141,9 +147,11 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             return siblingPos;
         }
 
-        const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass);
-        if (memberPos) {
-            return memberPos;
+        if (access === undefined) {
+            const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass, access);
+            if (memberPos) {
+                return memberPos;
+            }
         }
 
         // If a sibling declaration couldn't be found in targetDoc, look for a cooresponding scope block.
@@ -401,10 +409,15 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     private async findPositionForMemberFunction(
         symbol: CSymbol,
         targetDoc: SourceDocument,
-        parentClass?: CSymbol
+        parentClass?: CSymbol,
+        access?: util.Access
     ): Promise<ProposedPosition | undefined> {
+        if (!access) {
+            access = util.Access.public;
+        }
+
         if (parentClass) {
-            return parentClass.findPositionForNewMemberFunction();
+            return parentClass.findPositionForNewMemberFunction(access);
         }
 
         const immediateScope = symbol.immediateScope();
@@ -413,7 +426,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
                 parentClass = await targetDoc.getSymbol(parentClassLocation.range.start);
                 if (parentClass?.isClassOrStruct()) {
-                    return parentClass.findPositionForNewMemberFunction();
+                    return parentClass.findPositionForNewMemberFunction(access);
                 }
             }
         }

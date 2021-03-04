@@ -191,3 +191,36 @@ export function formatPathToDisplay(uri: vscode.Uri): string {
     }
     return relativePath;
 }
+
+export enum Access {
+    public,
+    protected,
+    private
+};
+
+export function accessSpecifierRegexp(access: Access): RegExp {
+    switch (access) {
+    case Access.public:
+        return /\bpublic\s*:/;
+    case Access.protected:
+        return /\bprotected\s*:/;
+    case Access.private:
+        return /\bprivate\s*:/;
+    }
+}
+
+interface AccessItem extends vscode.QuickPickItem {
+    access: Access;
+}
+
+export async function getMemberAccessFromUser(): Promise<Access | undefined> {
+    const accessItems: AccessItem[] = [
+        { label: 'public', access: Access.public },
+        { label: 'protected', access: Access.protected },
+        { label: 'private', access: Access.private }
+    ];
+
+    const accessItem = await vscode.window.showQuickPick<AccessItem>(accessItems, { placeHolder: 'Select member access level:' });
+
+    return accessItem?.access;
+}
