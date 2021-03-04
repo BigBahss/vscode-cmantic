@@ -249,9 +249,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const addDeclaration = new RefactorAction(
                 addDeclarationTitle.matchingHeaderFile, 'cmantic.addDeclaration');
 
-        if (sourceDoc.isHeader()) {
-            addDeclaration.disable(addDeclarationFailure.notSourceFile);
-        } else if (matchingUri) {
+        if (matchingUri) {
             const displayPath = util.formatPathToDisplay(matchingUri);
             addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
         }

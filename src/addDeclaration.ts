@@ -3,6 +3,7 @@ import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { getMatchingSourceFile } from './extension';
+import { SourceFile } from './SourceFile';
 
 
 export const title = {
@@ -12,9 +13,7 @@ export const title = {
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
-    notSourceFile: 'This file is not a source file.',
     noFunctionDefinition: 'No function definition detected.',
-    noMatchingHeaderFile: 'No matching header file was found.',
     declarationExists: 'A declaration for this function already exists.'
 };
 
@@ -44,7 +43,7 @@ export async function addDeclaration(
         }
 
         functionDefinition = symbol;
-        targetUri = matchingUri ? matchingUri : definitionDoc.uri;
+        targetUri = (matchingUri && SourceFile.isHeader(matchingUri)) ? matchingUri : definitionDoc.uri;
     }
 
     // Find the position for the new function definition.
