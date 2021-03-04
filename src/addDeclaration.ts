@@ -60,7 +60,9 @@ export async function addDeclaration(
         }
     }
 
-    const targetPos = await definitionDoc.findPositionForFunctionDeclaration(functionDefinition, targetDoc);
+    const parentClass = await functionDefinition.getParentClass();
+    const targetPos = await definitionDoc.findPositionForFunctionDeclaration(
+            functionDefinition, targetDoc, parentClass);
     const declaration = await functionDefinition.getDeclarationForTargetPosition(targetDoc, targetPos);
     const formattedDeclaration = targetPos.formatTextToInsert(declaration, targetDoc);
 

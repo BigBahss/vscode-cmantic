@@ -170,7 +170,8 @@ export async function moveDefinitionIntoOrOutOfClass(
     } else {
         const parentClass = await definition.getParentClass();
         if (parentClass) {
-            const position = await definition.document.findPositionForFunctionDeclaration(definition, parentClass.document);
+            const position = await definition.document.findPositionForFunctionDeclaration(
+                    definition, parentClass.document, parentClass);
 
             let insertText = await definition.getDefinitionForTargetPosition(classDoc, position);
             insertText = position.formatTextToInsert(insertText, classDoc);

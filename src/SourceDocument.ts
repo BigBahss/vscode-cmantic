@@ -110,7 +110,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     async findPositionForFunctionDeclaration(
-        definition: CSymbol, targetDoc?: SourceDocument
+        definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
@@ -135,12 +135,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         const before = siblingFunctions.slice(0, definitionIndex).reverse();
         const after = siblingFunctions.slice(definitionIndex + 1);
 
-        const siblingPos = await this.findPositionRelativeToSiblings(definition, before, after, targetDoc, false);
+        const siblingPos = await this.findPositionRelativeToSiblings(
+                definition, before, after, targetDoc, false, parentClass);
         if (siblingPos) {
             return siblingPos;
         }
 
-        const memberPos = await this.findPositionForMemberFunction(definition, targetDoc);
+        const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass);
         if (memberPos) {
             return memberPos;
         }
@@ -320,7 +321,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         before: SourceSymbol[],
         after: SourceSymbol[],
         targetDoc: SourceDocument,
-        findDefinition: boolean
+        findDefinition: boolean,
+        parentClass?: CSymbol
     ): Promise<ProposedPosition | undefined> {
         let functionDeclarationCount = 0;
         for (const symbol of before) {
@@ -340,11 +342,12 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                     continue;
                 }
 
-                const definition = await targetDoc.getSymbol(location.range.start);
-                if (definition && !(anchorSymbol.uri.fsPath === definition.uri.fsPath
-                        && anchorSymbol.parent?.range.contains(definition.selectionRange))) {
-                    return new ProposedPosition(definition.range.end, {
-                        relativeTo: definition.range,
+                const linkedSymbol = await targetDoc.getSymbol(location.range.start);
+                if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
+                        && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
+                        && parentClass?.equals(linkedSymbol) !== false) {
+                    return new ProposedPosition(linkedSymbol.range.end, {
+                        relativeTo: linkedSymbol.range,
                         after: true
                     });
                 }
@@ -368,12 +371,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                     continue;
                 }
 
-                const definition = await targetDoc.getSymbol(location.range.start);
-                if (definition && !(anchorSymbol.uri.fsPath === definition.uri.fsPath
-                        && anchorSymbol.parent?.range.contains(definition.selectionRange))) {
-                    const leadingCommentStart = definition.leadingCommentStart;
+                const linkedSymbol = await targetDoc.getSymbol(location.range.start);
+                if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
+                        && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
+                        && parentClass?.equals(linkedSymbol) !== false) {
+                    const leadingCommentStart = linkedSymbol.leadingCommentStart;
                     return new ProposedPosition(leadingCommentStart, {
-                        relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
+                        relativeTo: new vscode.Range(leadingCommentStart, linkedSymbol.range.end),
                         before: true
                     });
                 }
@@ -383,18 +387,20 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     private async findPositionForMemberFunction(
         symbol: CSymbol,
-        targetDoc: SourceDocument
+        targetDoc: SourceDocument,
+        parentClass?: CSymbol
     ): Promise<ProposedPosition | undefined> {
-        const parentClass = symbol.immediateScope();
         if (parentClass) {
-            const parentClassLocation = await parentClass.findDefinition();
+            return parentClass.findPositionForNewMemberFunction();
+        }
+
+        const immediateScope = symbol.immediateScope();
+        if (immediateScope) {
+            const parentClassLocation = await immediateScope.findDefinition();
             if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
-                const parentClassSymbol = await targetDoc.getSymbol(parentClassLocation.range.start);
-                if (parentClassSymbol) {
-                    const position = parentClassSymbol.findPositionForNewMemberFunction();
-                    if (position) {
-                        return position;
-                    }
+                parentClass = await targetDoc.getSymbol(parentClassLocation.range.start);
+                if (parentClass?.isClassOrStruct()) {
+                    return parentClass.findPositionForNewMemberFunction();
                 }
             }
         }
