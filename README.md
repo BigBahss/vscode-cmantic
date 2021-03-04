@@ -10,6 +10,7 @@ C/C++ extension that provides generative-code commands and refactorings. Relevan
 
 - [Add Definition](#add-definition)
 - [Generate Constructor](#generate-constructor)
+- [Add Declaration](#add-declaration)
 - [Move Definition](#move-definition)
 - [Generate Getter and Setter Member Functions](#generate-getter-and-setter-member-functions)
 - [Generate Equality Operators](#generate-equality-operators)
@@ -20,7 +21,7 @@ C/C++ extension that provides generative-code commands and refactorings. Relevan
 
 ## **Requirements**
 
-Requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension (ms-vscode.cpptools). See [Language Server](#language-server) For more details.
+Requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension. See [Language Server](#language-server) For more details.
 
 ## **Issues and Feature Requests**
 
@@ -44,6 +45,14 @@ The `Add Definition in this file` command generates an empty definition for a fu
 
 `Generate Constructor` extends `Add Definition` by prompting you to select what you want to initialize in the constructor (delegating constructor, base class constructor(s), member variables) and will generate the boiler-plate for the initializer list.
 
+### **Add Declaration**
+
+Selecting an undeclared function definition will suggest the following code-action 💡.
+
+The `Add Declaration` command generates a declaration for a function in its cooresponding header file, or within its class definition in the case of a member function.
+
+If the function is a class member function, then the `Add Declaration` code-action will be provided as a `Quick Fix` (blue light-bulb). This is because defining a member function that is not declared in the class is an error.
+
 ### **Move Definition**
 
 ![Move Definition](./images/move_definition.gif)
@@ -62,7 +71,7 @@ The `Move Definition into/out-of class body` command will move a member function
 
 Selecting a class member variable will suggest the following code-actions 💡 based on what accessor function(s) already exist for that member variable.
 
-The `Generate Getter and Setter Member Functions`, `Generate Getter Member Function`, and `Generate Setter Member Function` commands will generate accessor functions for a class member variable. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_` or `s_`, these characters will be removed to create the member function names. For example, a member `int m_data` will generate accessors `int data() const` and `void setData(int value)`, whereas a member `int data` will generate accessors `int getData() const` and `void setData(int value)`. The `Case Style` setting controls whether names are generated in snake_case, camelCase, or PascalCase.
+The `Generate Getter and Setter Member Functions`, `Generate Getter Member Function`, and `Generate Setter Member Function` commands will generate accessor functions for a class member variable. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_` or `s_`, these characters will be removed to create the member function names.  The `Case Style` setting controls whether names are generated in snake_case, camelCase, or PascalCase.
 
 Additionally, for non-primitive, non-pointer data types, setters will be generated with a const-reference (`const &`) parameter type. If you would like C-mantic to resolve `typedef`'s, `type-alias`'s, and `enum`'s, enable `Cpp: Resolve Types` in the settings (This is disabled by default as it may impact the performance of generating setters).
 
@@ -103,6 +112,14 @@ The `Switch Header/Source in Workspace` command will open and switch to the matc
 If you find that features of C-mantic aren't working, make sure your language server is working correctly. To do this, check out the Outline View, usually found under Explorer in the side-bar. The Outline View should show all symbols for the current file. Also, make sure 'Go to Definition' and 'Go to Declaration' are working.
 
 C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and include what language server you are using.
+
+## **Tips**
+
+- C-mantic relies on the language server to provide information about your source code in order to function correctly. Because of this, if the language server running slowly, C-mantic may fail to provide code-actions right away. For instance, if you type out a function declaration, C-mantic won't be able to provide the `Add Definition` code-actions until the language server updates. To mitigate this, you can change how often the language server updates in response to code changes:
+  - For `C/C++` (ms-vscode.cpptools), you can lower the `C_Cpp: Intelli Sense Update Delay` setting (default 2000ms).
+  - For `ccls`, you can lower the `Status Update Interval` setting (default 2000ms).
+
+- A convenient way to use `Add Definition` is to bind it to the key that you would normally have bound to `Go to Definition`, because by default, `Add Definition` will go to definition if one already exists.
 
 ## **Planned Features**
 
