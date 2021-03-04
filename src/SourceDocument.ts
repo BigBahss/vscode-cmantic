@@ -343,6 +343,12 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
+                if (linkedSymbol?.isClassOrStruct()) {
+                    /* cpptools is dumb and will return the class when finding the
+                     * declaration/definition of an undeclared member function. */
+                    continue;
+                }
+
                 if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.equals(linkedSymbol) !== false) {
@@ -372,6 +378,12 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
+                if (linkedSymbol?.isClassOrStruct()) {
+                    /* cpptools is dumb and will return the class when finding the
+                     * declaration/definition of an undeclared member function. */
+                    continue;
+                }
+
                 if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.equals(linkedSymbol) !== false) {
