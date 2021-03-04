@@ -255,8 +255,8 @@
           },
           "C_mantic.headerGuard.defineFormat": {
             "type": "string",
-            "default": "${FILE_NAME_EXT}",
-            "description": "Controls how new header guard defines are generated. The variable '${FILE_NAME_EXT}' is replaced with the file name in uppercase, with all symbols replaced with underscores. The variable '${FILE_NAME}' is replaced with the file name in uppercase, not including any file extensions, with all symbols replaced with underscores. For example, a file named 'some-header.h' would generate 'SOME_HEADER_H' and 'SOME_HEADER', respectively."
+            "default": "${FILE_NAME}_${EXT}",
+            "description": "Controls how new header guard defines are generated. There are many variables you can use to generate them:\n${FILE_NAME} : The name of the file without the file extension.\n${EXT} : The file extension.\n${DIR} : The name of the directory the file exists in.\n${PROJECT_NAME} : The name of the workspace.\n${PROJECT_REL_PATH} : The path to the file, relative to the workspace, not including the file name.\nAll characters are in upper-case and all symbols are replaced with underscores."
           },
           "C_mantic.revealNewDefinition": {
             "type": "boolean",

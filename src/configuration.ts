@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import * as util from './utility';
 
 
@@ -150,13 +151,24 @@ export function headerGuardDefineFormat(): string {
 
 const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
 
-export function headerGuardDefine(fileName: string): string {
-    const FILE_NAME_EXT = fileName.toUpperCase();
-    const FILE_NAME = util.fileNameBase(fileName).toUpperCase();
+export function headerGuardDefine(uri: vscode.Uri): string {
+    const FILE_NAME = util.fileNameBase(uri.fsPath).toUpperCase();
+    const EXT = util.fileExtension(uri.fsPath).toUpperCase();
+    const FILE_NAME_EXT = FILE_NAME + '_' + EXT;
+    const DIR = path.basename(path.dirname(uri.fsPath)).toUpperCase();
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    const PROJECT_NAME = workspaceFolder ? workspaceFolder.name.toUpperCase() : '';
+    const PROJECT_REL_PATH = vscode.workspace.asRelativePath(path.dirname(uri.fsPath), false).toUpperCase();
+
     return headerGuardDefineFormat()
-            .replace('${FILE_NAME_EXT}', FILE_NAME_EXT)
             .replace('${FILE_NAME}', FILE_NAME)
-            .replace(re_charactersNotAllowedInIdentifiers, '_');
+            .replace('${EXT}', EXT)
+            .replace('${FILE_NAME_EXT}', FILE_NAME_EXT)
+            .replace('${DIR}', DIR)
+            .replace('${PROJECT_NAME}', PROJECT_NAME)
+            .replace('${PROJECT_REL_PATH}', PROJECT_REL_PATH)
+            .replace(re_charactersNotAllowedInIdentifiers, '_')
+            .replace(/^(?=\d)/g, 'INC_');
 }
 
 export function getterDefinitionLocation(): DefinitionLocation {

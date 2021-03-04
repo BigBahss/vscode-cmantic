@@ -18,7 +18,7 @@ export async function addHeaderGuard(): Promise<void> {
         logger.alertError(failure.noActiveTextEditor);
         return;
     }
-    const fileName = path.basename(activeEditor.document.fileName);
+
     const headerDoc = new SourceDocument(activeEditor.document);
     if (!headerDoc.isHeader()) {
         logger.alertWarning(failure.notHeaderFile);
@@ -40,7 +40,7 @@ export async function addHeaderGuard(): Promise<void> {
     }
 
     if (headerGuardKind === cfg.HeaderGuardStyle.Define || headerGuardKind === cfg.HeaderGuardStyle.Both) {
-        const headerGuardDefine = cfg.headerGuardDefine(fileName);
+        const headerGuardDefine = cfg.headerGuardDefine(headerDoc.uri);
         header += '#ifndef ' + headerGuardDefine + eol + '#define ' + headerGuardDefine + eol;
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }

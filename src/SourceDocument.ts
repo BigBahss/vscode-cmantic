@@ -73,7 +73,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
         let offset: number | undefined;
-        let maskedText = parse.maskComments(this.getText());
+        let maskedText = parse.maskComments(this.getText(), false);
         maskedText = parse.maskRawStringLiterals(maskedText);
         maskedText = parse.maskQuotes(maskedText);
 
@@ -82,7 +82,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             offset = pragmaOnceOffset;
         }
 
-        const headerGuardDefine = cfg.headerGuardDefine(path.basename(this.fileName));
+        const headerGuardDefine = cfg.headerGuardDefine(this.uri);
         const re_headerGuardDefine = new RegExp(`^\\s*#\\s*define\\s+${headerGuardDefine}\\b`, 'm');
         const defineOffset = maskedText.search(re_headerGuardDefine);
         if (defineOffset !== -1) {
