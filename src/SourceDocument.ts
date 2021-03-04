@@ -324,9 +324,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         findDefinition: boolean,
         parentClass?: CSymbol
     ): Promise<ProposedPosition | undefined> {
-        let functionDeclarationCount = 0;
+        let checkedFunctionCount = 0;
         for (const symbol of before) {
-            if (functionDeclarationCount > 4) {
+            if (checkedFunctionCount > 4) {
                 break;
             }
             const functionSymbol = new CSymbol(symbol, this);
@@ -334,7 +334,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                     ? functionSymbol.isFunctionDeclaration()
                     : functionSymbol.isFunctionDefinition();
             if (isDeclOrDef) {
-                ++functionDeclarationCount;
+                ++checkedFunctionCount;
                 const location = findDefinition
                         ? await functionSymbol.findDefinition()
                         : await functionSymbol.findDeclaration();
@@ -343,13 +343,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
-                if (linkedSymbol?.isClassOrStruct()) {
+                if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
                     continue;
                 }
 
-                if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
+                if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.equals(linkedSymbol) !== false) {
                     return new ProposedPosition(linkedSymbol.range.end, {
@@ -359,9 +359,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
             }
         }
-        functionDeclarationCount = 0;
+
+        checkedFunctionCount = 0;
         for (const symbol of after) {
-            if (functionDeclarationCount > 4) {
+            if (checkedFunctionCount > 4) {
                 break;
             }
             const functionSymbol = new CSymbol(symbol, this);
@@ -369,7 +370,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                     ? functionSymbol.isFunctionDeclaration()
                     : functionSymbol.isFunctionDefinition();
             if (isDeclOrDef) {
-                ++functionDeclarationCount;
+                ++checkedFunctionCount;
                 const location = findDefinition
                         ? await functionSymbol.findDefinition()
                         : await functionSymbol.findDeclaration();
@@ -378,13 +379,13 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
-                if (linkedSymbol?.isClassOrStruct()) {
+                if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
                     continue;
                 }
 
-                if (linkedSymbol && !(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
+                if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.equals(linkedSymbol) !== false) {
                     const leadingCommentStart = linkedSymbol.leadingCommentStart;

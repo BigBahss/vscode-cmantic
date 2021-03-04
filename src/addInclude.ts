@@ -10,20 +10,19 @@ export async function addInclude(): Promise<void> {
         return;
     }
 
-    const userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
+    const p_userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
     const sourceDoc = new SourceDocument(editor.document);
     const newIncludePosition = sourceDoc.findPositionForNewInclude();
 
-    return userInput.then(value => {
-        if (value !== undefined) {
-            if (/^\s*#\s*include\s*<.+>/.test(value)) {
-                editor.edit(edit => edit.insert(newIncludePosition.system, value + sourceDoc.endOfLine));
-            } else if (/^\s*#\s*include\s*".+"/.test(value)) {
-                editor.edit(edit => edit.insert(newIncludePosition.project, value + sourceDoc.endOfLine));
-            } else {
-                logger.alertInformation('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
-            }
+    const userInput = await p_userInput;
+    if (userInput !== undefined) {
+        if (/^\s*#\s*include\s*<.+>/.test(userInput)) {
+            editor.edit(edit => edit.insert(newIncludePosition.system, userInput + sourceDoc.endOfLine));
+        } else if (/^\s*#\s*include\s*".+"/.test(userInput)) {
+            editor.edit(edit => edit.insert(newIncludePosition.project, userInput + sourceDoc.endOfLine));
+        } else {
+            logger.alertInformation('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
         }
-    });
+    }
 }
