@@ -62,6 +62,7 @@ export class SourceAction extends CodeAction {
 
 export class CodeActionProvider implements vscode.CodeActionProvider {
     private addDefinitionEnabled: boolean = cfg.enableAddDefinition();
+    private addDeclarationEnabled: boolean = cfg.enableAddDeclaration();
     private moveDefinitionEnabled: boolean = cfg.enableMoveDefinition();
     private generateGetterSetterEnabled: boolean = cfg.enableGenerateGetterSetter();
 
@@ -69,6 +70,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         pushDisposable(vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
             if (event.affectsConfiguration(cfg.baseConfigurationString)) {
                 this.addDefinitionEnabled = cfg.enableAddDefinition();
+                this.addDeclarationEnabled = cfg.enableAddDeclaration();
                 this.moveDefinitionEnabled = cfg.enableMoveDefinition();
                 this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
             }
@@ -154,7 +156,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         rangeOrSelection: vscode.Range | vscode.Selection
     ): boolean {
         return symbol.isFunctionDefinition()
-            && (symbol.selectionRange.contains(rangeOrSelection.start)
+            && (this.addDeclarationEnabled && symbol.selectionRange.contains(rangeOrSelection.start)
                 || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
 

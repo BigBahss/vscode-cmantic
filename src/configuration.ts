@@ -203,6 +203,10 @@ export function enableAddDefinition(): boolean {
     return configuration().get<boolean>('codeActions.enableAddDefinition', defaultEnableCodeAction);
 }
 
+export function enableAddDeclaration(): boolean {
+    return configuration().get<boolean>('codeActions.enableAddDeclaration', defaultEnableCodeAction);
+}
+
 export function enableMoveDefinition(): boolean {
     return configuration().get<boolean>('codeActions.enableMoveDefinition', defaultEnableCodeAction);
 }
