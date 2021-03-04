@@ -61,6 +61,7 @@ export async function moveDefinitionToMatchingSourceFile(
 
         definition = symbol;
         targetUri = matchingUri;
+
         const declarationLocation = await definition.findDeclaration();
         if (declarationLocation) {
             declaration = await SourceDocument.getSymbol(declarationLocation);
@@ -72,7 +73,7 @@ export async function moveDefinitionToMatchingSourceFile(
             ? await getNewPosition(targetDoc, declaration)
             : await getNewPosition(targetDoc, definition);
 
-    let insertText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration);
+    let insertText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration, true);
     insertText = position.formatTextToInsert(insertText, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -133,8 +134,13 @@ export async function moveDefinitionIntoOrOutOfClass(
             }
 
             if (declaration?.parent?.isClassOrStruct() === false || !classDoc) {
-                logger.alertWarning(failure.notMemberFunction);
-                return false;
+                const parentClass = await definition.getParentClass();
+                if (parentClass) {
+                    classDoc = parentClass.document;
+                } else {
+                    logger.alertWarning(failure.notMemberFunction);
+                    return false;
+                }
             }
         }
     }
@@ -142,7 +148,7 @@ export async function moveDefinitionIntoOrOutOfClass(
     if (definition.parent?.isClassOrStruct()) {
         const position = await getNewPosition(classDoc, definition);
 
-        let insertText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration);
+        let insertText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration, true);
         insertText = position.formatTextToInsert(insertText, classDoc);
 
         const workspaceEdit = new vscode.WorkspaceEdit();

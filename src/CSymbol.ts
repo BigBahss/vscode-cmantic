@@ -488,7 +488,10 @@ export class CSymbol extends SourceSymbol {
     }
 
     async getDefinitionForTargetPosition(
-        targetDoc: SourceDocument, position: vscode.Position, declarationSymbol?: CSymbol
+        targetDoc: SourceDocument,
+        position: vscode.Position,
+        declarationSymbol?: CSymbol,
+        checkForInline?: boolean
     ): Promise<string> {
         const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(parse.getIndentationRegExp(this), '');
@@ -501,7 +504,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        const declaration = await this.formatDeclaration(targetDoc, position, scopeString, true);
+        const declaration = await this.formatDeclaration(targetDoc, position, scopeString, checkForInline);
         return comment + declaration + bodyText;
     }
 
@@ -566,7 +569,7 @@ export class CSymbol extends SourceSymbol {
         const re_newLineAlignment =
                 new RegExp('^' + ' '.repeat(newLineAlignment), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
-        if (!targetDoc.isHeader()) {
+        if (!targetDoc.isHeader() || !checkForInline) {
             leadingText = leadingText.replace(/\binline\b\s*/, '');
         }
         leadingText = leadingText.replace(parse.getIndentationRegExp(this), '');

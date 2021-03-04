@@ -264,7 +264,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         } ();
 
-        if (declaration?.equals(definition) && SourceFile.isHeader(declaration.uri)) {
+        if ((declaration?.equals(definition) && SourceFile.isHeader(declaration.uri))
+                || definition.parent?.isClassOrStruct()) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {
             const parentClass = await definition.getParentClass();
@@ -314,6 +315,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfStruct);
             }
             declarationDoc = sourceDoc;
+            moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, undefined);
         } else {
             const declarationLocation = await definition.findDeclaration();
             if (declarationLocation !== undefined
@@ -323,6 +325,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
+                moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
                     moveDefinitionIntoOrOutOfClass.setTitle(
@@ -331,13 +334,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
                 } else {
-                    declaration = undefined;
+                    moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, undefined);
                     const parentClass = await definition.getParentClass();
                     if (parentClass) {
+                        declarationDoc = parentClass.document;
                         if (parentClass.kind === vscode.SymbolKind.Class) {
-                            moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                            moveDefinitionIntoOrOutOfClass.setTitle(
+                                    `${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
                         } else {
-                            moveDefinitionIntoOrOutOfClass.setTitle(`${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                            moveDefinitionIntoOrOutOfClass.setTitle(
+                                    `${moveDefinitionTitle.intoStruct} "${parentClass.name}"`);
                         }
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                         moveDefinitionIntoOrOutOfClass.isPreferred = true;
@@ -345,7 +351,23 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     }
                 }
             } else {
-                moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
+                moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, undefined);
+                const parentClass = await definition.getParentClass();
+                if (parentClass) {
+                    declarationDoc = parentClass.document;
+                    if (parentClass.kind === vscode.SymbolKind.Class) {
+                        moveDefinitionIntoOrOutOfClass.setTitle(
+                                `${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                    } else {
+                        moveDefinitionIntoOrOutOfClass.setTitle(
+                                `${moveDefinitionTitle.intoStruct} "${parentClass.name}"`);
+                    }
+                    moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
+                    moveDefinitionIntoOrOutOfClass.isPreferred = true;
+                    moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                } else {
+                    moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
+                }
             }
         }
 
@@ -371,7 +393,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         moveDefinitionToMatchingSourceFile.setArguments(definition, matchingUri, declaration);
-        moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
 
         return [moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass];
     }
