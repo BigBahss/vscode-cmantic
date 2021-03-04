@@ -95,7 +95,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         const [refactorings, sourceActions] = await Promise.all([
-            this.getRefactorings(context, symbol, rangeOrSelection, sourceDoc, matchingUri),
+            this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getSourceActions(sourceDoc, matchingUri)
         ]);
 
@@ -107,9 +107,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getRefactorings(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         symbol: CSymbol | undefined,
-        rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
@@ -117,27 +117,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
+        const refactorActionArrays = await Promise.all([
+            this.getAddDefinitionRefactorings(context, symbol, sourceDoc, matchingUri),
+            this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
+            this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
+            this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc),
+            this.getClassRefactorings(context, symbol, sourceDoc)
+        ]);
+
         const refactorActions: RefactorAction[] = [];
-
-        if (this.shouldProvideAddDefinition(context, symbol)) {
-            refactorActions.push(...await this.getAddDefinitionRefactorings(symbol, sourceDoc, matchingUri));
-        }
-
-        if (this.shouldProvideAddDeclaration(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getAddDeclarationRefactorings(context, symbol, sourceDoc, matchingUri));
-        }
-
-        if (this.shouldProvideMoveDefinition(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getMoveDefinitionRefactorings(context, symbol, sourceDoc, matchingUri));
-        }
-
-        if (this.shouldProvideGetterSetter(context, symbol, rangeOrSelection)) {
-            refactorActions.push(...await this.getGetterSetterRefactorings(symbol, sourceDoc));
-        }
-
-        if (this.shouldProvideClassRefactorings(context, symbol)) {
-            refactorActions.push(...await this.getClassRefactorings(symbol, sourceDoc));
-        }
+        refactorActionArrays.forEach(refactorActionArray => refactorActions.push(...refactorActionArray));
 
         return refactorActions;
     }
@@ -151,9 +140,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private shouldProvideAddDeclaration(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
-        symbol: CSymbol,
-        rangeOrSelection: vscode.Range | vscode.Selection
+        symbol: CSymbol
     ): boolean {
         return symbol.isFunctionDefinition()
             && (this.addDeclarationEnabled && symbol.selectionRange.contains(rangeOrSelection.start)
@@ -161,9 +150,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private shouldProvideMoveDefinition(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
-        symbol: CSymbol,
-        rangeOrSelection: vscode.Range | vscode.Selection
+        symbol: CSymbol
     ): boolean {
         return symbol.isFunctionDefinition()
             && ((this.moveDefinitionEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
@@ -171,9 +160,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private shouldProvideGetterSetter(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
-        symbol: CSymbol,
-        rangeOrSelection: vscode.Range | vscode.Selection
+        symbol: CSymbol
     ): boolean {
         return symbol.isMemberVariable()
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
@@ -189,10 +178,15 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getAddDefinitionRefactorings(
+        context: vscode.CodeActionContext,
         declaration: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        if (!this.shouldProvideAddDefinition(context, declaration)) {
+            return [];
+        }
+
         const p_existingDefinition = declaration.findDefinition();
 
         const addDefinitionInMatchingSourceFile = new RefactorAction(
@@ -240,11 +234,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getAddDeclarationRefactorings(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        if (!this.shouldProvideAddDeclaration(rangeOrSelection, context, definition)) {
+            return [];
+        }
+
         const p_existingDeclaration = definition.findDeclaration();
 
         const addDeclaration = new RefactorAction(
@@ -293,11 +292,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getMoveDefinitionRefactorings(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        if (!this.shouldProvideMoveDefinition(rangeOrSelection, context, definition)) {
+            return [];
+        }
+
         const moveDefinitionToMatchingSourceFile = new RefactorAction(
                 moveDefinitionTitle.matchingSourceFile, 'cmantic.moveDefinitionToMatchingSourceFile');
         const moveDefinitionIntoOrOutOfClass = new RefactorAction(
@@ -376,9 +380,15 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getGetterSetterRefactorings(
+        rangeOrSelection: vscode.Range | vscode.Selection,
+        context: vscode.CodeActionContext,
         memberVariable: CSymbol,
         sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {
+        if (!this.shouldProvideGetterSetter(rangeOrSelection, context, memberVariable)) {
+            return [];
+        }
+
         const generateGetterSetter = new RefactorAction(
                 getterSetterTitle.getterSetter, 'cmantic.generateGetterSetterFor');
         const generateGetter = new RefactorAction(getterSetterTitle.getter, 'cmantic.generateGetterFor');
@@ -414,9 +424,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getClassRefactorings(
+        context: vscode.CodeActionContext,
         symbol: CSymbol,
         sourceDoc: SourceDocument
     ): Promise<RefactorAction[]> {
+        if (!this.shouldProvideClassRefactorings(context, symbol)) {
+            return [];
+        }
+
         const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
         const generateEqualityOperators = new RefactorAction(equalityTitle, 'cmantic.generateEqualityOperators');
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
