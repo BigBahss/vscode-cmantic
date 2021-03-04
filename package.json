@@ -51,6 +51,10 @@
         "title": "C-mantic: Add Definition in this file"
       },
       {
+        "command": "cmantic.addDeclaration",
+        "title": "C-mantic: Add Declaration"
+      },
+      {
         "command": "cmantic.moveDefinitionToMatchingSourceFile",
         "title": "C-mantic: Move Definition to matching source file"
       },
@@ -119,6 +123,11 @@
             "type": "boolean",
             "default": true,
             "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+          },
+          "C_mantic.codeActions.enableAddDeclaration": {
+            "type": "boolean",
+            "default": true,
+            "description": "Controls whether the 'Add Declaration' code action is suggested (light-bulb menu). This does not prevent the command from being used."
           },
           "C_mantic.codeActions.enableMoveDefinition": {
             "type": "boolean",

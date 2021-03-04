@@ -4,6 +4,7 @@ import * as util from './utility';
 import * as path from 'path';
 import * as fs from 'fs';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
+import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
     generateGetterSetter, generateGetter, generateSetter,
@@ -28,6 +29,8 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInCurrentFile", addDefinitionInCurrentFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinition", addDefinition));
 
+    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDeclaration", addDeclaration));
+
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionToMatchingSourceFile", moveDefinitionToMatchingSourceFile));
     context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionIntoOrOutOfClass", moveDefinitionIntoOrOutOfClass));
 
@@ -48,7 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.languages.registerCodeActionsProvider(
             [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
             new CodeActionProvider(),
-            { providedCodeActionKinds: [vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
+            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
 
     pushDisposable(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
     pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));

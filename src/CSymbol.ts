@@ -18,13 +18,13 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
  */
 export class CSymbol extends SourceSymbol {
-    readonly document: vscode.TextDocument;
+    readonly document: SourceDocument;
     parent?: CSymbol;
 
     /**
      * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
      */
-    constructor(symbol: SourceSymbol, document: vscode.TextDocument) {
+    constructor(symbol: SourceSymbol, document: SourceDocument) {
         super(symbol, document.uri);
         this.document = document;
 
@@ -95,6 +95,8 @@ export class CSymbol extends SourceSymbol {
     startOffset(): number { return this.document.offsetAt(this.range.start); }
 
     endOffset(): number { return this.document.offsetAt(this.range.end); }
+
+    trueStartOffset(): number { return this.document.offsetAt(this.trueStart); }
 
     isBefore(offset: number): boolean { return this.endOffset() < offset; }
 
@@ -222,6 +224,35 @@ export class CSymbol extends SourceSymbol {
         }
 
         return scopeString;
+    }
+
+    immediateScope(): SubSymbol | undefined {
+        const match = this.parsableLeadingText.match(/[\w_][\w\d_]*(?=\s*::\s*$)/);
+        if (!match || match.index === undefined) {
+            return;
+        }
+
+        const startOffset = this.startOffset() + match.index;
+        const start = this.document.positionAt(startOffset);
+        const end = this.document.positionAt(startOffset + match[0].length);
+
+        return new SubSymbol(this.document, new vscode.Range(start, end));
+    }
+
+    async getParentClass(): Promise<CSymbol | undefined> {
+        const immediateScope = this.immediateScope();
+        if (immediateScope) {
+            const immediateScopeDefinition = await immediateScope.findDefinition();
+            if (immediateScopeDefinition) {
+                const immediateScopeDoc = (immediateScopeDefinition.uri.fsPath === this.uri.fsPath)
+                        ? this.document
+                        : await SourceDocument.open(immediateScopeDefinition.uri);
+                const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
+                if (immediateScopeSymbol?.isClassOrStruct()) {
+                    return immediateScopeSymbol;
+                }
+            }
+        }
     }
 
     baseClasses(): SubSymbol[] {
@@ -456,12 +487,12 @@ export class CSymbol extends SourceSymbol {
         return false;
     }
 
-    async getTextForTargetPosition(
-        target: SourceDocument, position: vscode.Position, declarationSymbol?: CSymbol
+    async getDefinitionForTargetPosition(
+        targetDoc: SourceDocument, position: vscode.Position, declarationSymbol?: CSymbol
     ): Promise<string> {
         const bodyRange = new vscode.Range(this.declarationEnd(), this.range.end);
         const bodyText = this.document.getText(bodyRange).replace(parse.getIndentationRegExp(this), '');
-        const scopeString = await declarationSymbol?.scopeString(target, position);
+        const scopeString = await declarationSymbol?.scopeString(targetDoc, position);
 
         let comment = '';
         if (cfg.alwaysMoveComments()) {
@@ -470,8 +501,12 @@ export class CSymbol extends SourceSymbol {
         }
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        const declaration = await this.formatDeclarationForNewDefinition(target, position, scopeString);
+        const declaration = await this.formatDeclaration(targetDoc, position, scopeString);
         return comment + declaration + bodyText;
+    }
+
+    async getDeclarationForTargetPosition(targetDoc: SourceDocument, position: vscode.Position): Promise<string> {
+        return await this.formatDeclaration(targetDoc, position) + ';';
     }
 
     /**
@@ -481,10 +516,10 @@ export class CSymbol extends SourceSymbol {
         if (!this.isFunctionDeclaration()) {
             return '';
         }
-        return this.formatDeclarationForNewDefinition(targetDoc, position);
+        return this.formatDeclaration(targetDoc, position);
     }
 
-    private async formatDeclarationForNewDefinition(
+    private async formatDeclaration(
         targetDoc: SourceDocument, position: vscode.Position, scopeString?: string
     ): Promise<string> {
         if (scopeString === undefined) {
@@ -500,7 +535,7 @@ export class CSymbol extends SourceSymbol {
 
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.trueStart);
         const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
-        const paramEndIndex = maskedDeclaration.indexOf(')');
+        const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
             return '';
         }
@@ -512,7 +547,7 @@ export class CSymbol extends SourceSymbol {
         const inlineSpecifier =
                 ((!this.parent || !util.containsExclusive(this.parent.range, position))
                         && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
-                        && !this.isInline() && !this.isConstexpr())
+                        && !this.isInline() && !this.isConstexpr() && this.isFunctionDeclaration())
                 ? 'inline '
                 : '';
 
@@ -601,7 +636,7 @@ export class CSymbol extends SourceSymbol {
         const maskedText = parse.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
-        const bodyStartIndex = maskedText.substring(nameEndIndex).search(/\s*{/);
+        const bodyStartIndex = maskedText.substring(nameEndIndex).search(/\s*{|\s*;$/);
         if (bodyStartIndex === -1) {
             return this.range.end;
         }

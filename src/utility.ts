@@ -172,3 +172,12 @@ export function makeCamelCase(text: string): string {
 export function MakePascalCase(text: string): string {
     return firstCharToUpper(text.replace(/_[a-z]/g, match => match.charAt(1).toUpperCase()).replace('_', ''));
 }
+
+export function formatPathToDisplay(uri: vscode.Uri): string {
+    const relativePath = vscode.workspace.asRelativePath(uri);
+    // Arbitrary limit, as to not display a path that's running all the way across the screen.
+    if (relativePath.length > 60) {
+        return relativePath.slice(0, 28) + '....' + relativePath.slice(-28);
+    }
+    return relativePath;
+}

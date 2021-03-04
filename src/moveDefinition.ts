@@ -72,7 +72,7 @@ export async function moveDefinitionToMatchingSourceFile(
             ? await getNewPosition(targetDoc, declaration)
             : await getNewPosition(targetDoc, definition);
 
-    let insertText = await definition.getTextForTargetPosition(targetDoc, position, declaration);
+    let insertText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration);
     insertText = position.formatTextToInsert(insertText, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -127,9 +127,12 @@ export async function moveDefinitionIntoOrOutOfClass(
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await classDoc.getSymbol(declarationLocation.range.start);
+                if (!declaration?.parent?.isClassOrStruct()) {
+                    declaration = undefined;
+                }
             }
 
-            if (!declaration?.parent?.isClassOrStruct() || !classDoc) {
+            if (declaration?.parent?.isClassOrStruct() === false || !classDoc) {
                 logger.alertWarning(failure.notMemberFunction);
                 return false;
             }
@@ -139,7 +142,7 @@ export async function moveDefinitionIntoOrOutOfClass(
     if (definition.parent?.isClassOrStruct()) {
         const position = await getNewPosition(classDoc, definition);
 
-        let insertText = await definition.getTextForTargetPosition(classDoc, position, declaration);
+        let insertText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration);
         insertText = position.formatTextToInsert(insertText, classDoc);
 
         const workspaceEdit = new vscode.WorkspaceEdit();
@@ -158,6 +161,20 @@ export async function moveDefinitionIntoOrOutOfClass(
         const deletionRange = getDeletionRange(definition);
         workspaceEdit.delete(definition.uri, deletionRange);
         return vscode.workspace.applyEdit(workspaceEdit);
+    } else {
+        const parentClass = await definition.getParentClass();
+        if (parentClass) {
+            const position = await definition.document.findPositionForFunctionDeclaration(definition, parentClass.document);
+
+            let insertText = await definition.getDefinitionForTargetPosition(classDoc, position);
+            insertText = position.formatTextToInsert(insertText, classDoc);
+
+            const workspaceEdit = new vscode.WorkspaceEdit();
+            workspaceEdit.insert(classDoc.uri, position, insertText);
+            const deletionRange = getDeletionRange(definition);
+            workspaceEdit.delete(definition.uri, deletionRange);
+            return vscode.workspace.applyEdit(workspaceEdit);
+        }
     }
 
     logger.alertWarning(failure.noFunctionDeclaration);
