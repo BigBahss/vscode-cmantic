@@ -11,6 +11,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - `Move Definition into class` will now be available for member functions that are not declared in the class. Similar to `Add Declaration`, this code-action will be provided as a `Quick Fix`, since it also fixes the underlying error. (#21)
 - Changed the way that code generation determines line-spacing: If code is being inserted between 2 non-empty lines, it will no longer place an empty line in-between.
 
+### Fixed
+- Fixed whitespace alignment of `Add Definition` for member functions in the case that the declaration is not indented.
+
 ## [0.5.2] - February 28, 2021
 ### Added
 - Template support has been expanded to properly generate member functions of class templates. Template parameter packs and default template arguments are now handled properly. (#18)

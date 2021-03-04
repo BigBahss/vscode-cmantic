@@ -562,8 +562,9 @@ export class CSymbol extends SourceSymbol {
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
         const leadingLines = leadingText.split(util.endOfLine(this.document));
         const alignLength = leadingLines[leadingLines.length - 1].trimStart().length;
+        const newLineAlignment = leadingIndent + alignLength + oldScopeString.length;
         const re_newLineAlignment =
-                new RegExp('^' + ' '.repeat(leadingIndent + alignLength + oldScopeString.length), 'gm');
+                new RegExp('^' + ' '.repeat(newLineAlignment), 'gm');
         leadingText = leadingText.replace(/\b(virtual|static|explicit|friend)\b\s*/g, '');
         if (!targetDoc.isHeader()) {
             leadingText = leadingText.replace(/\binline\b\s*/, '');
@@ -573,8 +574,10 @@ export class CSymbol extends SourceSymbol {
 
         const newLeadingLines = leadingText.split(targetDoc.endOfLine);
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
-        definition = definition.replace(
-                re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
+        if (newLineAlignment) {
+            definition = definition.replace(
+                    re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
+        }
         definition = templateStatement + inlineSpecifier + leadingText + scopeString + definition;
         return definition.replace(/\s*\b(override|final)\b/g, '');
     }
