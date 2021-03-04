@@ -264,8 +264,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         } ();
 
-        if (declaration?.equals(definition)
-                && SourceFile.isHeader(declaration.uri) && declaration.uri.fsPath === matchingUri?.fsPath) {
+        if (declaration?.equals(definition) && SourceFile.isHeader(declaration.uri)) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {
             const parentClass = await definition.getParentClass();
