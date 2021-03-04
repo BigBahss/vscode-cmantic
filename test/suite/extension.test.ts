@@ -69,8 +69,9 @@ suite('Extension Test Suite', function () {
                 }
                 assert.strictEqual(codeActions.length, 5);
             } else if (member.isFunctionDefinition()) {
-                assert.match(codeActions[0].title, /^Move Definition/i);
-                assert.strictEqual(codeActions.length, 5);
+                assert.match(codeActions[0].title, /^Add Declaration/i);
+                assert.match(codeActions[1].title, /^Move Definition/i);
+                assert.strictEqual(codeActions.length, 6);
             } else if (member.isMemberVariable()) {
                 assert.match(codeActions[0].title, /^Generate Getter/i);
                 assert.strictEqual(codeActions.length, 6);
