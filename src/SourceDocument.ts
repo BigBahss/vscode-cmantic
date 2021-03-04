@@ -135,53 +135,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         const before = siblingFunctions.slice(0, definitionIndex).reverse();
         const after = siblingFunctions.slice(definitionIndex + 1);
 
-        // Find a definition of a sibling symbol in targetDoc.
-        let functionDefinitionCount = 0;
-        for (const symbol of before) {
-            if (functionDefinitionCount > 4) {
-                break;
-            }
-            const functionSymbol = new CSymbol(symbol, this);
-            if (functionSymbol.isFunctionDefinition()) {
-                ++functionDefinitionCount;
-                const definitionLocation = await symbol.findDeclaration();
-                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
-                    continue;
-                }
-
-                const declaration = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (declaration && !(definition.uri.fsPath === declaration.uri.fsPath
-                        && definition.parent?.range.contains(declaration.selectionRange))) {
-                    return new ProposedPosition(declaration.range.end, {
-                        relativeTo: declaration.range,
-                        after: true
-                    });
-                }
-            }
-        }
-        functionDefinitionCount = 0;
-        for (const symbol of after) {
-            if (functionDefinitionCount > 4) {
-                break;
-            }
-            const functionSymbol = new CSymbol(symbol, this);
-            if (functionSymbol.isFunctionDefinition()) {
-                ++functionDefinitionCount;
-                const definitionLocation = await symbol.findDeclaration();
-                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
-                    continue;
-                }
-
-                const declaration = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (declaration && !(definition.uri.fsPath === declaration.uri.fsPath
-                        && definition.parent?.range.contains(declaration.selectionRange))) {
-                    const leadingCommentStart = declaration.leadingCommentStart;
-                    return new ProposedPosition(leadingCommentStart, {
-                        relativeTo: new vscode.Range(leadingCommentStart, declaration.range.end),
-                        before: true
-                    });
-                }
-            }
+        const siblingPos = await this.findPositionRelativeToSiblings(definition, before, after, targetDoc, false);
+        if (siblingPos) {
+            return siblingPos;
         }
 
         const parentClass = definition.immediateScope();
@@ -199,29 +155,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         }
 
         // If a sibling declaration couldn't be found in targetDoc, look for a cooresponding scope block.
-        for (const scope of definition.scopes().reverse()) {
-            if (scope.kind === vscode.SymbolKind.Namespace || scope.isClassOrStruct()) {
-                const targetScope = await targetDoc.findMatchingSymbol(scope);
-                if (!targetScope) {
-                    continue;
-                }
-
-                if (targetScope.children.length === 0) {
-                    const bodyStart = targetDoc.offsetAt(targetScope.range.start)
-                            + targetScope.parsableText.indexOf('{') + 1;
-                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
-                        after: true,
-                        nextTo: true,
-                        emptyScope: true
-                    });
-                }
-                const lastChild = targetScope.children[targetScope.children.length - 1];
-                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
-                return new ProposedPosition(endPosition, {
-                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
-                    after: true
-                });
-            }
+        const namespacePos = await this.findPositionInParentNamespace(definition, targetDoc);
+        if (namespacePos) {
+            return namespacePos;
         }
 
         // If all else fails then return a position after the last symbol in the document.
@@ -266,8 +202,6 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             }
         }
 
-        // Get the first 5 symbols that come before and after declaration.
-        // We look for definitions of these symbols in targetDoc and return a position relative to the closest one.
         const siblingFunctions = SourceDocument.siblingFunctions(declaration, this.symbols);
         const declarationIndex = SourceDocument.indexOfSymbol(declaration, siblingFunctions);
         const before = siblingFunctions.slice(0, declarationIndex).reverse();
@@ -283,80 +217,17 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             }
         }
 
-        // Find a definition of a sibling symbol in targetDoc.
-        let functionDeclarationCount = 0;
-        for (const symbol of before) {
-            if (functionDeclarationCount > 4) {
-                break;
-            }
-            const functionSymbol = new CSymbol(symbol, this);
-            if (functionSymbol.isFunctionDeclaration()) {
-                ++functionDeclarationCount;
-                const definitionLocation = await symbol.findDefinition();
-                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
-                    continue;
-                }
-
-                const definition = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (definition && !(declaration.uri.fsPath === definition.uri.fsPath
-                        && declaration.parent?.range.contains(definition.selectionRange))) {
-                    return new ProposedPosition(definition.range.end, {
-                        relativeTo: definition.range,
-                        after: true
-                    });
-                }
-            }
-        }
-        functionDeclarationCount = 0;
-        for (const symbol of after) {
-            if (functionDeclarationCount > 4) {
-                break;
-            }
-            const functionSymbol = new CSymbol(symbol, this);
-            if (functionSymbol.isFunctionDeclaration()) {
-                ++functionDeclarationCount;
-                const definitionLocation = await symbol.findDefinition();
-                if (!definitionLocation || definitionLocation.uri.fsPath !== targetDoc.uri.fsPath) {
-                    continue;
-                }
-
-                const definition = await targetDoc.getSymbol(definitionLocation.range.start);
-                if (definition && !(declaration.uri.fsPath === definition.uri.fsPath
-                        && declaration.parent?.range.contains(definition.selectionRange))) {
-                    const leadingCommentStart = definition.leadingCommentStart;
-                    return new ProposedPosition(leadingCommentStart, {
-                        relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
-                        before: true
-                    });
-                }
-            }
+        const position = await this.findPositionRelativeToSiblings(declaration, before, after, targetDoc, true);
+        if (position) {
+            return position;
         }
 
         // If a sibling definition couldn't be found in targetDoc, look for a cooresponding namespace block.
-        for (const scope of declaration.scopes().reverse()) {
-            if (scope.kind === vscode.SymbolKind.Namespace) {
-                const targetNamespace = await targetDoc.findMatchingSymbol(scope);
-                if (!targetNamespace) {
-                    continue;
-                }
-
-                if (targetNamespace.children.length === 0) {
-                    const bodyStart = targetDoc.offsetAt(targetNamespace.range.start)
-                            + targetNamespace.parsableText.indexOf('{') + 1;
-                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
-                        after: true,
-                        nextTo: true,
-                        emptyScope: true
-                    });
-                }
-                const lastChild = targetNamespace.children[targetNamespace.children.length - 1];
-                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
-                return new ProposedPosition(endPosition, {
-                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
-                    after: true
-                });
-            }
+        const namespacePos = await this.findPositionInParentNamespace(declaration, targetDoc);
+        if (namespacePos) {
+            return namespacePos;
         }
+
 
         // If all else fails then return a position after the last symbol in the document.
         const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
@@ -451,6 +322,103 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             });
         }
         return util.positionAfterLastNonEmptyLine(this);
+    }
+
+    // TODO: Give this function a better name or refactor this to not be so terrible.
+    private async findPositionRelativeToSiblings(
+        anchorSymbol: CSymbol,
+        before: SourceSymbol[],
+        after: SourceSymbol[],
+        targetDoc: SourceDocument,
+        findDefinition: boolean
+    ): Promise<ProposedPosition | undefined> {
+        let functionDeclarationCount = 0;
+        for (const symbol of before) {
+            if (functionDeclarationCount > 4) {
+                break;
+            }
+            const functionSymbol = new CSymbol(symbol, this);
+            const isDeclOrDef = findDefinition
+                    ? functionSymbol.isFunctionDeclaration()
+                    : functionSymbol.isFunctionDefinition();
+            if (isDeclOrDef) {
+                ++functionDeclarationCount;
+                const location = findDefinition
+                        ? await functionSymbol.findDefinition()
+                        : await functionSymbol.findDeclaration();
+                if (!location || location.uri.fsPath !== targetDoc.uri.fsPath) {
+                    continue;
+                }
+
+                const definition = await targetDoc.getSymbol(location.range.start);
+                if (definition && !(anchorSymbol.uri.fsPath === definition.uri.fsPath
+                        && anchorSymbol.parent?.range.contains(definition.selectionRange))) {
+                    return new ProposedPosition(definition.range.end, {
+                        relativeTo: definition.range,
+                        after: true
+                    });
+                }
+            }
+        }
+        functionDeclarationCount = 0;
+        for (const symbol of after) {
+            if (functionDeclarationCount > 4) {
+                break;
+            }
+            const functionSymbol = new CSymbol(symbol, this);
+            const isDeclOrDef = findDefinition
+                    ? functionSymbol.isFunctionDeclaration()
+                    : functionSymbol.isFunctionDefinition();
+            if (isDeclOrDef) {
+                ++functionDeclarationCount;
+                const location = findDefinition
+                        ? await functionSymbol.findDefinition()
+                        : await functionSymbol.findDeclaration();
+                if (!location || location.uri.fsPath !== targetDoc.uri.fsPath) {
+                    continue;
+                }
+
+                const definition = await targetDoc.getSymbol(location.range.start);
+                if (definition && !(anchorSymbol.uri.fsPath === definition.uri.fsPath
+                        && anchorSymbol.parent?.range.contains(definition.selectionRange))) {
+                    const leadingCommentStart = definition.leadingCommentStart;
+                    return new ProposedPosition(leadingCommentStart, {
+                        relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
+                        before: true
+                    });
+                }
+            }
+        }
+    }
+
+    private async findPositionInParentNamespace(
+        symbol: CSymbol,
+        targetDoc: SourceDocument
+    ): Promise<ProposedPosition | undefined> {
+        for (const scope of symbol.scopes().reverse()) {
+            if (scope.kind === vscode.SymbolKind.Namespace) {
+                const targetNamespace = await targetDoc.findMatchingSymbol(scope);
+                if (!targetNamespace) {
+                    continue;
+                }
+
+                if (targetNamespace.children.length === 0) {
+                    const bodyStart = targetDoc.offsetAt(targetNamespace.range.start)
+                            + targetNamespace.parsableText.indexOf('{') + 1;
+                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
+                        after: true,
+                        nextTo: true,
+                        emptyScope: true
+                    });
+                }
+                const lastChild = targetNamespace.children[targetNamespace.children.length - 1];
+                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
+                return new ProposedPosition(endPosition, {
+                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
+                    after: true
+                });
+            }
+        }
     }
 
     private getEndOfStatement(position: vscode.Position): vscode.Position {
