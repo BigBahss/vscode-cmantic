@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as util from './utility';
+import { SourceDocument } from './SourceDocument';
+import { CSymbol } from './CSymbol';
 
 /**
  * Represents a sub-symbol within a CSymbol, such as a data type or a keyword. Not provided by the language server.
  */
 export class SubSymbol {
-    readonly document: vscode.TextDocument;
+    readonly document: SourceDocument;
     readonly uri: vscode.Uri;
     name: string;
     range: vscode.Range;
@@ -13,16 +15,16 @@ export class SubSymbol {
 
     get location(): vscode.Location { return new vscode.Location(this.uri, this.range); }
 
-    constructor(document: vscode.TextDocument, range: vscode.Range, selectionRange?: vscode.Range) {
-        this.document = document;
-        this.uri = document.uri;
+    constructor(documentOrCSymbol: SourceDocument | CSymbol, range: vscode.Range, selectionRange?: vscode.Range) {
+        this.document = documentOrCSymbol instanceof SourceDocument ? documentOrCSymbol : documentOrCSymbol.document;
+        this.uri = documentOrCSymbol.uri;
         this.range = range;
         if (selectionRange) {
             this.selectionRange = selectionRange;
         } else {
             this.selectionRange = range;
         }
-        this.name = document.getText(selectionRange);
+        this.name = this.document.getText(selectionRange);
     }
 
     text(): string { return this.document.getText(this.range); }

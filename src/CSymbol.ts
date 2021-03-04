@@ -102,6 +102,77 @@ export class CSymbol extends SourceSymbol {
 
     isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
+    get accessSpecifiers(): SubSymbol[] {
+        if (this._accessSpecifiers) {
+            return this._accessSpecifiers;
+        }
+
+        this._accessSpecifiers = [];
+
+        if (!this.isClassOrStruct()) {
+            return this._accessSpecifiers;
+        }
+
+        const startOffset = this.startOffset();
+
+        let parsableText = this.parsableText;
+        this.children.forEach(child => {
+            // Mask children in order to easily match access specifiers.
+            const childCSymbol = new CSymbol(child, this.document);
+            const relativeStartOffset = childCSymbol.startOffset() - startOffset;
+            const relativeEndOffset = childCSymbol.endOffset() - startOffset;
+            parsableText = parsableText.slice(0, relativeStartOffset)
+                    + ' '.repeat(relativeEndOffset - relativeStartOffset)
+                    + parsableText.slice(relativeEndOffset);
+        });
+
+        // Prevent potential macro arguments from affecting access specifier matching.
+        parsableText = parse.maskParentheses(parsableText);
+
+        for (const match of parsableText.matchAll(/\b[\w_][\w\d_]*\s*:(?!:)/g)) {
+            if (match.index === undefined) {
+                continue;
+            }
+            const start = this.document.positionAt(startOffset + match.index);
+            const end = this.document.positionAt(startOffset + match.index + match[0].length);
+            this._accessSpecifiers.push(new SubSymbol(this, new vscode.Range(start, end)));
+        }
+
+        return this._accessSpecifiers;
+    }
+    private _accessSpecifiers?: SubSymbol[];
+
+    rangesOfAccess(access: util.Access): vscode.Range[] {
+        const re_accessSpecifier = util.accessSpecifierRegexp(access);
+        const ranges: vscode.Range[] = [];
+        let start: vscode.Position | undefined;
+
+        if (access === util.Access.private && this.kind === vscode.SymbolKind.Class) {
+            start = this.bodyStart();
+        } else if (access === util.Access.public && this.kind === vscode.SymbolKind.Struct) {
+            start = this.bodyStart();
+        }
+
+        for (const accessSpecifier of this.accessSpecifiers) {
+            if (re_accessSpecifier.test(accessSpecifier.text()) && !start) {
+                start = accessSpecifier.range.end;
+            } else if (start) {
+                ranges.push(new vscode.Range(start, accessSpecifier.range.start));
+                start = undefined;
+            }
+        }
+
+        if (start) {
+            ranges.push(new vscode.Range(start, this.bodyEnd()));
+        }
+
+        return ranges;
+    }
+
+    positionHasAccess(position: vscode.Position, access: util.Access): boolean {
+        return this.rangesOfAccess(access).some(range => range.contains(position));
+    }
+
     /**
      * Finds a position for a new member function within this class or struct. Optionally provide a relativeName
      * to look for a position next to. Optionally provide a memberVariable if the new member function is an
@@ -669,6 +740,15 @@ export class CSymbol extends SourceSymbol {
         }
 
         return this.document.positionAt(this.startOffset() + bodyStartIndex + 1);
+    }
+
+    private bodyEnd(): vscode.Position {
+        const bodyEndIndex = this.parsableText.lastIndexOf('}');
+        if (bodyEndIndex === -1) {
+            return this.range.end;
+        }
+
+        return this.document.positionAt(this.startOffset() + bodyEndIndex);
     }
 
     private scopeStringStart(): vscode.Position {
