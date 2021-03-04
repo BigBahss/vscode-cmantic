@@ -501,7 +501,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
-        const declaration = await this.formatDeclaration(targetDoc, position, scopeString);
+        const declaration = await this.formatDeclaration(targetDoc, position, scopeString, true);
         return comment + declaration + bodyText;
     }
 
@@ -516,11 +516,14 @@ export class CSymbol extends SourceSymbol {
         if (!this.isFunctionDeclaration()) {
             return '';
         }
-        return this.formatDeclaration(targetDoc, position);
+        return this.formatDeclaration(targetDoc, position, undefined, true);
     }
 
     private async formatDeclaration(
-        targetDoc: SourceDocument, position: vscode.Position, scopeString?: string
+        targetDoc: SourceDocument,
+        position: vscode.Position,
+        scopeString?: string,
+        checkForInline?: boolean
     ): Promise<string> {
         if (scopeString === undefined) {
             scopeString = await this.scopeString(targetDoc, position);
@@ -547,7 +550,7 @@ export class CSymbol extends SourceSymbol {
         const inlineSpecifier =
                 ((!this.parent || !util.containsExclusive(this.parent.range, position))
                         && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
-                        && !this.isInline() && !this.isConstexpr() && this.isFunctionDeclaration())
+                        && !this.isInline() && !this.isConstexpr() && checkForInline)
                 ? 'inline '
                 : '';
 
