@@ -13,6 +13,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed whitespace alignment of `Add Definition` for member functions in the case that the declaration is not indented.
+- Fixed indentation of code generated in classes in the case that the class is empty (before, if the class was empty, the new code would not be indented).
 
 ## [0.5.2] - February 28, 2021
 ### Added
