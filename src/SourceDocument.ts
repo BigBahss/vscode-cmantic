@@ -140,18 +140,9 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             return siblingPos;
         }
 
-        const parentClass = definition.immediateScope();
-        if (parentClass) {
-            const parentClassLocation = await parentClass.findDefinition();
-            if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
-                const parentClassSymbol = await targetDoc.getSymbol(parentClassLocation.range.start);
-                if (parentClassSymbol) {
-                    const position = parentClassSymbol.findPositionForNewMemberFunction();
-                    if (position) {
-                        return position;
-                    }
-                }
-            }
+        const memberPos = await this.findPositionForMemberFunction(definition, targetDoc);
+        if (memberPos) {
+            return memberPos;
         }
 
         // If a sibling declaration couldn't be found in targetDoc, look for a cooresponding scope block.
@@ -227,7 +218,6 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         if (namespacePos) {
             return namespacePos;
         }
-
 
         // If all else fails then return a position after the last symbol in the document.
         const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
@@ -386,6 +376,25 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                         relativeTo: new vscode.Range(leadingCommentStart, definition.range.end),
                         before: true
                     });
+                }
+            }
+        }
+    }
+
+    private async findPositionForMemberFunction(
+        symbol: CSymbol,
+        targetDoc: SourceDocument
+    ): Promise<ProposedPosition | undefined> {
+        const parentClass = symbol.immediateScope();
+        if (parentClass) {
+            const parentClassLocation = await parentClass.findDefinition();
+            if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
+                const parentClassSymbol = await targetDoc.getSymbol(parentClassLocation.range.start);
+                if (parentClassSymbol) {
+                    const position = parentClassSymbol.findPositionForNewMemberFunction();
+                    if (position) {
+                        return position;
+                    }
                 }
             }
         }
