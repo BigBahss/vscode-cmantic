@@ -39,7 +39,7 @@ The `Add Definition in matching source file` command generates an empty definiti
 
 The `Add Definition in this file` command generates an empty definition for a function declaration in the current file.
 
-`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with `Curly Brace Format: Function` in the settings for C and C++. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
+`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with the setting `Curly Brace Format: Function` for C and C++, each. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
 
 #### **Generate Constructor**
 
@@ -93,7 +93,7 @@ When creating a C++ source file from a header containing namespaces, these names
 
 `Add Header Guard` can be found in the `Source Actions...` menu.
 
-The `Add Header Guard` command adds a header guard to the current header file based on `Header Guard: Style` in the settings. Based on this setting C-mantic will insert either a conditional `#define` block, `#pragma once`, or both. `#define` names are generated based on `Header Guard: Define Format` in the settings.
+The `Add Header Guard` command adds a header guard to the current header file based on the setting `Header Guard: Style`. Based on this setting C-mantic will insert either a conditional `#define` block, `#pragma once`, or both. `#define` names are generated based on the setting `Header Guard: Define Format`.
 
 ### **Add Include**
 
@@ -103,7 +103,7 @@ The `Add Include` command adds includes to the top of the file from your current
 
 ### **Switch Header/Source in Workspace**
 
-The `Switch Header/Source in Workspace` command will open and switch to the matching header/source file cooresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with the `Context Menu: Switch Header Source` setting.
+The `Switch Header/Source in Workspace` command will open and switch to the matching header/source file cooresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with the setting `Context Menu: Switch Header Source`.
 
 ## **Language Server**
 
@@ -116,8 +116,6 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 - C-mantic relies on the language server to provide information about your source code in order to function correctly. Because of this, if the language server running slowly, C-mantic may fail to provide code-actions right away. For instance, if you type out a function declaration, C-mantic won't be able to provide the `Add Definition` code-actions until the language server updates. To mitigate this, you can change how often the language server updates in response to code changes:
   - For `C/C++` (ms-vscode.cpptools), you can lower the `C_Cpp: Intelli Sense Update Delay` setting (default 2000ms).
   - For `ccls`, you can lower the `Status Update Interval` setting (default 2000ms).
-
-- A convenient way to use `Add Definition` is to bind it to the key that you would normally have bound to `Go to Definition`, because by default, `Add Definition` will go to definition if one already exists.
 
 ## **Planned Features**
 
