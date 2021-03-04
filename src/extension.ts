@@ -90,14 +90,18 @@ function showMessageOnVersionUpdate(context: vscode.ExtensionContext): void {
     context.globalState.update(versionKey, currentVersion);
 }
 
-const updateMessage = 'C-mantic v0.5.0: Generate constructors and equality operators. See the readme for more information.';
+const updateMessage = 'C-mantic v0.6.0: Added \'Add Declaration\' command and more options for generating header guards.';
 const readmeButton = 'Open README';
+const changelogButton = 'Open CHANGELOG';
 const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/README.md');
+const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/CHANGELOG.md');
 
 function showUpdateMessage(): void {
-    vscode.window.showInformationMessage(updateMessage, readmeButton).then(value => {
+    vscode.window.showInformationMessage(updateMessage, readmeButton, changelogButton).then(value => {
         if (value === readmeButton) {
             vscode.env.openExternal(readmeUri);
+        } else if (value === changelogButton) {
+            vscode.env.openExternal(changelogUri);
         }
     });
 }
