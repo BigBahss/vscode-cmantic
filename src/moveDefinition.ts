@@ -73,11 +73,11 @@ export async function moveDefinitionToMatchingSourceFile(
             ? await getNewPosition(targetDoc, declaration)
             : await getNewPosition(targetDoc, definition);
 
-    let insertText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration, true);
-    insertText = position.formatTextToInsert(insertText, targetDoc);
+    const definitionText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration, true);
+    const formattedDefinition = await position.formatTextToInsert(definitionText, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    workspaceEdit.insert(targetDoc.uri, position, insertText);
+    workspaceEdit.insert(targetDoc.uri, position, formattedDefinition);
     if (!declaration && SourceFile.isHeader(definition.uri)) {
         const newDeclaration = definition.newFunctionDeclaration();
         const replaceRange = cfg.alwaysMoveComments()
@@ -148,11 +148,11 @@ export async function moveDefinitionIntoOrOutOfClass(
     if (definition.parent?.isClassOrStruct()) {
         const position = await getNewPosition(classDoc, definition);
 
-        let insertText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration, true);
-        insertText = position.formatTextToInsert(insertText, classDoc);
+        const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration, true);
+        const formattedDefinition = await position.formatTextToInsert(definitionText, classDoc);
 
         const workspaceEdit = new vscode.WorkspaceEdit();
-        workspaceEdit.insert(classDoc.uri, position, insertText);
+        workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
         const newDeclaration = definition.newFunctionDeclaration();
         const replaceRange = cfg.alwaysMoveComments()
                 ? definition.rangeWithLeadingComment()
@@ -173,11 +173,11 @@ export async function moveDefinitionIntoOrOutOfClass(
             const position = await definition.document.findPositionForFunctionDeclaration(
                     definition, parentClass.document, parentClass);
 
-            let insertText = await definition.getDefinitionForTargetPosition(classDoc, position);
-            insertText = position.formatTextToInsert(insertText, classDoc);
+            const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position);
+            const formattedDefinition = await position.formatTextToInsert(definitionText, classDoc);
 
             const workspaceEdit = new vscode.WorkspaceEdit();
-            workspaceEdit.insert(classDoc.uri, position, insertText);
+            workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
             const deletionRange = getDeletionRange(definition);
             workspaceEdit.delete(definition.uri, deletionRange);
             return vscode.workspace.applyEdit(workspaceEdit);

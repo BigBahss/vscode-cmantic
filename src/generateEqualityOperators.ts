@@ -42,8 +42,8 @@ export async function generateEqualityOperators(
 
     const p_memberVariables = promptUserForMemberVariables(classOrStruct);
 
-    const position = classOrStruct.findPositionForNewMemberFunction();
-    if (!position) {
+    const equalPosition = classOrStruct.findPositionForNewMemberFunction();
+    if (!equalPosition) {
         logger.alertError(failure.positionNotFound);
         return;
     }
@@ -56,19 +56,20 @@ export async function generateEqualityOperators(
     const opEqual = new OpEqual(classOrStruct, memberVariables);
     const opNotEqual = new OpNotEqual(classOrStruct);
 
-    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, position);
+    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, equalPosition);
     if (!targets) {
         return;
     }
 
-    const notEqualPosition = new ProposedPosition(position, {
-        relativeTo: position.options.relativeTo,
+    const notEqualPosition = new ProposedPosition(equalPosition, {
+        relativeTo: equalPosition.options.relativeTo,
         after: true,
-        nextTo: true
+        nextTo: true,
+        emptyScope: equalPosition.options.emptyScope
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(opEqual, position, classDoc, targets.equal, workspaceEdit);
+    await addNewOperatorToWorkspaceEdit(opEqual, equalPosition, classDoc, targets.equal, workspaceEdit);
     if (targets.notEqual) {
         await addNewOperatorToWorkspaceEdit(opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit);
     }
@@ -198,13 +199,13 @@ async function addNewOperatorToWorkspaceEdit(
         const inlineDefinition = (newOperator.body.includes('\n'))
                 ? await newOperator.definition(target.sourceDoc, target.position, curlySeparator)
                 : newOperator.declaration + ' { ' + newOperator.body + ' }';
-        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
+        const formattedInlineDefinition = await declarationPos.formatTextToInsert(inlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = declarationPos.formatTextToInsert(newOperator.declaration + ';', classDoc);
+        const formattedDeclaration = await declarationPos.formatTextToInsert(newOperator.declaration + ';', classDoc);
         const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
+        const formattedDefinition = await target.position.formatTextToInsert(definition, target.sourceDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);

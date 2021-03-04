@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as cfg from './configuration';
 import { ProposedPosition } from './ProposedPosition';
 import { SourceSymbol } from './SourceSymbol';
 import { SubSymbol } from './SubSymbol';
+import { SourceDocument } from './SourceDocument';
 
 /**
  * Returns the file extension without the dot.
@@ -94,6 +96,12 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
     return new ProposedPosition();
 }
 
+export async function shouldIndentNamespaceBody(declarationDoc: SourceDocument): Promise<boolean | undefined> {
+    const cfgIndent = cfg.indentNamespaceBody();
+    return cfgIndent === cfg.NamespaceIndentation.Always
+        || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented());
+}
+
 interface RangedObject {
     range: vscode.Range;
 }
@@ -116,7 +124,9 @@ export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Locatio
     return findMostLikelyResult(symbol, declarationResults);
 }
 
-function findMostLikelyResult(symbol: AnySymbol, results?: vscode.Location[] | vscode.LocationLink[]): vscode.Location | undefined {
+function findMostLikelyResult(
+    symbol: AnySymbol, results?: vscode.Location[] | vscode.LocationLink[]
+): vscode.Location | undefined {
     const thisFileNameBase = fileNameBase(symbol.uri.fsPath);
     for (const location of makeLocationArray(results)) {
         if (!existsInWorkspace(location)) {

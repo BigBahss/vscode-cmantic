@@ -266,7 +266,6 @@ export class CSymbol extends SourceSymbol {
         trailingText = parse.maskAngleBrackets(trailingText);
         trailingText = trailingText.replace(/\b(public|protected|private)\b/g, parse.masker);
 
-
         const baseClasses: SubSymbol[] = [];
         for (const match of trailingText.matchAll(/\b[\w_][\w\d_]*(\s*::\s*[\w_][\w\d_]*)*\b(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {

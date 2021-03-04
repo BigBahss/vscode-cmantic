@@ -97,20 +97,21 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
         return;
     }
 
-    const position = getPositionForNewAccessorDeclaration(symbol, AccessorType.Both);
-    if (!position) {
+    const getterPosition = getPositionForNewAccessorDeclaration(symbol, AccessorType.Both);
+    if (!getterPosition) {
         logger.alertError(failure.positionNotFound);
         return;
     }
 
-    const setterPosition = new ProposedPosition(position, {
-        relativeTo: position.options.relativeTo,
+    const setterPosition = new ProposedPosition(getterPosition, {
+        relativeTo: getterPosition.options.relativeTo,
         after: true,
-        nextTo: true
+        nextTo: true,
+        emptyScope: getterPosition.options.emptyScope
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(new Getter(symbol), getterPosition, classDoc, workspaceEdit);
     await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
@@ -181,7 +182,7 @@ async function addNewAccessorToWorkspaceEdit(
 
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
         const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = declarationPos.formatTextToInsert(inlineDefinition, classDoc);
+        const formattedInlineDefinition = await declarationPos.formatTextToInsert(inlineDefinition, classDoc);
 
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedInlineDefinition);
     } else {
@@ -189,9 +190,10 @@ async function addNewAccessorToWorkspaceEdit(
                 ? target.sourceDoc.endOfLine
                 : ' ';
 
-        const formattedDeclaration = declarationPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
+        const formattedDeclaration = await declarationPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
+
         const definition = await newAccessor.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = target.formatTextToInsert(definition);
+        const formattedDefinition = await target.formatTextToInsert(definition);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);

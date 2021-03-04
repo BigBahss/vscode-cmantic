@@ -423,7 +423,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                     return new ProposedPosition(targetDoc.positionAt(bodyStart), {
                         after: true,
                         nextTo: true,
-                        emptyScope: true
+                        emptyScope: true,
+                        inNamespace: true
                     });
                 }
                 const lastChild = targetNamespace.children[targetNamespace.children.length - 1];

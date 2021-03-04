@@ -250,12 +250,6 @@ async function constructFunctionSkeleton(
         functionSkeleton = definition + initializerList + ' {' + eol + indentation + eol + '}';
     }
 
-    const cfgIndent = cfg.indentNamespaceBody();
-    if (position.options.emptyScope && (cfgIndent === cfg.NamespaceIndentation.Always
-            || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented()))) {
-        functionSkeleton = functionSkeleton.replace(/^/gm, indentation);
-    }
-
     return position.formatTextToInsert(functionSkeleton, targetDoc);
 }
 

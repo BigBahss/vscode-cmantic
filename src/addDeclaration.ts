@@ -63,8 +63,9 @@ export async function addDeclaration(
     const parentClass = await functionDefinition.getParentClass();
     const targetPos = await definitionDoc.findPositionForFunctionDeclaration(
             functionDefinition, targetDoc, parentClass);
+
     const declaration = await functionDefinition.getDeclarationForTargetPosition(targetDoc, targetPos);
-    const formattedDeclaration = targetPos.formatTextToInsert(declaration, targetDoc);
+    const formattedDeclaration = await targetPos.formatTextToInsert(declaration, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, formattedDeclaration);

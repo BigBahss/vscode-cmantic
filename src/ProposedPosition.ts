@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextLine } from 'vscode';
 import { SourceDocument } from './SourceDocument';
-import { endOfLine } from './utility';
+import * as util from './utility';
 
 
 export interface PositionOptions {
@@ -9,6 +9,7 @@ export interface PositionOptions {
     after?: boolean;
     nextTo?: boolean;       // Signals to not put a blank line between.
     emptyScope?: boolean;   // Signals that the position is in an empty scope and may need to be indented.
+    inNamespace?: boolean;  // Used with emptyScope, since namespace indentation is controlled by user settings.
 }
 
 export class ProposedPosition extends Position {
@@ -28,8 +29,8 @@ export class ProposedPosition extends Position {
         }
     }
 
-    formatTextToInsert(insertText: string, document: TextDocument): string {
-        return formatTextToInsert(insertText, this, document);
+    formatTextToInsert(insertText: string, sourceDoc: SourceDocument): Promise<string> {
+        return formatTextToInsert(insertText, this, sourceDoc);
     }
 }
 
@@ -42,16 +43,23 @@ export class TargetLocation {
         this.sourceDoc = sourceDoc;
     }
 
-    formatTextToInsert(insertText: string): string {
+    formatTextToInsert(insertText: string): Promise<string> {
         return formatTextToInsert(insertText, this.position, this.sourceDoc);
     }
 }
 
-function formatTextToInsert(insertText: string, position: ProposedPosition, document: TextDocument): string {
+async function formatTextToInsert(
+    insertText: string, position: ProposedPosition, sourceDoc: SourceDocument
+): Promise<string> {
+    if (position.options.emptyScope && (!position.options.inNamespace
+            || (position.options.inNamespace && await util.shouldIndentNamespaceBody(sourceDoc)))) {
+        insertText = insertText.replace(/^/gm, util.indentation());
+    }
+
     // Indent text to match the relative position.
     const indentationLine = position.options.relativeTo
-            ? document.lineAt(position.options.relativeTo.start)
-            : document.lineAt(position);
+            ? sourceDoc.lineAt(position.options.relativeTo.start)
+            : sourceDoc.lineAt(position);
     const indentation = indentationLine.text.substring(0, indentationLine.firstNonWhitespaceCharacterIndex);
     if (!position.options.before) {
         insertText = insertText.replace(/^/gm, indentation);
@@ -59,12 +67,12 @@ function formatTextToInsert(insertText: string, position: ProposedPosition, docu
         insertText = insertText.replace(/\n/gm, '\n' + indentation);
     }
 
-    const eol = endOfLine(document);
+    const eol = util.endOfLine(sourceDoc);
     const nextLine = function (): TextLine | undefined {
         if (position.options.after) {
-            return document.lineAt(position.line + 1);
+            return sourceDoc.lineAt(position.line + 1);
         } else if (position.options.before) {
-            return document.lineAt(position.line - 1);
+            return sourceDoc.lineAt(position.line - 1);
         }
     } ();
     const newLines = (position.options.nextTo || !nextLine?.isEmptyOrWhitespace)
@@ -76,7 +84,7 @@ function formatTextToInsert(insertText: string, position: ProposedPosition, docu
         insertText += newLines;
     }
 
-    if (position.line === document.lineCount - 1) {
+    if (position.line === sourceDoc.lineCount - 1) {
         insertText += eol;
     }
 
