@@ -185,93 +185,37 @@ export class CSymbol extends SourceSymbol {
             return;
         }
 
-        const startOffset = this.startOffset();
-
-        let parsableText = this.parsableText;
-        this.children.forEach(child => {
-            // Mask children to make finding access specifiers easy.
-            const childCSymbol = new CSymbol(child, this.document);
-            const relativeStartOffset = childCSymbol.startOffset() - startOffset;
-            const relativeEndOffset = childCSymbol.endOffset() - startOffset;
-            parsableText = parsableText.slice(0, relativeStartOffset)
-                    + ' '.repeat(relativeEndOffset - relativeStartOffset)
-                    + parsableText.slice(relativeEndOffset);
-        });
-
-        let publicSpecifierOffset: number | undefined;
-        const publicSpeciferMatch = parsableText.match(util.accessSpecifierRegexp(access));
-        if (publicSpeciferMatch === null || publicSpeciferMatch.index === undefined) {
-            return this.getPositionForNewChild();
-        } else {
-            publicSpecifierOffset = publicSpeciferMatch.index;
-        }
-
-        let nextAccessSpecifierOffset: number | undefined;
-        for (const match of parsableText.matchAll(/\b[\w_][\w\d_]*\s*:(?!:)/g)) {
-            if (match.index === undefined) {
-                continue;
-            }
-            if (match.index > publicSpecifierOffset) {
-                nextAccessSpecifierOffset = match.index;
-                break;
-            }
-        }
-
-        if (nextAccessSpecifierOffset === undefined) {
-            nextAccessSpecifierOffset = this.endOffset();
-        } else {
-            nextAccessSpecifierOffset += startOffset;
-        }
-        publicSpecifierOffset += startOffset;
-
-        let fallbackPosition: ProposedPosition | undefined;
-        let fallbackIndex: number | undefined;
-        for (let i = this.children.length - 1; i >= 0; --i) {
-            const symbol = new CSymbol(this.children[i], this.document);
-            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)) {
-                fallbackPosition = new ProposedPosition(symbol.range.end, {
-                    relativeTo: symbol.range,
-                    after: true
-                });
-                fallbackIndex = i;
-                break;
-            }
-        }
-
-        if (!fallbackPosition || fallbackIndex === undefined) {
-            return new ProposedPosition(this.document.positionAt(publicSpecifierOffset + publicSpeciferMatch[0].length), {
-                after: true,
-                nextTo: true,
-                emptyScope: true
-            });
-        } else if (!relativeName) {
-            return fallbackPosition;
-        }
-
         /* If relativeName is a setterName, then ProposedPosition should be before, since the new member function is
          * a getter. This is to match the positioning of these members when both are generated at the same time. */
         const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
-        for (let i = fallbackIndex; i >= 0; --i) {
-            const symbol = new CSymbol(this.children[i], this.document);
-            if (this.isChildFunctionBetween(symbol, publicSpecifierOffset, nextAccessSpecifierOffset)
-                    && symbol.name === relativeName) {
+        for (let i = this.children.length - 1, child = new CSymbol(this.children[i], this.document);
+            i >= 0 && (child = new CSymbol(this.children[i], this.document));
+            --i
+        ) {
+            if (child.name === relativeName) {
                 if (isGetter) {
-                    return new ProposedPosition(symbol.leadingCommentStart, {
-                        relativeTo: symbol.range,
+                    return new ProposedPosition(child.leadingCommentStart, {
+                        relativeTo: child.range,
                         before: true,
                         nextTo: true
                     });
+                } else {
+                    return new ProposedPosition(child.range.end, {
+                        relativeTo: child.range,
+                        after: true,
+                        nextTo: true
+                    });
                 }
-                return new ProposedPosition(symbol.range.end, {
-                    relativeTo: symbol.range,
-                    after: true,
-                    nextTo: true
+            } else if (relativeName === undefined && this.positionHasAccess(child.range.end, access)) {
+                return new ProposedPosition(child.range.end, {
+                    relativeTo: child.range,
+                    after: true
                 });
             }
         }
 
-        return fallbackPosition;
+        return this.getPositionForNewChild();
     }
 
     async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
