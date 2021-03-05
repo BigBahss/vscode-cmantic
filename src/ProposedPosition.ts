@@ -67,6 +67,9 @@ async function formatTextToInsert(
         insertText = insertText.replace(/\n/gm, '\n' + indentation);
     }
 
+    const accessSpecifierIndentation = util.indentation() + '(?=(public|protected|private))';
+    insertText = insertText.replace(new RegExp(accessSpecifierIndentation, 'g'), '');
+
     const eol = util.endOfLine(sourceDoc);
     const nextLine = function (): TextLine | undefined {
         if (position.options.after) {

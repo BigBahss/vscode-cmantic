@@ -198,6 +198,17 @@ export enum Access {
     private
 };
 
+export function accessSpecifierString(access: Access): string {
+    switch (access) {
+    case Access.public:
+        return 'public:';
+    case Access.protected:
+        return 'protected:';
+    case Access.private:
+        return 'private:';
+    }
+}
+
 export function accessSpecifierRegexp(access: Access): RegExp {
     switch (access) {
     case Access.public:

@@ -65,11 +65,20 @@ export async function addDeclaration(
     const access = parentClass !== undefined
             ? await util.getMemberAccessFromUser()
             : undefined;
+    if (parentClass && !access) {
+        // User cancelled the access specifier selection.
+        return;
+    }
+
     const targetPos = await definitionDoc.findPositionForFunctionDeclaration(
             functionDefinition, targetDoc, parentClass, access);
 
     const declaration = await functionDefinition.getDeclarationForTargetPosition(targetDoc, targetPos);
-    const formattedDeclaration = await targetPos.formatTextToInsert(declaration, targetDoc);
+    let formattedDeclaration = declaration;
+    if (access && !parentClass?.positionHasAccess(targetPos, access)) {
+        formattedDeclaration = util.accessSpecifierString(access) + targetDoc.endOfLine + formattedDeclaration;
+    }
+    formattedDeclaration = await targetPos.formatTextToInsert(formattedDeclaration, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, formattedDeclaration);

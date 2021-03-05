@@ -172,11 +172,20 @@ export async function moveDefinitionIntoOrOutOfClass(
         const parentClass = await definition.getParentClass();
         if (parentClass) {
             const access = await util.getMemberAccessFromUser();
+            if (!access) {
+                // User cancelled the access specifier selection.
+                return false;
+            }
+
             const position = await definition.document.findPositionForFunctionDeclaration(
                     definition, parentClass.document, parentClass, access);
 
             const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position);
-            const formattedDefinition = await position.formatTextToInsert(definitionText, classDoc);
+            let formattedDefinition = definitionText;
+            if (access && !parentClass?.positionHasAccess(position, access)) {
+                formattedDefinition = util.accessSpecifierString(access) + classDoc.endOfLine + formattedDefinition;
+            }
+            formattedDefinition = await position.formatTextToInsert(formattedDefinition, classDoc);
 
             const workspaceEdit = new vscode.WorkspaceEdit();
             workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
