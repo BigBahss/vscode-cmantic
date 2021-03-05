@@ -51,7 +51,7 @@ Selecting an undeclared function definition will suggest the following code-acti
 
 The `Add Declaration` command generates a declaration for a function in its cooresponding header file, or within its class definition in the case of a member function.
 
-If the function is a class member function, then the `Add Declaration` code-action will be provided as a `Quick Fix` (blue light-bulb). This is because defining a member function that is not declared in the class is an error.
+If the function is a class member function, then the `Add Declaration` code-action will be provided as a `Quick Fix` (blue light-bulb), since defining a member function that is not declared in the class is an error. You will also be prompted to pick an access specifier (`public`, `protected`, or `private`) for the member function, and if that access specifier doesn't already exist in the class, it will be created.
 
 ### **Move Definition**
 
@@ -115,7 +115,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 
 - C-mantic relies on the language server to provide information about your source code in order to function correctly. Because of this, if the language server running slowly, C-mantic may fail to provide code-actions right away. For instance, if you type out a function declaration, C-mantic won't be able to provide the `Add Definition` code-actions until the language server updates. To mitigate this, you can change how often the language server updates in response to code changes:
   - For `C/C++` (ms-vscode.cpptools), you can lower the `C_Cpp: Intelli Sense Update Delay` setting (default 2000ms).
-  - For `ccls`, you can lower the `Status Update Interval` setting (default 2000ms).
+  - For `ccls` (ccls-project.ccls), you can lower the `Status Update Interval` setting (default 2000ms).
 
 ## **Planned Features**
 
