@@ -109,7 +109,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     async findPositionForFunctionDeclaration(
-        definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol, access?: util.Access
+        definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol, access?: util.AccessLevel
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
@@ -410,10 +410,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         symbol: CSymbol,
         targetDoc: SourceDocument,
         parentClass?: CSymbol,
-        access?: util.Access
+        access?: util.AccessLevel
     ): Promise<ProposedPosition | undefined> {
         if (!access) {
-            access = util.Access.public;
+            access = util.AccessLevel.public;
         }
 
         if (parentClass) {

@@ -43,7 +43,7 @@ export async function generateEqualityOperators(
 
     const p_memberVariables = promptUserForMemberVariables(classOrStruct);
 
-    const equalPosition = classOrStruct.findPositionForNewMemberFunction(util.Access.public);
+    const equalPosition = classOrStruct.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!equalPosition) {
         logger.alertError(failure.positionNotFound);
         return;

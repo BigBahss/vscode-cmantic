@@ -142,14 +142,14 @@ export class CSymbol extends SourceSymbol {
     }
     private _accessSpecifiers?: SubSymbol[];
 
-    rangesOfAccess(access: util.Access): vscode.Range[] {
+    rangesOfAccess(access: util.AccessLevel): vscode.Range[] {
         const re_accessSpecifier = util.accessSpecifierRegexp(access);
         const ranges: vscode.Range[] = [];
         let start: vscode.Position | undefined;
 
-        if (access === util.Access.private && this.kind === vscode.SymbolKind.Class) {
+        if (access === util.AccessLevel.private && this.kind === vscode.SymbolKind.Class) {
             start = this.bodyStart();
-        } else if (access === util.Access.public && this.kind === vscode.SymbolKind.Struct) {
+        } else if (access === util.AccessLevel.public && this.kind === vscode.SymbolKind.Struct) {
             start = this.bodyStart();
         }
 
@@ -169,7 +169,7 @@ export class CSymbol extends SourceSymbol {
         return ranges;
     }
 
-    positionHasAccess(position: vscode.Position, access: util.Access): boolean {
+    positionHasAccess(position: vscode.Position, access: util.AccessLevel): boolean {
         return this.rangesOfAccess(access).some(range => range.contains(position));
     }
 
@@ -179,7 +179,7 @@ export class CSymbol extends SourceSymbol {
      * accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
      */
     findPositionForNewMemberFunction(
-        access: util.Access, relativeName?: string, memberVariable?: SourceSymbol
+        access: util.AccessLevel, relativeName?: string, memberVariable?: SourceSymbol
     ): ProposedPosition | undefined {
         if (!this.isClassOrStruct()) {
             return;
