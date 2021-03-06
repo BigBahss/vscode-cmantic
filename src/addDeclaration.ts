@@ -65,7 +65,7 @@ export async function addDeclaration(
     const access = parentClass !== undefined
             ? await util.getMemberAccessFromUser()
             : undefined;
-    if (parentClass && !access) {
+    if (parentClass && access === undefined) {
         // User cancelled the access specifier selection.
         return;
     }
