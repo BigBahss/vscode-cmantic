@@ -3,7 +3,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [0.6.0] - March 09, 2021
 ### Added
-- Added `cmantic.addDeclaration` command/code-action. `Add Declaration` will add a declaration of a function to the cooresponding header file if the function is not already declared there. If the function is a member function, the declaration will be added to the class, wherever it is defined. Additionally for member functions, `Add Declaration` will be provided as a `Quick Fix` (suggested in the blue light-bulb menu), because defining a member function outisde of the class with no declaration is an error. (#21)
+- Added `cmantic.addDeclaration` command/code-action. `Add Declaration` will add a declaration of a function to the corresponding header file if the function is not already declared there. If the function is a member function, the declaration will be added to the class, wherever it is defined. Additionally for member functions, `Add Declaration` will be provided as a `Quick Fix` (suggested in the blue light-bulb menu), because defining a member function outside of the class with no declaration is an error. (#21)
 - Added a setting `Code Actions: Enable Add Declaration` to control whether the `Add Declaration` code-action is suggested (light-bulb menu). (#21)
 - Added more variables for generating header guard `#define`'s. See `Header Guard: Define Format` in the settings for the full list of available variables.
 
