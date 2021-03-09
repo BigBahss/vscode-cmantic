@@ -70,7 +70,6 @@ async function formatTextToInsert(
     const accessSpecifierIndentation = util.indentation() + '(?=(public|protected|private))';
     insertText = insertText.replace(new RegExp(accessSpecifierIndentation, 'g'), '');
 
-    const eol = util.endOfLine(sourceDoc);
     const nextLine = function (): TextLine | undefined {
         if (position.options.after) {
             return sourceDoc.lineAt(position.line + 1);
@@ -78,9 +77,14 @@ async function formatTextToInsert(
             return sourceDoc.lineAt(position.line - 1);
         }
     } ();
-    const newLines = (position.options.nextTo || !nextLine?.isEmptyOrWhitespace)
+
+    const eol = util.endOfLine(sourceDoc);
+    const newLines = (position.options.nextTo || !nextLine
+                  || (!nextLine.isEmptyOrWhitespace && position.options.after && !/^\s*}/.test(nextLine.text))
+                  || (!nextLine.isEmptyOrWhitespace && position.options.before && !/{\s*$/.test(nextLine.text)))
             ? eol
             : eol + eol;
+
     if (position.options.after) {
         insertText = newLines + insertText;
     } else if (position.options.before) {
