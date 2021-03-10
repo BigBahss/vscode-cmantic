@@ -642,7 +642,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         let lastMatch: RegExpMatchArray | undefined;
-        for (const match of maskedText.matchAll(/\btemplate\s*<.+>/g)) {
+        for (const match of maskedText.matchAll(/\btemplate\s*<.*>/g)) {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {
