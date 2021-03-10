@@ -259,7 +259,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         } ();
 
-        if ((declaration?.equals(definition) && SourceFile.isHeader(declaration.uri))
+        if ((declaration?.matches(definition) && SourceFile.isHeader(declaration.uri))
                 || definition.parent?.isClassOrStruct()) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {

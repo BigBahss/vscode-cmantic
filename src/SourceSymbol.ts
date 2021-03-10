@@ -92,7 +92,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         return scopes.reverse();
     }
 
-    equals(other: SourceSymbol): boolean {
+    matches(other: SourceSymbol): boolean {
         return this.signature === other.signature
             && (this.kind === other.kind || (this.isFunction() && other.isFunction()));
     }

@@ -93,7 +93,7 @@ export class SourceFile {
 
         return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
             for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.equals(target)) {
+                if (sourceSymbol.matches(target)) {
                     return sourceSymbol;
                 }
 

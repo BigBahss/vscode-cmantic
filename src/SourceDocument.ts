@@ -359,7 +359,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
-                        && parentClass?.equals(linkedSymbol) !== false) {
+                        && parentClass?.matches(linkedSymbol) !== false) {
                     return new ProposedPosition(linkedSymbol.range.end, {
                         relativeTo: linkedSymbol.range,
                         after: true
@@ -395,7 +395,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
-                        && parentClass?.equals(linkedSymbol) !== false) {
+                        && parentClass?.matches(linkedSymbol) !== false) {
                     const leadingCommentStart = linkedSymbol.leadingCommentStart;
                     return new ProposedPosition(leadingCommentStart, {
                         relativeTo: new vscode.Range(leadingCommentStart, linkedSymbol.range.end),

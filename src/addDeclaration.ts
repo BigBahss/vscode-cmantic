@@ -55,7 +55,7 @@ export async function addDeclaration(
     const existingDeclaration = await functionDefinition.findDeclaration();
     if (existingDeclaration?.uri.fsPath === targetDoc.uri.fsPath) {
         const existingDeclarationSymbol = await targetDoc.getSymbol(existingDeclaration.range.start);
-        if (existingDeclarationSymbol?.equals(functionDefinition)) {
+        if (existingDeclarationSymbol?.matches(functionDefinition)) {
             logger.alertInformation(failure.declarationExists);
             return;
         }
