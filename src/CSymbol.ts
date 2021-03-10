@@ -546,14 +546,16 @@ export class CSymbol extends SourceSymbol {
             scopeString = await this.scopeString(targetDoc, position);
         }
 
-        const declarationRange = new vscode.Range(this.trueStart, this.declarationEnd());
+        const declarationStart = this.declarationStart();
+        const declarationRange = new vscode.Range(declarationStart, this.declarationEnd());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
         let maskedDeclaration = parse.maskComments(declaration, false);
         maskedDeclaration = parse.maskRawStringLiterals(maskedDeclaration);
         maskedDeclaration = parse.maskQuotes(maskedDeclaration);
         maskedDeclaration = parse.maskParentheses(maskedDeclaration);
 
-        const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(this.trueStart);
+        const nameEndIndex =
+                this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(declarationStart);
         const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
         const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
@@ -561,19 +563,23 @@ export class CSymbol extends SourceSymbol {
         }
         const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex + 1, paramEndIndex));
 
-        const templateStatement = this.parent?.isTemplate()
-                ? this.parent.templateStatement(true) + targetDoc.endOfLine
-                : '';
+        let templateStatement = '';
+        if (this.isTemplate()) {
+            templateStatement = this.templateStatement(true) + targetDoc.endOfLine;
+        } else if (this.parent?.isTemplate()) {
+            templateStatement = this.parent.templateStatement(true) + targetDoc.endOfLine;
+        }
+
         const inlineSpecifier =
-                ((!this.parent || !util.containsExclusive(this.parent.range, position))
-                        && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
-                        && !this.isInline() && !this.isConstexpr() && checkForInline)
+            ((!this.parent || !util.containsExclusive(this.parent.range, position))
+            && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
+            && !this.isInline() && !this.isConstexpr() && checkForInline)
                 ? 'inline '
                 : '';
 
         // Intelligently align the definition in the case of a multi-line declaration.
         const scopeStringStart = this.scopeStringStart();
-        let leadingText = this.document.getText(new vscode.Range(this.trueStart, scopeStringStart));
+        let leadingText = this.document.getText(new vscode.Range(declarationStart, scopeStringStart));
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
@@ -642,7 +648,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         let lastMatch: RegExpMatchArray | undefined;
-        for (const match of maskedText.matchAll(/\btemplate\s*<.*>/g)) {
+        for (const match of maskedText.matchAll(/\btemplate\s*<.*>/gs)) {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {
@@ -654,6 +660,20 @@ export class CSymbol extends SourceSymbol {
         return this._trueStart;
     }
     private _trueStart?: vscode.Position;
+
+    private declarationStart(): vscode.Position {
+        if (!this.parsableLeadingText.startsWith('template')) {
+            return this.range.start;
+        }
+
+        const maskedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText);
+        const declarationStartIndex = maskedLeadingText.search(/(?<=template\s*<\s*>\s*)\S/);
+        if (declarationStartIndex === -1) {
+            return this.range.start;
+        }
+
+        return this.document.positionAt(this.startOffset() + declarationStartIndex);
+    }
 
     private declarationEnd(): vscode.Position {
         const maskedText = parse.maskParentheses(this.parsableText);
