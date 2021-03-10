@@ -196,20 +196,20 @@ export class CSymbol extends SourceSymbol {
             if (child.name === relativeName) {
                 if (isGetter) {
                     return new ProposedPosition(child.leadingCommentStart, {
-                        relativeTo: child.range,
+                        relativeTo: child.fullRange(),
                         before: true,
                         nextTo: true
                     });
                 } else {
-                    return new ProposedPosition(child.range.end, {
-                        relativeTo: child.range,
+                    return new ProposedPosition(child.trailingCommentEnd(), {
+                        relativeTo: child.fullRange(),
                         after: true,
                         nextTo: true
                     });
                 }
             } else if (relativeName === undefined && this.positionHasAccess(child.range.end, access)) {
-                return new ProposedPosition(child.range.end, {
-                    relativeTo: child.range,
+                return new ProposedPosition(child.trailingCommentEnd(), {
+                    relativeTo: child.fullRange(),
                     after: true
                 });
             }
@@ -819,11 +819,30 @@ export class CSymbol extends SourceSymbol {
     }
     private _leadingCommentStart?: vscode.Position;
 
+    trailingCommentEnd(): vscode.Position {
+        const documentEnd = this.document.lineAt(this.document.lineCount - 1).range.end;
+        const documentTrailingText = this.document.getText(new vscode.Range(this.range.end, documentEnd));
+
+        if (/[ \t]*\/\//.test(documentTrailingText)) {
+            return this.document.lineAt(this.range.end).range.end;
+        }
+
+        if (/[ \t]*\/\*/.test(documentTrailingText)) {
+            const maskedTrailingText = parse.maskComments(documentTrailingText);
+            const commentEndIndex = maskedTrailingText.indexOf('*/');
+            if (commentEndIndex !== -1) {
+                return this.document.positionAt(this.endOffset() + commentEndIndex + 2);
+            }
+        }
+
+        return this.range.end;
+    }
+
     private getPositionForNewChild(): ProposedPosition {
         if (this.children.length > 0) {
             const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
-            return new ProposedPosition(lastChild.range.end, {
-                relativeTo: this.children[this.children.length - 1].range,
+            return new ProposedPosition(lastChild.trailingCommentEnd(), {
+                relativeTo: lastChild.fullRange(),
                 after: true
             });
         }

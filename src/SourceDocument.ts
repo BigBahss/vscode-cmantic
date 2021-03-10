@@ -161,12 +161,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         }
 
         // If all else fails then return a position after the last symbol in the document.
-        const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
-        const endPosition = targetDoc.getEndOfStatement(lastSymbol.range.end);
-        return new ProposedPosition(endPosition, {
-            relativeTo: new vscode.Range(lastSymbol.range.start, endPosition),
-            after: true
-        });
+        return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
     }
 
     /**
@@ -229,12 +224,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         }
 
         // If all else fails then return a position after the last symbol in the document.
-        const lastSymbol = targetDoc.symbols[targetDoc.symbols.length - 1];
-        const endPosition = targetDoc.getEndOfStatement(lastSymbol.range.end);
-        return new ProposedPosition(endPosition, {
-            relativeTo: new vscode.Range(lastSymbol.range.start, endPosition),
-            after: true
-        });
+        return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
     }
 
     /**
@@ -315,12 +305,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        if (this.symbols.length > 0) {
-            return new ProposedPosition(this.getEndOfStatement(this.symbols[this.symbols.length - 1].range.end), {
-                after: true
-            });
-        }
-        return util.positionAfterLastNonEmptyLine(this);
+        return this.positionAfterLastSymbol(this.symbols);
     }
 
     // TODO: Give this function a better name or refactor this to not be so terrible.
@@ -366,8 +351,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
-                    return new ProposedPosition(linkedSymbol.range.end, {
-                        relativeTo: linkedSymbol.range,
+                    return new ProposedPosition(linkedSymbol.trailingCommentEnd(), {
+                        relativeTo: linkedSymbol.fullRange(),
                         after: true
                     });
                 }
@@ -406,9 +391,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
-                    const leadingCommentStart = linkedSymbol.leadingCommentStart;
-                    return new ProposedPosition(leadingCommentStart, {
-                        relativeTo: new vscode.Range(leadingCommentStart, linkedSymbol.range.end),
+                    return new ProposedPosition(linkedSymbol.leadingCommentStart, {
+                        relativeTo: linkedSymbol.fullRange(),
                         before: true
                     });
                 }
@@ -463,18 +447,24 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                         inNamespace: true
                     });
                 }
-                const lastChild = targetNamespace.children[targetNamespace.children.length - 1];
-                const endPosition = targetDoc.getEndOfStatement(lastChild.range.end);
-                return new ProposedPosition(endPosition, {
-                    relativeTo: new vscode.Range(lastChild.range.start, endPosition),
+                const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], targetDoc);
+                return new ProposedPosition(lastChild.trailingCommentEnd(), {
+                    relativeTo: lastChild.fullRange(),
                     after: true
                 });
             }
         }
     }
 
-    private getEndOfStatement(position: vscode.Position): vscode.Position {
-        return parse.getEndOfStatement(this, position);
+    private positionAfterLastSymbol(symbols: SourceSymbol[]): ProposedPosition {
+        if (symbols.length > 0) {
+            const lastSymbol = new CSymbol(symbols[symbols.length - 1], this);
+            return new ProposedPosition(lastSymbol.trailingCommentEnd(), {
+                relativeTo: lastSymbol.fullRange(),
+                after: true
+            });
+        }
+        return util.positionAfterLastNonEmptyLine(this);
     }
 
     private static siblingFunctions(symbol: SourceSymbol, topLevelSymbols: SourceSymbol[]): SourceSymbol[] {
