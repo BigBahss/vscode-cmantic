@@ -214,15 +214,15 @@ async function getTargetForAccessorDefinition(
     case cfg.DefinitionLocation.Inline:
         return new TargetLocation(declarationPos, classDoc);
     case cfg.DefinitionLocation.SourceFile:
-        // If the class is not in a header file then control will pass down to CurrentFile.
         if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
-            if (matchingUri && !accessor.parent?.isTemplate()) {
+            if (matchingUri && !accessor.parent?.isUnspecializedTemplate()) {
                 const targetDoc = await SourceDocument.open(matchingUri);
                 return new TargetLocation(
                         await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
             }
         }
+        // fallthrough
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(
                 await classDoc.findPositionForFunctionDefinition(declarationPos, classDoc), classDoc);

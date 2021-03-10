@@ -68,12 +68,12 @@ export class Getter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.memberVariable.parent?.isTemplate()
-                ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
+        const templateStatement = this.memberVariable.parent?.isUnspecializedTemplate()
+                ? this.memberVariable.parent.templateStatement(true) + eol
                 : '';
         const inlineSpecifier =
-                ((!this.parent || !util.containsExclusive(this.parent.range, position))
-                        && this.memberVariable.document.fileName === target.fileName)
+            ((!this.parent || !util.containsExclusive(this.parent.range, position))
+            && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
         return templateStatement + inlineSpecifier + this.returnType
@@ -136,12 +136,12 @@ export class Setter implements Accessor {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.memberVariable.parent?.isTemplate()
-                ? this.memberVariable.parent.templateStatement(true) + target.endOfLine
+        const templateStatement = this.memberVariable.parent?.isUnspecializedTemplate()
+                ? this.memberVariable.parent.templateStatement(true) + eol
                 : '';
         const inlineSpecifier =
-                ((!this.parent || !util.containsExclusive(this.parent.range, position))
-                        && this.memberVariable.document.fileName === target.fileName)
+            ((!this.parent || !util.containsExclusive(this.parent.range, position))
+            && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
         return templateStatement + inlineSpecifier + this.returnType

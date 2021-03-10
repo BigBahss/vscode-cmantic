@@ -23,8 +23,8 @@ export const failure = {
     notHeaderFile: 'This file is not a header file.',
     noFunctionDeclaration: 'No function declaration detected.',
     noMatchingSourceFile: 'No matching source file was found.',
-    isTemplate: 'Function templates must be defined in the file that they are declared.',
-    isClassTemplate: 'Class template member functions must be defined in the same file.',
+    isTemplate: 'Unspecialized function templates must be defined in the file that they are declared.',
+    isClassTemplate: 'Unspecialized class template member functions must be defined in the file that they are declared.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
     definitionExists: 'A definition for this function already exists.'
@@ -61,9 +61,9 @@ export async function addDefinitionInSourceFile(): Promise<void> {
     } else if (symbol.isInline()) {
         logger.alertInformation(failure.isInline);
         return;
-    } else if (symbol?.isTemplate()) {
+    } else if (symbol?.isUnspecializedTemplate()) {
         logger.alertInformation(failure.isTemplate);
-    } else if (symbol?.parent?.isTemplate()) {
+    } else if (symbol?.parent?.isUnspecializedTemplate()) {
         logger.alertInformation(failure.isClassTemplate);
     }
 

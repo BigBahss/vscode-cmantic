@@ -39,12 +39,12 @@ export class OpEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.parent?.isTemplate()
-                ? this.parent.templateStatement(true) + target.endOfLine
+        const templateStatement = this.parent?.isUnspecializedTemplate()
+                ? this.parent.templateStatement(true) + eol
                 : '';
         const inlineSpecifier =
-                (!util.containsExclusive(this.parent.range, position)
-                        && this.parent.document.fileName === target.fileName)
+            (!util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
         return templateStatement + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position)
@@ -96,12 +96,12 @@ export class OpNotEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.parent?.isTemplate()
-                ? this.parent.templateStatement(true) + target.endOfLine
+        const templateStatement = this.parent?.isUnspecializedTemplate()
+                ? this.parent.templateStatement(true) + eol
                 : '';
         const inlineSpecifier =
-                (!util.containsExclusive(this.parent.range, position)
-                        && this.parent.document.fileName === target.fileName)
+            (!util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
         return templateStatement + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position)

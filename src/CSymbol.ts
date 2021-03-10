@@ -250,10 +250,7 @@ export class CSymbol extends SourceSymbol {
                 if (!targetScope) {
                     targetScope = new CSymbol(scope, this.document);
                 }
-                const templateParameters = targetScope.isTemplate()
-                        ? targetScope.templateParameters()
-                        : '';
-                scopeString += scope.name + templateParameters + '::';
+                scopeString += scope.name + targetScope.templateParameters() + '::';
             }
         }
 
@@ -369,6 +366,23 @@ export class CSymbol extends SourceSymbol {
     }
 
     templateParameters(): string {
+        if (this.isSpecializedTemplate()) {
+            const startOffset = this.startOffset();
+            const startIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
+            const maskedTrailingText = parse.maskAngleBrackets(this.parsableText.slice(startIndex));
+
+            const templateParamStartIndex = maskedTrailingText.indexOf('<');
+            const templateParamEndIndex = maskedTrailingText.indexOf('>');
+            if (templateParamStartIndex === -1 || templateParamEndIndex === -1) {
+                return '';
+            }
+
+            const templateParamStart = this.document.positionAt(startOffset + startIndex + templateParamStartIndex);
+            const templateParamEnd = this.document.positionAt(startOffset + startIndex + templateParamEndIndex + 1);
+
+            return this.document.getText(new vscode.Range(templateParamStart, templateParamEnd));
+        }
+
         const templateStatement = this.templateStatement(true);
         if (!templateStatement) {
             return '';
@@ -593,7 +607,7 @@ export class CSymbol extends SourceSymbol {
         let templateStatement = '';
         if (this.isTemplate()) {
             templateStatement = this.templateStatement(true) + targetDoc.endOfLine;
-        } else if (this.parent?.isTemplate()) {
+        } else if (this.parent?.isUnspecializedTemplate()) {
             templateStatement = this.parent.templateStatement(true) + targetDoc.endOfLine;
         }
 
