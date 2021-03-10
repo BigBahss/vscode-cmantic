@@ -5,7 +5,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - Fixed title of `Add Declaration` code-action displaying the wrong target file.
 - Fixed recognition of explicit template specializations, and multi-lined template statements.
-- Fixed placement of `inline` specifier for function templates (inline was getting inserted before the template statement, which was a syntax error).
+- Fixed placement of `inline` specifier for function templates (`inline` was getting inserted before the template statement, which was a syntax error).
+- Fixed an issue where, under certain conditions, generated definitions/declarations would be placed within unrelated blocks of code (this only happened on `ms-vscode.cpptools` and was a result of how it provides definitions/declarations for overloaded functions and undefined functions).
 
 ## [0.6.0] - March 09, 2021
 ### Added

@@ -332,6 +332,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         findDefinition: boolean,
         parentClass?: CSymbol
     ): Promise<ProposedPosition | undefined> {
+        const anchorSymbolAllScopes = anchorSymbol.allScopes();
+
         let checkedFunctionCount = 0;
         for (const symbol of before) {
             if (checkedFunctionCount > 4) {
@@ -354,6 +356,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
+                    continue;
+                }
+
+                if (!util.arraysIntersect(linkedSymbol.allScopes(), anchorSymbolAllScopes)) {
                     continue;
                 }
 
@@ -390,6 +396,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
+                    continue;
+                }
+
+                if (!util.arraysIntersect(linkedSymbol.allScopes(), anchorSymbolAllScopes)) {
                     continue;
                 }
 
