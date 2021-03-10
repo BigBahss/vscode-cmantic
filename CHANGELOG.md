@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed title of `Add Declaration` code-action displaying the wrong target file.
+- Fixed recognition of explicit template specializations, and multi-lined template statements.
+- Fixed placement of `inline` specifier for function templates (inline was getting inserted before the template statement, which was a syntax error).
+
 ## [0.6.0] - March 09, 2021
 ### Added
 - Added `cmantic.addDeclaration` command/code-action. `Add Declaration` will add a declaration of a function to the corresponding header file if the function is not already declared there. If the function is a member function, the declaration will be added to the class, wherever it is defined. Additionally for member functions, `Add Declaration` will be provided as a `Quick Fix` (suggested in the blue light-bulb menu), because defining a member function outside of the class with no declaration is an error. (#21)
