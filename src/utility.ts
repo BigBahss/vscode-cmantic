@@ -52,6 +52,16 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (b_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
+export function arraysIntersect<T>(array_a: T[], array_b: T[]): boolean {
+    const minLength = Math.min(array_a.length, array_b.length);
+    for (let i = 0; i < minLength; ++i) {
+        if (array_a[i] !== array_b[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean {
     if (locationOrUri instanceof vscode.Location) {
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;
