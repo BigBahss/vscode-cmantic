@@ -439,6 +439,14 @@ export class CSymbol extends SourceSymbol {
         return this.fullLeadingText().startsWith('template');
     }
 
+    isSpecializedTemplate(): boolean {
+        return /^template\s*<\s*>/.test(this.fullLeadingText());
+    }
+
+    isUnspecializedTemplate(): boolean {
+        return this.isTemplate() && !this.isSpecializedTemplate();
+    }
+
     isTypedef(): boolean {
         return this.mightBeTypedefOrTypeAlias() && /\btypedef\b/.test(this.parsableText);
     }
