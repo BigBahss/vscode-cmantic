@@ -603,6 +603,8 @@ export class CSymbol extends SourceSymbol {
             return '';
         }
         const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex + 1, paramEndIndex));
+        const paramStart = this.document.positionAt(this.document.offsetAt(declarationStart) + paramStartIndex);
+        const nameToParamRange = new vscode.Range(this.selectionRange.start, paramStart);
 
         let templateStatement = '';
         if (this.isTemplate()) {
@@ -634,7 +636,8 @@ export class CSymbol extends SourceSymbol {
             leadingText = leadingText.replace(/\binline\b\s*/, '');
         }
         leadingText = leadingText.replace(parse.getIndentationRegExp(this), '');
-        let definition = this.name + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
+        let definition = this.document.getText(nameToParamRange)
+                + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
         const newLeadingLines = leadingText.split(targetDoc.endOfLine);
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
