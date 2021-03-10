@@ -216,7 +216,7 @@ async function getTargetForAccessorDefinition(
     case cfg.DefinitionLocation.SourceFile:
         if (classDoc.isHeader()) {
             const matchingUri = await getMatchingSourceFile(classDoc.uri);
-            if (matchingUri && !accessor.parent?.isUnspecializedTemplate()) {
+            if (matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
                 const targetDoc = await SourceDocument.open(matchingUri);
                 return new TargetLocation(
                         await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);

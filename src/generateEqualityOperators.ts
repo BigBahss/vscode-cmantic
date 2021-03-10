@@ -124,7 +124,7 @@ class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPick
         super({ label: 'Inline', location: cfg.DefinitionLocation.Inline },
               { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile });
 
-        if (sourceDoc.isHeader() && !classOrStruct.isUnspecializedTemplate()) {
+        if (sourceDoc.isHeader() && !classOrStruct.hasUnspecializedTemplate()) {
             this.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
         }
     }

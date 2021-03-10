@@ -39,17 +39,14 @@ export class OpEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.parent?.isUnspecializedTemplate()
-                ? this.parent.templateStatement(true) + eol
-                : '';
         const inlineSpecifier =
             (!util.containsExclusive(this.parent.range, position)
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return templateStatement + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position)
-                + this.name + '(' + this.parameter + ') const' + curlySeparator + '{'
-                + eol + util.indentation() + this.body + eol + '}';
+        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
+                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
+                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 
     setMemberVariables(memberVariables: SourceSymbol[]): void {
@@ -96,16 +93,13 @@ export class OpNotEqual implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
-        const templateStatement = this.parent?.isUnspecializedTemplate()
-                ? this.parent.templateStatement(true) + eol
-                : '';
         const inlineSpecifier =
             (!util.containsExclusive(this.parent.range, position)
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return templateStatement + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position)
-                + this.name + '(' + this.parameter + ') const' + curlySeparator + '{'
-                + eol + util.indentation() + this.body + eol + '}';
+        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
+                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
+                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

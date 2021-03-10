@@ -218,6 +218,8 @@ export class CSymbol extends SourceSymbol {
         return this.getPositionForNewChild();
     }
 
+    scopes(): CSymbol[] { return super.scopes() as CSymbol[]; }
+
     allScopes(): string[] {
         const allScopes: string[] = [];
 
@@ -365,6 +367,36 @@ export class CSymbol extends SourceSymbol {
         return removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement;
     }
 
+    allTemplateStatements(removeDefaultArgs?: boolean): string[] {
+        const templateStatements: string[] = [];
+
+        this.scopes().forEach(scope => {
+            if (scope.isClassOrStruct() && scope.isUnspecializedTemplate())  {
+                const templateStatement = scope.templateStatement(removeDefaultArgs);
+                if (templateStatement) {
+                    templateStatements.push(templateStatement);
+                }
+            }
+        });
+
+        const templateStatement = this.templateStatement(removeDefaultArgs);
+        if (templateStatement) {
+            templateStatements.push(templateStatement);
+        }
+
+        return templateStatements;
+    }
+
+    combinedTemplateStatements(removeDefaultArgs?: boolean, separator?: string): string {
+        if (separator === undefined) {
+            separator = this.document.endOfLine;
+        }
+        const templateStatements = this.allTemplateStatements(true);
+        return templateStatements.length > 0
+                ? templateStatements.join(separator) + separator
+                : '';
+    }
+
     templateParameters(): string {
         if (this.isSpecializedTemplate()) {
             const startOffset = this.startOffset();
@@ -459,6 +491,15 @@ export class CSymbol extends SourceSymbol {
 
     isUnspecializedTemplate(): boolean {
         return this.isTemplate() && !this.isSpecializedTemplate();
+    }
+
+    hasUnspecializedTemplate(): boolean {
+        for (const scope of this.scopes()) {
+            if (scope.isUnspecializedTemplate()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     isTypedef(): boolean {
@@ -606,13 +647,6 @@ export class CSymbol extends SourceSymbol {
         const paramStart = this.document.positionAt(this.document.offsetAt(declarationStart) + paramStartIndex);
         const nameToParamRange = new vscode.Range(this.selectionRange.start, paramStart);
 
-        let templateStatement = '';
-        if (this.isTemplate()) {
-            templateStatement = this.templateStatement(true) + targetDoc.endOfLine;
-        } else if (this.parent?.isUnspecializedTemplate()) {
-            templateStatement = this.parent.templateStatement(true) + targetDoc.endOfLine;
-        }
-
         const inlineSpecifier =
             ((!this.parent || !util.containsExclusive(this.parent.range, position))
             && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
@@ -626,7 +660,7 @@ export class CSymbol extends SourceSymbol {
         const oldScopeString = this.document.getText(new vscode.Range(scopeStringStart, this.selectionRange.start));
         const line = this.document.lineAt(this.range.start);
         const leadingIndent = line.text.substring(0, line.firstNonWhitespaceCharacterIndex).length;
-        const leadingLines = leadingText.split(util.endOfLine(this.document));
+        const leadingLines = leadingText.split(this.document.endOfLine);
         const alignLength = leadingLines[leadingLines.length - 1].trimStart().length;
         const newLineAlignment = leadingIndent + alignLength + oldScopeString.length;
         const re_newLineAlignment =
@@ -639,13 +673,15 @@ export class CSymbol extends SourceSymbol {
         let definition = this.document.getText(nameToParamRange)
                 + '(' + parameters + ')' + declaration.substring(paramEndIndex + 1);
 
-        const newLeadingLines = leadingText.split(targetDoc.endOfLine);
+        const eol = targetDoc.endOfLine;
+        const newLeadingLines = leadingText.split(eol);
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
         if (newLineAlignment) {
             definition = definition.replace(
                     re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
         }
-        definition = templateStatement + inlineSpecifier + leadingText + scopeString + definition;
+        definition = this.combinedTemplateStatements(true, eol)
+                + inlineSpecifier + leadingText + scopeString + definition;
         return definition.replace(/\s*\b(override|final)\b/g, '');
     }
 
