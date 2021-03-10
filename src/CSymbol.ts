@@ -819,13 +819,6 @@ export class CSymbol extends SourceSymbol {
     }
     private _leadingCommentStart?: vscode.Position;
 
-    private isChildFunctionBetween(child: CSymbol, afterOffset: number, beforeOffset: number): boolean {
-        if (child.isFunction() && child.isAfter(afterOffset) && child.isBefore(beforeOffset)) {
-            return true;
-        }
-        return false;
-    }
-
     private getPositionForNewChild(): ProposedPosition {
         if (this.children.length > 0) {
             const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
