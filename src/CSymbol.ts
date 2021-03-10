@@ -218,6 +218,25 @@ export class CSymbol extends SourceSymbol {
         return this.getPositionForNewChild();
     }
 
+    allScopes(): string[] {
+        const allScopes: string[] = [];
+
+        this.scopes().forEach(scope => allScopes.push(scope.name));
+
+        if (!this.parsableLeadingText.trimEnd().endsWith('::')) {
+            return allScopes;
+        }
+
+        const startOffset = this.startOffset();
+        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - startOffset;
+        const scopeStringEndIndex = this.parsableLeadingText.lastIndexOf('::');
+        const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
+
+        scopeString.split('::').forEach(scope => allScopes.push(scope.trim()));
+
+        return allScopes;
+    }
+
     async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
         let scopeString = '';
         const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
