@@ -249,11 +249,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const addDeclaration = new RefactorAction(
                 addDeclarationTitle.matchingHeaderFile, 'cmantic.addDeclaration');
 
-        if (matchingUri) {
-            const displayPath = util.formatPathToDisplay(matchingUri);
-            addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
-        }
-
         const declaration = await async function (): Promise<CSymbol | undefined> {
             const existingDeclaration = await p_existingDeclaration;
             if (existingDeclaration) {
@@ -280,8 +275,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 addDeclaration.isPreferred = true;
                 addDeclaration.diagnostics = [...context.diagnostics];
             } else if (matchingUri && SourceFile.isHeader(matchingUri)) {
+                const displayPath = util.formatPathToDisplay(matchingUri);
+                addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
                 addDeclaration.setArguments(definition, sourceDoc, matchingUri);
             } else {
+                addDeclaration.setTitle(addDeclarationTitle.currentFile);
                 addDeclaration.setArguments(definition, sourceDoc, sourceDoc.uri);
             }
         }
