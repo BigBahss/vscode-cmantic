@@ -128,7 +128,8 @@ export class CSymbol extends SourceSymbol {
     isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
     matches(other: CSymbol): boolean {
-        return super.matches(other) && util.arraysAreEqual(this.allScopes(), other.allScopes());
+        return super.matches(other) && util.arraysAreEqual(this.allScopes(), other.allScopes())
+                && this.templatedName(true) === other.templatedName(true);
     }
 
     get accessSpecifiers(): SubSymbol[] {
@@ -281,15 +282,13 @@ export class CSymbol extends SourceSymbol {
 
         this.scopes().forEach(scope => {
             allScopes.push(...scope.namedScopes);
-            allScopes.push(parse.normalize(scope.templatedName()));
+            allScopes.push(scope.templatedName(true));
         });
 
         allScopes.push(...this.namedScopes);
 
         return allScopes;
     }
-
-
 
     async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
         let scopeString = '';
@@ -497,7 +496,10 @@ export class CSymbol extends SourceSymbol {
         return '<' + parameters.join(', ') + '>';
     }
 
-    templatedName(): string { return this.name + this.templateParameters(); }
+    templatedName(normalize?: boolean): string {
+        const templateName = this.name + this.templateParameters();
+        return normalize ? parse.normalize(templateName) : templateName;
+    }
 
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !this.parsableText.endsWith('}')
