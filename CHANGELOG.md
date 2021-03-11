@@ -18,6 +18,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed name qualification of generated code in the case that a parent scope has a qualified name.
 - Fixed a bug that would throw an error when generating equality operators for an empty class/struct.
 - Fixed `Add Declaration` and `Move Definition` not recognizing parent class templates.
+- Fixed recognition of leading comments. Comments that had multiple newlines in-between it and a symbol were incorrectly being recognized as leading comments.
 
 ## [0.6.0] - March 09, 2021
 ### Added

@@ -868,7 +868,8 @@ export class CSymbol extends SourceSymbol {
         }
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.trueStart);
-        const maskedText = parse.maskComments(this.document.getText(before)).trimEnd();
+        const re_trimEnd = new RegExp(`[ \\t]*${this.document.endOfLine}?[ \\t]*$`);
+        const maskedText = parse.maskComments(this.document.getText(before)).replace(re_trimEnd, '');
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
             this._leadingCommentStart = this.trueStart;
             return this._leadingCommentStart;
