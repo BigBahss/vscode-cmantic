@@ -13,6 +13,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed an issue where, under certain conditions, generated definitions/declarations would be placed within unrelated blocks of code (this only happened on `ms-vscode.cpptools` and was a result of how it provides definitions/declarations for overloaded functions and undefined functions).
 - Placement of generated code will now acount for trailing comments.
 - Fixed name qualification of generated code in the case that a parent scope has a qualified name.
+- Fixed a bug that would throw an error when generating equality operators for an empty class/struct.
 
 ## [0.6.0] - March 09, 2021
 ### Added

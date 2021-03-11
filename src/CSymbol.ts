@@ -218,7 +218,7 @@ export class CSymbol extends SourceSymbol {
          * a getter. This is to match the positioning of these members when both are generated at the same time. */
         const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
-        for (let i = this.children.length - 1, child = new CSymbol(this.children[i], this.document);
+        for (let i = this.children.length - 1, child: CSymbol;
             i >= 0 && (child = new CSymbol(this.children[i], this.document));
             --i
         ) {
