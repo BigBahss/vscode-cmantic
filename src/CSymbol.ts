@@ -768,7 +768,7 @@ export class CSymbol extends SourceSymbol {
     }
     private _trueStart?: vscode.Position;
 
-    private declarationStart(): vscode.Position {
+    declarationStart(): vscode.Position {
         if (!this.parsableLeadingText.startsWith('template')) {
             return this.range.start;
         }
@@ -782,7 +782,7 @@ export class CSymbol extends SourceSymbol {
         return this.document.positionAt(this.startOffset() + templateStatementsMatch[0].length);
     }
 
-    private declarationEnd(): vscode.Position {
+    declarationEnd(): vscode.Position {
         const maskedText = parse.maskParentheses(this.parsableText);
         const startOffset = this.startOffset();
         const nameEndIndex = this.document.offsetAt(this.selectionRange.end) - startOffset;
@@ -803,7 +803,7 @@ export class CSymbol extends SourceSymbol {
         return this.document.positionAt(startOffset + nameEndIndex + initializerIndex);
     }
 
-    private bodyStart(): vscode.Position {
+    bodyStart(): vscode.Position {
         const maskedText = parse.maskBraces(parse.maskParentheses(this.parsableText));
         const bodyStartIndex = maskedText.lastIndexOf('{');
         if (bodyStartIndex === -1) {
@@ -813,7 +813,7 @@ export class CSymbol extends SourceSymbol {
         return this.document.positionAt(this.startOffset() + bodyStartIndex + 1);
     }
 
-    private bodyEnd(): vscode.Position {
+    bodyEnd(): vscode.Position {
         const bodyEndIndex = this.parsableText.lastIndexOf('}');
         if (bodyEndIndex === -1) {
             return this.range.end;
@@ -822,7 +822,7 @@ export class CSymbol extends SourceSymbol {
         return this.document.positionAt(this.startOffset() + bodyEndIndex);
     }
 
-    private scopeStringStart(): vscode.Position {
+    scopeStringStart(): vscode.Position {
         const trimmedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText.trimEnd(), false);
         if (!trimmedLeadingText.endsWith('::')) {
             return this.selectionRange.start;

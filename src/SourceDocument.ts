@@ -438,9 +438,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                 }
 
                 if (targetNamespace.children.length === 0) {
-                    const bodyStart = targetDoc.offsetAt(targetNamespace.range.start)
-                            + targetNamespace.parsableText.indexOf('{') + 1;
-                    return new ProposedPosition(targetDoc.positionAt(bodyStart), {
+                    return new ProposedPosition(targetNamespace.bodyStart(), {
                         after: true,
                         nextTo: true,
                         emptyScope: true,
