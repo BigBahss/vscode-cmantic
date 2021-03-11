@@ -249,29 +249,47 @@ export class CSymbol extends SourceSymbol {
 
     scopes(): CSymbol[] { return super.scopes() as CSymbol[]; }
 
-    namedScopes(): string[] {
+    get namedScopes(): string[] {
+        if (this._namedScopes) {
+            return this._namedScopes;
+        }
+
+        this._namedScopes = [];
+
+        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - this.startOffset();
         const scopeStringEndIndex = this.parsableLeadingText.lastIndexOf('::');
-        if (scopeStringEndIndex === -1) {
+        if (scopeStringEndIndex < scopeStringStartIndex) {
             return [];
         }
-        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - this.startOffset();
-        const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
 
-        return Array.from(scopeString.split('::'), scope => scope.trim().replace(/\s+/g, ' '));
+        const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
+        const maskedScopeString = parse.maskAngleBrackets(scopeString);
+
+        for (const match of maskedScopeString.matchAll(/[\w_][\w\d_]*(<\s*>)?/g)) {
+            if (match.index !== undefined) {
+                const scope = scopeString.slice(match.index, match.index + match[0].length);
+                this._namedScopes.push(parse.normalize(scope));
+            }
+        }
+
+        return this._namedScopes;
     }
+    private _namedScopes?: string[];
 
     allScopes(): string[] {
         const allScopes: string[] = [];
 
         this.scopes().forEach(scope => {
-            allScopes.push(...scope.namedScopes());
-            allScopes.push(scope.templatedName());
+            allScopes.push(...scope.namedScopes);
+            allScopes.push(parse.normalize(scope.templatedName()));
         });
 
-        allScopes.push(...this.namedScopes());
+        allScopes.push(...this.namedScopes);
 
         return allScopes;
     }
+
+
 
     async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
         let scopeString = '';

@@ -100,6 +100,10 @@ export function maskComparisonOperators(text: string): string {
     return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }
 
+export function normalize(text: string): string {
+    return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');
+}
+
 /**
  * DocumentSymbol ranges don't always include the final semi-colon.
  */
