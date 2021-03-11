@@ -265,7 +265,7 @@ export class CSymbol extends SourceSymbol {
 
         this.scopes().forEach(scope => {
             allScopes.push(...scope.namedScopes());
-            allScopes.push(scope.name + scope.templateParameters());
+            allScopes.push(scope.templatedName());
         });
 
         allScopes.push(...this.namedScopes());
@@ -478,6 +478,8 @@ export class CSymbol extends SourceSymbol {
 
         return '<' + parameters.join(', ') + '>';
     }
+
+    templatedName(): string { return this.name + this.templateParameters(); }
 
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !this.parsableText.endsWith('}')

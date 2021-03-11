@@ -264,9 +264,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             const parentClass = await definition.getParentClass();
             if (parentClass) {
                 if (parentClass.kind === vscode.SymbolKind.Class) {
-                    addDeclaration.setTitle(`Add Declaration in class "${parentClass.name}"`);
+                    addDeclaration.setTitle(`Add Declaration in class "${parentClass.templatedName()}"`);
                 } else {
-                    addDeclaration.setTitle(`Add Declaration in struct "${parentClass.name}"`);
+                    addDeclaration.setTitle(`Add Declaration in struct "${parentClass.templatedName()}"`);
                 }
                 addDeclaration.setArguments(definition, sourceDoc, parentClass.uri);
                 addDeclaration.kind = vscode.CodeActionKind.QuickFix;
@@ -325,10 +325,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
                     moveDefinitionIntoOrOutOfClass.setTitle(
-                            `${moveDefinitionTitle.intoClass} "${declaration.parent.name}"`);
+                            `${moveDefinitionTitle.intoClass} "${declaration.parent.templatedName()}"`);
                 } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
                     moveDefinitionIntoOrOutOfClass.setTitle(
-                            `${moveDefinitionTitle.intoStruct} "${declaration.parent.name}"`);
+                            `${moveDefinitionTitle.intoStruct} "${declaration.parent.templatedName()}"`);
                 } else {
                     moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, undefined);
                     const parentClass = await definition.getParentClass();
@@ -336,10 +336,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                         declarationDoc = parentClass.document;
                         if (parentClass.kind === vscode.SymbolKind.Class) {
                             moveDefinitionIntoOrOutOfClass.setTitle(
-                                    `${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                                    `${moveDefinitionTitle.intoClass} "${parentClass.templatedName()}"`);
                         } else {
                             moveDefinitionIntoOrOutOfClass.setTitle(
-                                    `${moveDefinitionTitle.intoStruct} "${parentClass.name}"`);
+                                    `${moveDefinitionTitle.intoStruct} "${parentClass.templatedName()}"`);
                         }
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                         moveDefinitionIntoOrOutOfClass.isPreferred = true;
@@ -353,10 +353,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     declarationDoc = parentClass.document;
                     if (parentClass.kind === vscode.SymbolKind.Class) {
                         moveDefinitionIntoOrOutOfClass.setTitle(
-                                `${moveDefinitionTitle.intoClass} "${parentClass.name}"`);
+                                `${moveDefinitionTitle.intoClass} "${parentClass.templatedName()}"`);
                     } else {
                         moveDefinitionIntoOrOutOfClass.setTitle(
-                                `${moveDefinitionTitle.intoStruct} "${parentClass.name}"`);
+                                `${moveDefinitionTitle.intoStruct} "${parentClass.templatedName()}"`);
                     }
                     moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                     moveDefinitionIntoOrOutOfClass.isPreferred = true;
