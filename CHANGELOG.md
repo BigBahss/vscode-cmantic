@@ -6,12 +6,15 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added support for explicit template specialization. Definitions for specialized function templates/member functions of specialized class templates can now be generated in the matching source file.
 - Added support for nested templates.
 
+## Changed
+- Placement of generated code will now acount for trailing comments.
+- Template parameter(s) will now be added to the parameter of equality operators.
+
 ### Fixed
 - Fixed title of `Add Declaration` code-action displaying the wrong target file.
 - Fixed recognition of explicit template specializations, and multi-lined template statements.
 - Fixed placement of `inline` specifier for function templates (`inline` was getting inserted before the template statement, which was a syntax error).
 - Fixed an issue where, under certain conditions, generated definitions/declarations would be placed within unrelated blocks of code (this only happened on `ms-vscode.cpptools` and was a result of how it provides definitions/declarations for overloaded functions and undefined functions).
-- Placement of generated code will now acount for trailing comments.
 - Fixed name qualification of generated code in the case that a parent scope has a qualified name.
 - Fixed a bug that would throw an error when generating equality operators for an empty class/struct.
 

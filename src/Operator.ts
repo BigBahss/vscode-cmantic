@@ -26,7 +26,7 @@ export class OpEqual implements Operator {
         this.parent = parent;
         this.name = 'operator==';
         this.returnType = 'bool ';
-        this.parameter = 'const ' + parent.name + ' &other';
+        this.parameter = 'const ' + parent.name + parent.templateParameters() + ' &other';
         this.body = '';
         if (memberVariables) {
             this.setMemberVariables(memberVariables);
@@ -79,7 +79,7 @@ export class OpNotEqual implements Operator {
         this.parent = parent;
         this.name = 'operator!=';
         this.returnType = 'bool ';
-        this.parameter = 'const ' + parent.name + ' &other';
+        this.parameter = 'const ' + parent.name + parent.templateParameters() + ' &other';
         if (cfg.useExplicitThisPointer()) {
             this.body = 'return !(*this == other);';
         } else {
