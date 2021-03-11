@@ -20,9 +20,9 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
                 if (keepEnclosingChars) {
                     text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
                 } else {
-                    text = text.substring(0, match.start - left.length)
-                            + masker(left.length + match.value + right.length)
-                            + text.substring(match.end + right.length);
+                    text = text.substring(0, match.start - 1)
+                            + masker(match.value + 2)
+                            + text.substring(match.end + 1);
                 }
             }
         });
