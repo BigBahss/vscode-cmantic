@@ -3,6 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
+import { CSymbol } from './CSymbol';
 
 
 /**
@@ -91,18 +92,7 @@ export class SourceFile {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol | undefined {
-            for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.matches(target)) {
-                    return sourceSymbol;
-                }
-
-                const foundSymbol = searchSymbolTree(sourceSymbol.children);
-                if (foundSymbol) {
-                    return foundSymbol;
-                }
-            }
-        } (this.symbols);
+        return SourceFile.findMatchingSymbol(target, this.symbols);
     }
 
     isHeader(): boolean { return SourceFile.isHeader(this.uri); }
@@ -148,5 +138,25 @@ export class SourceFile {
         }
 
         return false;
+    }
+
+    protected static findMatchingSymbol(
+        target: SourceSymbol | CSymbol, symbols: SourceSymbol[], document?: SourceDocument
+    ): SourceSymbol | CSymbol | undefined {
+        for (const symbol of symbols) {
+            if (document && target instanceof CSymbol) {
+                const csymbol = new CSymbol(symbol, document);
+                if (csymbol.matches(target)) {
+                    return csymbol;
+                }
+            } else if (symbol.matches(target)) {
+                return symbol;
+            }
+
+            const foundSymbol = SourceFile.findMatchingSymbol(target, symbol.children, document);
+            if (foundSymbol) {
+                return foundSymbol;
+            }
+        }
     }
 }

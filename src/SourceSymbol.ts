@@ -96,7 +96,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         if (this.kind !== vscode.SymbolKind.Namespace && this.uri.fsPath === other.uri.fsPath) {
             return this.selectionRange.isEqual(other.selectionRange);
         }
-        return this.signature === other.signature
+        return this.name === other.name
             && (this.kind === other.kind || (this.isFunction() && other.isFunction()));
     }
 

@@ -62,6 +62,18 @@ export function arraysIntersect<T>(array_a: T[], array_b: T[]): boolean {
     return true;
 }
 
+export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {
+    if (array_a.length !== array_b.length) {
+        return false;
+    }
+    for (let i = 0; i < array_a.length; ++i) {
+        if (array_a[i] !== array_b[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean {
     if (locationOrUri instanceof vscode.Location) {
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;

@@ -127,6 +127,10 @@ export class CSymbol extends SourceSymbol {
 
     isAfter(offset: number): boolean { return this.startOffset() > offset; }
 
+    matches(other: CSymbol): boolean {
+        return super.matches(other) && util.arraysAreEqual(this.allScopes(), other.allScopes());
+    }
+
     get accessSpecifiers(): SubSymbol[] {
         if (this._accessSpecifiers) {
             return this._accessSpecifiers;
@@ -245,20 +249,26 @@ export class CSymbol extends SourceSymbol {
 
     scopes(): CSymbol[] { return super.scopes() as CSymbol[]; }
 
+    namedScopes(): string[] {
+        const scopeStringEndIndex = this.parsableLeadingText.lastIndexOf('::');
+        if (scopeStringEndIndex === -1) {
+            return [];
+        }
+        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - this.startOffset();
+        const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
+
+        return Array.from(scopeString.split('::'), scope => scope.trim().replace(/\s+/g, ' '));
+    }
+
     allScopes(): string[] {
         const allScopes: string[] = [];
 
-        this.scopes().forEach(scope => allScopes.push(scope.name));
+        this.scopes().forEach(scope => {
+            allScopes.push(...scope.namedScopes());
+            allScopes.push(scope.name);
+        });
 
-        if (!this.parsableLeadingText.trimEnd().endsWith('::')) {
-            return allScopes;
-        }
-
-        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - this.startOffset();
-        const scopeStringEndIndex = this.parsableLeadingText.lastIndexOf('::');
-        const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
-
-        scopeString.split('::').forEach(scope => allScopes.push(scope.trim()));
+        allScopes.push(...this.namedScopes());
 
         return allScopes;
     }

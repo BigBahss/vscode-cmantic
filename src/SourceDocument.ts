@@ -44,12 +44,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     get endOfLine(): string { return util.endOfLine(this); }
 
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined> {
-        const sourceSymbol = await super.getSymbol(position);
-        if (!sourceSymbol) {
-            return;
-        }
-
-        return new CSymbol(sourceSymbol, this);
+        const symbol = await super.getSymbol(position);
+        return symbol ? new CSymbol(symbol, this) : undefined;
     }
 
     static async getSymbol(location: vscode.Location): Promise<CSymbol | undefined> {
@@ -57,13 +53,12 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         return await sourceDoc.getSymbol(location.range.start);
     }
 
-    async findMatchingSymbol(target: SourceSymbol): Promise<CSymbol | undefined> {
-        const sourceSymbol = await super.findMatchingSymbol(target);
-        if (!sourceSymbol) {
-            return;
+    async findMatchingSymbol(target: CSymbol): Promise<CSymbol | undefined> {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        return new CSymbol(sourceSymbol, this);
+        return SourceFile.findMatchingSymbol(target, this.symbols, this) as CSymbol | undefined;
     }
 
     hasHeaderGuard(): boolean {
@@ -237,7 +232,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         ): vscode.Range {
             const r = new vscode.Range(start, line.range.start);
             return (!largest || r > largest) ? r : largest;
-        };
+        }
 
         let systemIncludeStart: vscode.Position | undefined;
         let projectIncludeStart: vscode.Position | undefined;
@@ -445,6 +440,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                         inNamespace: true
                     });
                 }
+
                 const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], targetDoc);
                 return new ProposedPosition(lastChild.trailingCommentEnd(), {
                     relativeTo: lastChild.fullRange(),
