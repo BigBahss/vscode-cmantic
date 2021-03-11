@@ -44,7 +44,7 @@ export class OpEqual implements Operator {
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
+        return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
                 + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
@@ -98,7 +98,7 @@ export class OpNotEqual implements Operator {
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
+        return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
                 + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }

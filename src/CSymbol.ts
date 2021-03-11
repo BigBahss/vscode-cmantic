@@ -412,7 +412,7 @@ export class CSymbol extends SourceSymbol {
         return templateStatements;
     }
 
-    allTemplateStatements(removeDefaultArgs?: boolean): string[] {
+    allTemplateStatements(removeDefaultArgs?: boolean, forMember?: boolean): string[] {
         const allTemplateStatements: string[] = [];
 
         this.scopes().forEach(scope => {
@@ -421,16 +421,18 @@ export class CSymbol extends SourceSymbol {
             }
         });
 
-        allTemplateStatements.push(...this.templateStatements(removeDefaultArgs));
+        if (!forMember || this.isUnspecializedTemplate()) {
+            allTemplateStatements.push(...this.templateStatements(removeDefaultArgs));
+        }
 
         return allTemplateStatements;
     }
 
-    combinedTemplateStatements(removeDefaultArgs?: boolean, separator?: string): string {
+    combinedTemplateStatements(removeDefaultArgs?: boolean, separator?: string, forMember?: boolean): string {
         if (separator === undefined) {
             separator = this.document.endOfLine;
         }
-        const allTemplateStatements = this.allTemplateStatements(removeDefaultArgs);
+        const allTemplateStatements = this.allTemplateStatements(removeDefaultArgs, forMember);
         return allTemplateStatements.length > 0
                 ? allTemplateStatements.join(separator) + separator
                 : '';
@@ -539,7 +541,7 @@ export class CSymbol extends SourceSymbol {
                 return true;
             }
         }
-        return false;
+        return this.isUnspecializedTemplate();
     }
 
     isTypedef(): boolean {
