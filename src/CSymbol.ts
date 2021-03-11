@@ -54,10 +54,35 @@ export class CSymbol extends SourceSymbol {
     }
     private _parsableText?: string;
 
+    get parsableFullText(): string {
+        return this.parsableTemplateSnippet + this.parsableText;
+    }
+
     get parsableLeadingText(): string {
         const endIndex = this.document.offsetAt(this.selectionRange.start) - this.startOffset();
         return this.parsableText.substring(0, endIndex);
     }
+
+    get parsableFullLeadingText(): string {
+        return this.parsableTemplateSnippet + this.parsableLeadingText;
+    }
+
+    private get parsableTemplateSnippet(): string {
+        if (this._parsableTemplateSnippet) {
+            return this._parsableTemplateSnippet;
+        }
+
+        this._parsableTemplateSnippet = this.document.getText(new vscode.Range(this.trueStart, this.range.start));
+        if (!this._parsableTemplateSnippet) {
+            return this._parsableTemplateSnippet;
+        }
+
+        this._parsableTemplateSnippet = parse.maskComments(this._parsableTemplateSnippet, false);
+        this._parsableTemplateSnippet = parse.maskRawStringLiterals(this._parsableTemplateSnippet);
+        this._parsableTemplateSnippet = parse.maskQuotes(this._parsableTemplateSnippet);
+        return this._parsableTemplateSnippet;
+    }
+    private _parsableTemplateSnippet?: string;
 
     /**
      * Returns the text of this symbol including potential template statement.
@@ -229,8 +254,7 @@ export class CSymbol extends SourceSymbol {
             return allScopes;
         }
 
-        const startOffset = this.startOffset();
-        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - startOffset;
+        const scopeStringStartIndex = this.document.offsetAt(this.scopeStringStart()) - this.startOffset();
         const scopeStringEndIndex = this.parsableLeadingText.lastIndexOf('::');
         const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
 
@@ -250,9 +274,10 @@ export class CSymbol extends SourceSymbol {
             // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
             if (!targetScope || !util.containsExclusive(targetScope.range, position)) {
                 if (!targetScope) {
-                    targetScope = new CSymbol(scope, this.document);
+                    targetScope = scope;
                 }
-                scopeString += scope.name + targetScope.templateParameters() + '::';
+                const nameRange = new vscode.Range(targetScope.scopeStringStart(), targetScope.selectionRange.end);
+                scopeString += targetScope.document.getText(nameRange) + targetScope.templateParameters() + '::';
             }
         }
 
@@ -349,51 +374,51 @@ export class CSymbol extends SourceSymbol {
         });
     }
 
-    templateStatement(removeDefaultArgs?: boolean): string {
+    templateStatements(removeDefaultArgs?: boolean): string[] {
         if (!this.isTemplate()) {
-            return '';
+            return [];
         }
 
-        const maskedLeadingText = parse.maskAngleBrackets(this.fullLeadingText());
-        const templateParamEnd = maskedLeadingText.indexOf('>');
-        if (templateParamEnd === -1) {
-            return '';
-        }
+        const fullTemplateRange = new vscode.Range(this.trueStart, this.declarationStart());
+        let fullTemplateStatement = this.document.getText(fullTemplateRange);
+        fullTemplateStatement = parse.removeComments(fullTemplateStatement);
+        fullTemplateStatement = fullTemplateStatement.replace(parse.getIndentationRegExp(this), '');
 
-        const templateParamEndOffset = this.document.offsetAt(this.trueStart) + templateParamEnd + 1;
-        const templateParamEndPos = this.document.positionAt(templateParamEndOffset);
-        const templateStatement = this.document.getText(new vscode.Range(this.trueStart, templateParamEndPos));
+        const maskedTemplateStatement = parse.maskAngleBrackets(fullTemplateStatement);
 
-        return removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement;
-    }
-
-    allTemplateStatements(removeDefaultArgs?: boolean): string[] {
         const templateStatements: string[] = [];
-
-        this.scopes().forEach(scope => {
-            if (scope.isClassOrStruct() && scope.isUnspecializedTemplate())  {
-                const templateStatement = scope.templateStatement(removeDefaultArgs);
-                if (templateStatement) {
-                    templateStatements.push(templateStatement);
-                }
+        for (const match of maskedTemplateStatement.matchAll(/\btemplate\s*<\s*>/g)) {
+            if (match.index !== undefined) {
+                const templateStatement = fullTemplateStatement.slice(match.index, match.index + match[0].length);
+                templateStatements.push(
+                        removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement);
             }
-        });
-
-        const templateStatement = this.templateStatement(removeDefaultArgs);
-        if (templateStatement) {
-            templateStatements.push(templateStatement);
         }
 
         return templateStatements;
+    }
+
+    allTemplateStatements(removeDefaultArgs?: boolean): string[] {
+        const allTemplateStatements: string[] = [];
+
+        this.scopes().forEach(scope => {
+            if (scope.isClassOrStruct() && scope.isUnspecializedTemplate())  {
+                allTemplateStatements.push(...scope.templateStatements(removeDefaultArgs));
+            }
+        });
+
+        allTemplateStatements.push(...this.templateStatements(removeDefaultArgs));
+
+        return allTemplateStatements;
     }
 
     combinedTemplateStatements(removeDefaultArgs?: boolean, separator?: string): string {
         if (separator === undefined) {
             separator = this.document.endOfLine;
         }
-        const templateStatements = this.allTemplateStatements(true);
-        return templateStatements.length > 0
-                ? templateStatements.join(separator) + separator
+        const allTemplateStatements = this.allTemplateStatements(removeDefaultArgs);
+        return allTemplateStatements.length > 0
+                ? allTemplateStatements.join(separator) + separator
                 : '';
     }
 
@@ -415,10 +440,11 @@ export class CSymbol extends SourceSymbol {
             return this.document.getText(new vscode.Range(templateParamStart, templateParamEnd));
         }
 
-        const templateStatement = this.templateStatement(true);
-        if (!templateStatement) {
+        const templateStatements = this.templateStatements(true);
+        if (templateStatements.length === 0) {
             return '';
         }
+        const templateStatement = templateStatements[templateStatements.length - 1];
 
         const templateParamStart = templateStatement.indexOf('<');
         if (templateParamStart === -1) {
@@ -482,15 +508,15 @@ export class CSymbol extends SourceSymbol {
     }
 
     isTemplate(): boolean {
-        return this.fullLeadingText().startsWith('template');
-    }
-
-    isSpecializedTemplate(): boolean {
-        return /^template\s*<\s*>/.test(this.fullLeadingText());
+        return /^template\b/.test(this.parsableFullText);
     }
 
     isUnspecializedTemplate(): boolean {
-        return this.isTemplate() && !this.isSpecializedTemplate();
+        return /\btemplate\s*<\s*[^\s>]/.test(this.parsableFullLeadingText);
+    }
+
+    isSpecializedTemplate(): boolean {
+        return this.isTemplate() && !this.isUnspecializedTemplate();
     }
 
     hasUnspecializedTemplate(): boolean {
@@ -712,7 +738,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     /**
-     * clangd and ccls don't include template statements in provided DocumentSymbols.
+     * clangd and ccls don't include template statements in provided DocumentSymbol ranges.
      */
     get trueStart(): vscode.Position {
         if (this._trueStart) {
@@ -727,16 +753,13 @@ export class CSymbol extends SourceSymbol {
             return this._trueStart;
         }
 
-        let lastMatch: RegExpMatchArray | undefined;
-        for (const match of maskedText.matchAll(/\btemplate\s*<.*>/gs)) {
-            lastMatch = match;
-        }
-        if (lastMatch?.index === undefined) {
+        const templateOffset = maskedText.search(/\b(template\s*<\s*>\s*)$/);
+        if (templateOffset === -1) {
             this._trueStart = this.range.start;
             return this._trueStart;
         }
 
-        this._trueStart = this.document.positionAt(lastMatch.index);
+        this._trueStart = this.document.positionAt(templateOffset);
         return this._trueStart;
     }
     private _trueStart?: vscode.Position;
@@ -796,7 +819,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     private scopeStringStart(): vscode.Position {
-        const trimmedLeadingText = this.parsableLeadingText.trimEnd();
+        const trimmedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText.trimEnd(), false);
         if (!trimmedLeadingText.endsWith('::')) {
             return this.selectionRange.start;
         }

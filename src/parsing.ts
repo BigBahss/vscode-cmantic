@@ -44,12 +44,20 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
 }
 
 export function maskComments(text: string, keepEnclosingChars: boolean = true): string {
+    return replaceComments(text, keepEnclosingChars, masker);
+}
+
+export function removeComments(text: string): string {
+    return replaceComments(text, false, '');
+}
+
+function replaceComments(text: string, keepEnclosingChars: boolean = true, replacer: any): string {
     if (keepEnclosingChars) {
-        text = text.replace(/(?<=\/\/).*/gm, masker);
-        text = text.replace(/(?<=\/\*)(\*(?!\/)|[^*])*(?=\*\/)/gm, masker);
+        text = text.replace(/(?<=\/\/).*/gm, replacer);
+        text = text.replace(/(?<=\/\*)(\*(?!\/)|[^*])*(?=\*\/)/gm, replacer);
     } else {
-        text = text.replace(/\/\/.*/gm, masker);
-        text = text.replace(/\/\*(\*(?!\/)|[^*])*\*\//gm, masker);
+        text = text.replace(/\/\/.*/gm, replacer);
+        text = text.replace(/\/\*(\*(?!\/)|[^*])*\*\//gm, replacer);
     }
     return text;
 }
