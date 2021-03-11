@@ -387,11 +387,15 @@ export class CSymbol extends SourceSymbol {
         const maskedTemplateStatement = parse.maskAngleBrackets(fullTemplateStatement);
 
         const templateStatements: string[] = [];
-        for (const match of maskedTemplateStatement.matchAll(/\btemplate\s*<\s*>/g)) {
+        for (const match of maskedTemplateStatement.matchAll(/\btemplate(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {
                 const templateStatement = fullTemplateStatement.slice(match.index, match.index + match[0].length);
-                templateStatements.push(
-                        removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement);
+                if (!templateStatement.endsWith('>')) {
+                    templateStatements.push(templateStatement + '<>');
+                } else {
+                    templateStatements.push(
+                            removeDefaultArgs ? templateStatement.replace(/\s*=[^,>]+(?=[,>])/g, '') : templateStatement);
+                }
             }
         }
 
@@ -770,12 +774,12 @@ export class CSymbol extends SourceSymbol {
         }
 
         const maskedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText);
-        const declarationStartIndex = maskedLeadingText.search(/(?<=template\s*<\s*>\s*)\S/);
-        if (declarationStartIndex === -1) {
+        const templateStatementsMatch = maskedLeadingText.match(/^(template(\s*<\s*>)?\s*)*/);
+        if (!templateStatementsMatch || templateStatementsMatch.length === 0) {
             return this.range.start;
         }
 
-        return this.document.positionAt(this.startOffset() + declarationStartIndex);
+        return this.document.positionAt(this.startOffset() + templateStatementsMatch[0].length);
     }
 
     private declarationEnd(): vscode.Position {
