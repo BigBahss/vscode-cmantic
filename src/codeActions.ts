@@ -206,7 +206,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isInline);
         } else if (declaration.isConstexpr()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.isConstexpr);
-        } else if (declaration?.hasUnspecializedTemplate()) {
+        } else if (declaration.hasUnspecializedTemplate()) {
             addDefinitionInMatchingSourceFile.disable(addDefinitionFailure.hasUnspecializedTemplate);
         }
 

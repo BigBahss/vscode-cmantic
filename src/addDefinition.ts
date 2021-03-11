@@ -60,7 +60,7 @@ export async function addDefinitionInSourceFile(): Promise<void> {
     } else if (symbol.isInline()) {
         logger.alertInformation(failure.isInline);
         return;
-    } else if (symbol?.hasUnspecializedTemplate()) {
+    } else if (symbol.hasUnspecializedTemplate()) {
         logger.alertInformation(failure.hasUnspecializedTemplate);
     }
 
