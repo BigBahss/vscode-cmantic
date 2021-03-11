@@ -265,7 +265,7 @@ export class CSymbol extends SourceSymbol {
 
         this.scopes().forEach(scope => {
             allScopes.push(...scope.namedScopes());
-            allScopes.push(scope.name);
+            allScopes.push(scope.name + scope.templateParameters());
         });
 
         allScopes.push(...this.namedScopes());
@@ -295,16 +295,18 @@ export class CSymbol extends SourceSymbol {
     }
 
     immediateScope(): SubSymbol | undefined {
-        const match = this.parsableLeadingText.match(/[\w_][\w\d_]*(?=\s*::\s*$)/);
-        if (!match || match.index === undefined) {
+        const maskedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText);
+        const match = maskedLeadingText.match(/([\w_][\w\d_]*)(<\s*>)?(?=\s*::\s*$)/);
+        if (match?.index === undefined || match.length < 2) {
             return;
         }
 
         const startOffset = this.startOffset() + match.index;
         const start = this.document.positionAt(startOffset);
         const end = this.document.positionAt(startOffset + match[0].length);
+        const selectionEnd = this.document.positionAt(startOffset + match[1].length);
 
-        return new SubSymbol(this.document, new vscode.Range(start, end));
+        return new SubSymbol(this.document, new vscode.Range(start, end), new vscode.Range(start, selectionEnd));
     }
 
     async getParentClass(): Promise<CSymbol | undefined> {
