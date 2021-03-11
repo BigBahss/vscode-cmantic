@@ -21,7 +21,7 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
                     text = text.substring(0, match.start) + masker(match.value) + text.substring(match.end);
                 } else {
                     text = text.substring(0, match.start - 1)
-                            + masker(match.value + 2)
+                            + ' '.repeat(match.value.length + 2)
                             + text.substring(match.end + 1);
                 }
             }
