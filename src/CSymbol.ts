@@ -265,7 +265,7 @@ export class CSymbol extends SourceSymbol {
         const scopeString = this.parsableLeadingText.slice(scopeStringStartIndex, scopeStringEndIndex);
         const maskedScopeString = parse.maskAngleBrackets(scopeString);
 
-        for (const match of maskedScopeString.matchAll(/[\w_][\w\d_]*(<\s*>)?/g)) {
+        for (const match of maskedScopeString.matchAll(/[\w_][\w\d_]*(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {
                 const scope = scopeString.slice(match.index, match.index + match[0].length);
                 this._namedScopes.push(parse.normalize(scope));

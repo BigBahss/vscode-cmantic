@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as parse from './parsing';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -263,10 +264,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         } else {
             const parentClass = await definition.getParentClass();
             if (parentClass) {
+                const scopeName = parse.normalize(parentClass.templatedName());
                 if (parentClass.kind === vscode.SymbolKind.Class) {
-                    addDeclaration.setTitle(`Add Declaration in class "${parentClass.templatedName()}"`);
+                    addDeclaration.setTitle(`Add Declaration in class "${scopeName}"`);
                 } else {
-                    addDeclaration.setTitle(`Add Declaration in struct "${parentClass.templatedName()}"`);
+                    addDeclaration.setTitle(`Add Declaration in struct "${scopeName}"`);
                 }
                 addDeclaration.setArguments(definition, sourceDoc, parentClass.uri);
                 addDeclaration.kind = vscode.CodeActionKind.QuickFix;
@@ -324,22 +326,25 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
 
                 if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
+                    const scopeName = parse.normalize(declaration.parent.templatedName());
                     moveDefinitionIntoOrOutOfClass.setTitle(
-                            `${moveDefinitionTitle.intoClass} "${declaration.parent.templatedName()}"`);
+                            `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                 } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
+                    const scopeName = parse.normalize(declaration.parent.templatedName());
                     moveDefinitionIntoOrOutOfClass.setTitle(
-                            `${moveDefinitionTitle.intoStruct} "${declaration.parent.templatedName()}"`);
+                            `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
                 } else {
                     moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, undefined);
                     const parentClass = await definition.getParentClass();
                     if (parentClass) {
                         declarationDoc = parentClass.document;
+                        const scopeName = parse.normalize(parentClass.templatedName());
                         if (parentClass.kind === vscode.SymbolKind.Class) {
                             moveDefinitionIntoOrOutOfClass.setTitle(
-                                    `${moveDefinitionTitle.intoClass} "${parentClass.templatedName()}"`);
+                                    `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                         } else {
                             moveDefinitionIntoOrOutOfClass.setTitle(
-                                    `${moveDefinitionTitle.intoStruct} "${parentClass.templatedName()}"`);
+                                    `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
                         }
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                         moveDefinitionIntoOrOutOfClass.isPreferred = true;
@@ -351,12 +356,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 const parentClass = await definition.getParentClass();
                 if (parentClass) {
                     declarationDoc = parentClass.document;
+                    const scopeName = parse.normalize(parentClass.templatedName());
                     if (parentClass.kind === vscode.SymbolKind.Class) {
                         moveDefinitionIntoOrOutOfClass.setTitle(
-                                `${moveDefinitionTitle.intoClass} "${parentClass.templatedName()}"`);
+                                `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                     } else {
                         moveDefinitionIntoOrOutOfClass.setTitle(
-                                `${moveDefinitionTitle.intoStruct} "${parentClass.templatedName()}"`);
+                                `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
                     }
                     moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                     moveDefinitionIntoOrOutOfClass.isPreferred = true;
