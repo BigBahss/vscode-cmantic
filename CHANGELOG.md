@@ -6,7 +6,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added support for explicit template specialization. Definitions for specialized function templates/member functions of specialized class templates can now be generated in the matching source file.
 - Added support for nested templates.
 
-## Changed
+### Changed
 - Placement of generated code will now account for trailing comments.
 - Template parameter(s) will now be added to the parameter of equality operators.
 
