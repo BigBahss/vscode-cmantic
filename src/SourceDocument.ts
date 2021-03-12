@@ -110,10 +110,6 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             this.symbols = await this.executeSourceSymbolProvider();
         }
 
-        if (definition?.uri.fsPath !== this.uri.fsPath || (!definition?.parent && this.symbols.length === 0)) {
-            return new ProposedPosition();
-        }
-
         if (!targetDoc) {
             targetDoc = this;
         }
@@ -122,6 +118,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             if (targetDoc.symbols.length === 0) {
                 return util.positionAfterLastNonEmptyLine(targetDoc);
             }
+        }
+
+        if (definition?.uri.fsPath !== this.uri.fsPath || (!definition.parent && this.symbols.length === 0)) {
+            return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
         }
 
         if (access !== undefined) {
@@ -178,10 +178,6 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             declaration = new CSymbol(declarationOrPosition, this);
         }
 
-        if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration?.parent && this.symbols.length === 0)) {
-            return new ProposedPosition();
-        }
-
         if (!targetDoc) {
             targetDoc = this;
         }
@@ -190,6 +186,10 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
             if (targetDoc.symbols.length === 0) {
                 return util.positionAfterLastNonEmptyLine(targetDoc);
             }
+        }
+
+        if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration.parent && this.symbols.length === 0)) {
+            return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
         }
 
         const siblingFunctions = SourceDocument.siblingFunctions(declaration, this.symbols);
@@ -347,7 +347,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
                     return new ProposedPosition(linkedSymbol.trailingCommentEnd(), {
-                        relativeTo: linkedSymbol.fullRange(),
+                        relativeTo: linkedSymbol.range,
                         after: true
                     });
                 }
@@ -387,7 +387,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
                     return new ProposedPosition(linkedSymbol.leadingCommentStart, {
-                        relativeTo: linkedSymbol.fullRange(),
+                        relativeTo: linkedSymbol.range,
                         before: true
                     });
                 }
@@ -443,7 +443,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
                 const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], targetDoc);
                 return new ProposedPosition(lastChild.trailingCommentEnd(), {
-                    relativeTo: lastChild.fullRange(),
+                    relativeTo: lastChild.range,
                     after: true
                 });
             }
@@ -454,7 +454,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         if (symbols.length > 0) {
             const lastSymbol = new CSymbol(symbols[symbols.length - 1], this);
             return new ProposedPosition(lastSymbol.trailingCommentEnd(), {
-                relativeTo: lastSymbol.fullRange(),
+                relativeTo: lastSymbol.range,
                 after: true
             });
         }

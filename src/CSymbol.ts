@@ -226,20 +226,20 @@ export class CSymbol extends SourceSymbol {
             if (child.name === relativeName) {
                 if (isGetter) {
                     return new ProposedPosition(child.leadingCommentStart, {
-                        relativeTo: child.fullRange(),
+                        relativeTo: child.range,
                         before: true,
                         nextTo: true
                     });
                 } else {
                     return new ProposedPosition(child.trailingCommentEnd(), {
-                        relativeTo: child.fullRange(),
+                        relativeTo: child.range,
                         after: true,
                         nextTo: true
                     });
                 }
             } else if (relativeName === undefined && this.positionHasAccess(child.range.end, access)) {
                 return new ProposedPosition(child.trailingCommentEnd(), {
-                    relativeTo: child.fullRange(),
+                    relativeTo: child.range,
                     after: true
                 });
             }
@@ -945,7 +945,7 @@ export class CSymbol extends SourceSymbol {
         if (this.children.length > 0) {
             const lastChild = new CSymbol(this.children[this.children.length - 1], this.document);
             return new ProposedPosition(lastChild.trailingCommentEnd(), {
-                relativeTo: lastChild.fullRange(),
+                relativeTo: lastChild.range,
                 after: true
             });
         }
