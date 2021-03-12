@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.6.1] - March 11, 2021
 ### Added
 - Added support for explicit template specialization. Definitions for specialized function templates/member functions of specialized class templates can now be generated in the matching source file.
 - Added support for nested templates.
