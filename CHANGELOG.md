@@ -7,7 +7,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added support for nested templates.
 
 ## Changed
-- Placement of generated code will now acount for trailing comments.
+- Placement of generated code will now account for trailing comments.
 - Template parameter(s) will now be added to the parameter of equality operators.
 
 ### Fixed
