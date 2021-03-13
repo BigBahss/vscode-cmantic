@@ -147,3 +147,9 @@ export function stripDefaultValues(parameters: string): string {
 
     return strippedParameters.substring(0, strippedParameters.length - 1);
 }
+
+const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
+
+export function matchesPrimitiveType(text: string): boolean {
+    return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);
+}

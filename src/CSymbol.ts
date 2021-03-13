@@ -8,7 +8,6 @@ import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
 import { SubSymbol } from './SubSymbol';
 
-const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
@@ -580,7 +579,7 @@ export class CSymbol extends SourceSymbol {
     async isPrimitive(): Promise<boolean> {
         if (this.isVariable()) {
             const leadingText = this.parsableLeadingText;
-            if (this.matchesPrimitiveType(leadingText)) {
+            if (parse.matchesPrimitiveType(leadingText)) {
                 return true;
             } else if (!cfg.resolveTypes()) {
                 return false;
@@ -592,7 +591,7 @@ export class CSymbol extends SourceSymbol {
                 return await this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypedef()) {
-            if (this.matchesPrimitiveType(this.parsableText)) {
+            if (parse.matchesPrimitiveType(this.parsableText)) {
                 return true;
             } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
@@ -606,7 +605,7 @@ export class CSymbol extends SourceSymbol {
                 return await this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypeAlias()) {
-            if (this.matchesPrimitiveType(this.parsableText)) {
+            if (parse.matchesPrimitiveType(this.parsableText)) {
                 return true;
             } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
@@ -954,9 +953,5 @@ export class CSymbol extends SourceSymbol {
             nextTo: true,
             emptyScope: true
         });
-    }
-
-    private matchesPrimitiveType(text: string): boolean {
-        return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);
     }
 }
