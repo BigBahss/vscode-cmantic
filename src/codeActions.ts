@@ -349,6 +349,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
                         moveDefinitionIntoOrOutOfClass.isPreferred = true;
                         moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                    } else {
+                        moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
                     }
                 }
             } else {

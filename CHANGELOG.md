@@ -5,6 +5,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - Fixed recognition of function definitions and declarations. Before, if a function definition ended with a semi-colon, it was recognized as a declaration.
 - Improved recognition of virtual functions, and functions that are deleted or defaulted.
+- Fixed `Move Definition into/out-of class body` code-action being suggested for functions that are not member functions.
 
 ## [0.6.1] - March 11, 2021
 ### Added
