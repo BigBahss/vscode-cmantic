@@ -72,7 +72,8 @@ export async function generateEqualityOperators(
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewOperatorToWorkspaceEdit(opEqual, equalPosition, classDoc, targets.equal, workspaceEdit);
     if (targets.notEqual) {
-        await addNewOperatorToWorkspaceEdit(opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit);
+        await addNewOperatorToWorkspaceEdit(
+                opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit, true);
     }
     await vscode.workspace.applyEdit(workspaceEdit);
 }
@@ -190,21 +191,34 @@ async function addNewOperatorToWorkspaceEdit(
     declarationPos: ProposedPosition,
     classDoc: SourceDocument,
     target: TargetLocation,
-    workspaceEdit: vscode.WorkspaceEdit
+    workspaceEdit: vscode.WorkspaceEdit,
+    skipAccessSpecifierCheck?: boolean
 ): Promise<void> {
     const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
             ? target.sourceDoc.endOfLine
             : ' ';
 
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
-        const inlineDefinition = (newOperator.body.includes('\n'))
-                ? await newOperator.definition(target.sourceDoc, target.position, curlySeparator)
+        let formattedInlineDefinition = (newOperator.body.includes('\n'))
+                ? await newOperator.definition(classDoc, declarationPos, curlySeparator)
                 : newOperator.declaration + ' { ' + newOperator.body + ' }';
-        const formattedInlineDefinition = await declarationPos.formatTextToInsert(inlineDefinition, classDoc);
+        if (!skipAccessSpecifierCheck
+                && !newOperator.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+            formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
+                    + classDoc.endOfLine + formattedInlineDefinition;
+        }
+        formattedInlineDefinition = await declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
-        const formattedDeclaration = await declarationPos.formatTextToInsert(newOperator.declaration + ';', classDoc);
+        let formattedDeclaration = newOperator.declaration + ';';
+        if (!skipAccessSpecifierCheck
+                && !newOperator.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+            formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
+                    + classDoc.endOfLine + formattedDeclaration;
+        }
+        formattedDeclaration = await declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
+
         const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
         const formattedDefinition = await target.position.formatTextToInsert(definition, target.sourceDoc);
 

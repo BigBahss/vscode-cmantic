@@ -183,7 +183,7 @@ export class CSymbol extends SourceSymbol {
         }
 
         for (const accessSpecifier of this.accessSpecifiers) {
-            if (re_accessSpecifier.test(accessSpecifier.text()) && !start) {
+            if (re_accessSpecifier.test(accessSpecifier.name) && !start) {
                 start = accessSpecifier.range.end;
             } else if (start) {
                 ranges.push(new vscode.Range(start, accessSpecifier.range.start));

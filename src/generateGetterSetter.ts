@@ -113,7 +113,7 @@ export async function generateGetterSetterFor(symbol: CSymbol, classDoc: SourceD
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewAccessorToWorkspaceEdit(new Getter(symbol), getterPosition, classDoc, workspaceEdit);
-    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit, true);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -177,21 +177,33 @@ async function addNewAccessorToWorkspaceEdit(
     newAccessor: Accessor,
     declarationPos: ProposedPosition,
     classDoc: SourceDocument,
-    workspaceEdit: vscode.WorkspaceEdit
+    workspaceEdit: vscode.WorkspaceEdit,
+    skipAccessSpecifierCheck?: boolean
 ): Promise<void> {
     const target = await getTargetForAccessorDefinition(newAccessor, declarationPos, classDoc);
 
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
-        const inlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
-        const formattedInlineDefinition = await declarationPos.formatTextToInsert(inlineDefinition, classDoc);
+        let formattedInlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
+        if (!skipAccessSpecifierCheck
+                && !newAccessor.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+            formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
+                    + classDoc.endOfLine + formattedInlineDefinition;
+        }
+        formattedInlineDefinition = await declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
 
-        workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedInlineDefinition);
+        workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
         const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
                 ? target.sourceDoc.endOfLine
                 : ' ';
 
-        const formattedDeclaration = await declarationPos.formatTextToInsert(newAccessor.declaration + ';', classDoc);
+        let formattedDeclaration = newAccessor.declaration + ';';
+        if (!skipAccessSpecifierCheck
+                && !newAccessor.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+            formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
+                    + classDoc.endOfLine + formattedDeclaration;
+        }
+        formattedDeclaration = await declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
 
         const definition = await newAccessor.definition(target.sourceDoc, target.position, curlySeparator);
         const formattedDefinition = await target.formatTextToInsert(definition);

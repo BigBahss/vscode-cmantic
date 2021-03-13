@@ -2,11 +2,13 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- Generating getters, setters, and equality operators will now insert a `public:` access specifier if one is not found in the class.
+
 ### Fixed
 - Fixed recognition of function definitions and declarations. Before, if a function definition ended with a semi-colon, it was recognized as a declaration.
 - Improved recognition of virtual functions, and functions that are deleted or defaulted.
 - Fixed `Move Definition into/out-of class body` code-action being suggested for functions that are not member functions.
-- Fixed a bug in identifying access specifiers.
 
 ## [0.6.1] - March 11, 2021
 ### Added
