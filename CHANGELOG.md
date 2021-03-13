@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed recognition of function definitions and declarations. Before, if a function definition ended with a semi-colon, it was recognized as a declaration.
+- Improved recognition of virtual functions, and functions that are deleted or defaulted.
+
 ## [0.6.1] - March 11, 2021
 ### Added
 - Added support for explicit template specialization. Definitions for specialized function templates/member functions of specialized class templates can now be generated in the matching source file.
