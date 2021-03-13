@@ -16,15 +16,11 @@ export class SubSymbol {
     get location(): vscode.Location { return new vscode.Location(this.uri, this.range); }
 
     constructor(documentOrCSymbol: SourceDocument | CSymbol, range: vscode.Range, selectionRange?: vscode.Range) {
-        this.document = documentOrCSymbol instanceof SourceDocument ? documentOrCSymbol : documentOrCSymbol.document;
+        this.document = (documentOrCSymbol instanceof SourceDocument) ? documentOrCSymbol : documentOrCSymbol.document;
         this.uri = documentOrCSymbol.uri;
         this.range = range;
-        if (selectionRange) {
-            this.selectionRange = selectionRange;
-        } else {
-            this.selectionRange = range;
-        }
-        this.name = this.document.getText(selectionRange);
+        this.selectionRange = selectionRange ? selectionRange : range;
+        this.name = this.document.getText(this.selectionRange);
     }
 
     text(): string { return this.document.getText(this.range); }
