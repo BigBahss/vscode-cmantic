@@ -206,7 +206,7 @@ export class CSymbol extends SourceSymbol {
     /**
      * Finds a position for a new member function within this class or struct. Optionally provide a relativeName
      * to look for a position next to. Optionally provide a memberVariable if the new member function is an
-     * accessor. Returns undefined if this is not a class or struct, or when this.children.length === 0.
+     * accessor. Returns undefined if this is not a class or struct.
      */
     findPositionForNewMemberFunction(
         access: util.AccessLevel, relativeName?: string, memberVariable?: SourceSymbol
@@ -502,25 +502,25 @@ export class CSymbol extends SourceSymbol {
     }
 
     isFunctionDeclaration(): boolean {
-        return this.isFunction() && !this.parsableText.endsWith('}')
+        return this.isFunction() && !/}\s*(\s*;)*$/.test(this.parsableText)
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isFunctionDefinition(): boolean {
-        return this.isFunction() && this.parsableText.endsWith('}')
+        return this.isFunction() && /}\s*(\s*;)*$/.test(this.parsableText)
                 && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isVirtual(): boolean {
-        return /\b(virtual|override|final)\b/.test(this.parsableLeadingText);
+        return /\b(virtual|override|final)\b/.test(this.parsableText);
     }
 
     isPureVirtual(): boolean {
-        return this.isVirtual() && /\s*=\s*0\s*;?$/.test(this.parsableText);
+        return this.isVirtual() && /\s*=\s*0\s*(\s*;)*$/.test(this.parsableText);
     }
 
     isDeletedOrDefaulted(): boolean {
-        return /\s*=\s*(delete|default)\s*;?$/.test(this.parsableText);
+        return /\s*=\s*(delete|default)\s*(\s*;)*$/.test(this.parsableText);
     }
 
     isConstexpr(): boolean {
@@ -630,8 +630,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     private async resolveThisType(offset: number): Promise<boolean> {
-        const sourceDoc = (this.document instanceof SourceDocument) ? this.document : new SourceDocument(this.document);
-        const locations = await sourceDoc.findDefintions(this.document.positionAt(offset));
+        const locations = await this.document.findDefintions(this.document.positionAt(offset));
 
         if (locations.length > 0) {
             const typeFile = new SourceFile(locations[0].uri);
@@ -769,7 +768,7 @@ export class CSymbol extends SourceSymbol {
             const leadingCommentRange = new vscode.Range(definition.leadingCommentStart, definition.trueStart);
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
-                    + newIndentation + this.fullText().replace(/\s*;$/, '')
+                    + newIndentation + this.fullText().replace(/(\s*;)*$/, '')
                     + body.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation);
         }
 
