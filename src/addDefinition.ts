@@ -111,7 +111,7 @@ export async function addDefinition(
     const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     const functionSkeleton = await constructFunctionSkeleton(
-            functionDeclaration, declarationDoc, targetDoc, targetPos, p_initializers);
+            functionDeclaration, targetDoc, targetPos, p_initializers);
 
     if (functionSkeleton === undefined) {
         return;
@@ -215,7 +215,6 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
 
 async function constructFunctionSkeleton(
     functionDeclaration: CSymbol,
-    declarationDoc: SourceDocument,
     targetDoc: SourceDocument,
     position: ProposedPosition,
     p_initializers: Promise<Initializer[] | undefined>
