@@ -172,7 +172,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         const parentClass = await definition.getParentClass();
         if (parentClass) {
             const access = await util.getMemberAccessFromUser();
-            if (!access) {
+            if (access === undefined) {
                 // User cancelled the access specifier selection.
                 return false;
             }
