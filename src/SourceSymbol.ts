@@ -30,18 +30,28 @@ export class SourceSymbol extends vscode.DocumentSymbol {
         this.signature = symbol.name;
         this.parent = parent;
 
-        // ms-vscode.cpptools puts function signatures in name, so we want to store the actual function name in name.
+        // cpptools puts function signatures in name, so we want to store the actual function name in name.
         let name = symbol.name;
-        if (name.includes('(')) {
-            name = name.substring(0, name.indexOf('('));
+        const lastIndexOfParen = name.lastIndexOf('(');
+        if (lastIndexOfParen > 0) {
+            name = name.slice(0, lastIndexOfParen);
         }
-        if (name.endsWith('>') && name.includes('<')) {
-            name = name.substring(0, name.indexOf('<'));
+        const indexOfAngleBracket = name.indexOf('<');
+        if (name.endsWith('>') && indexOfAngleBracket > 0) {
+            name = name.slice(0, indexOfAngleBracket);
         }
-        if (name.includes('::')) {
-            name = name.substring(name.lastIndexOf('::') + 2);
+        const lastIndexOfScopeResolution = name.lastIndexOf('::');
+        if (lastIndexOfScopeResolution !== -1 && !name.endsWith('::')) {
+            name = name.slice(lastIndexOfScopeResolution + 2);
         }
-        this.name = name;
+
+        /* This is a fail-safe in case editing the name left it empty, because vscode will throw an
+         * error on subsequent calls to the super constructor if the name is empty. */
+        if (name) {
+            this.name = name;
+        } else {
+            this.name = symbol.name;
+        }
 
         // ccls puts function signatures in the detail property.
         if (symbol.detail.includes(symbol.name + '(')) {
