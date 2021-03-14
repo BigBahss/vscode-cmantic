@@ -91,11 +91,10 @@ async function promptUserForMemberVariables(classOrStruct: CSymbol): Promise<CSy
 
     const memberVariablesItems: MemberVariableQuickPickItem[] = [];
     memberVariables.forEach(memberVariable => {
-        const convertedMemberVariable = new CSymbol(memberVariable, classOrStruct.document);
         memberVariablesItems.push({
-            label: '$(symbol-field) ' + convertedMemberVariable.name,
-            description: convertedMemberVariable.text(),
-            memberVariable: convertedMemberVariable,
+            label: '$(symbol-field) ' + memberVariable.name,
+            description: memberVariable.text(),
+            memberVariable: memberVariable,
             picked: true
         });
     });

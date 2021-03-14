@@ -147,7 +147,7 @@ export async function addDefinition(
     }
 }
 
-type Initializer = SourceSymbol | SubSymbol;
+type Initializer = CSymbol | SubSymbol;
 
 interface InitializerQuickPickItem extends vscode.QuickPickItem {
     initializer: Initializer;
@@ -179,9 +179,8 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
             initializerItem.label = '$(symbol-class) ' + initializer.text();
             initializerItem.description = 'Base class constructor';
         } else {
-            const memberVariable = new CSymbol(initializer, parentClass.document);
-            initializerItem.label = '$(symbol-field) ' + memberVariable.name;
-            initializerItem.description = memberVariable.text();
+            initializerItem.label = '$(symbol-field) ' + initializer.name;
+            initializerItem.description = initializer.text();
         }
         initializerItems.push(initializerItem);
     });
@@ -207,10 +206,14 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
         }
     });
 
-    selectedInitializers.push(...parentClass.memberVariablesThatRequireInitialization());
+    parentClass.memberVariablesThatRequireInitialization().forEach(memberVariable => {
+        if (!selectedInitializers.some(initializer => initializer.name === memberVariable.name)) {
+            selectedInitializers.push(memberVariable);
+        }
+    });
     selectedInitializers.sort(util.sortByRange);
 
-    return [...new Set(selectedInitializers)];
+    return selectedInitializers;
 }
 
 async function constructFunctionSkeleton(
