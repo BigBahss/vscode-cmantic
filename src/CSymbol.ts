@@ -776,9 +776,10 @@ export class CSymbol extends SourceSymbol {
         const eol = targetDoc.endOfLine;
         const newLeadingLines = leadingText.split(eol);
         const newAlignLength = newLeadingLines[newLeadingLines.length - 1].length;
+        const inlineSpecifierAlignment = newLeadingLines.length === 1 ? inlineSpecifier.length : 0;
         if (newLineAlignment) {
             definition = definition.replace(
-                    re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifier.length + scopeString.length));
+                    re_newLineAlignment, ' '.repeat(newAlignLength + inlineSpecifierAlignment + scopeString.length));
         }
         definition = this.combinedTemplateStatements(true, eol)
                 + inlineSpecifier + leadingText + scopeString + definition;
