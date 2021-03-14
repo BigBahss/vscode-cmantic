@@ -62,6 +62,11 @@ export class CSymbol extends SourceSymbol {
         return this.parsableText.substring(0, endIndex);
     }
 
+    get parsableTrailingText(): string {
+        const startIndex = this.document.offsetAt(this.selectionRange.end) - this.startOffset();
+        return this.parsableText.substring(startIndex);
+    }
+
     get parsableFullLeadingText(): string {
         return this.parsableTemplateSnippet + this.parsableLeadingText;
     }
@@ -511,11 +516,17 @@ export class CSymbol extends SourceSymbol {
     }
 
     isVirtual(): boolean {
-        return /\b(virtual|override|final)\b/.test(this.parsableText);
+        if (/\bvirtual\b/.test(this.parsableLeadingText)) {
+            return true;
+        }
+        const endIndex = this.document.offsetAt(this.declarationEnd())
+                - this.document.offsetAt(this.selectionRange.end);
+        const maskedTrailingText = parse.maskParentheses(this.parsableTrailingText.slice(0, endIndex));
+        return /\b(override|final)\b/.test(maskedTrailingText);
     }
 
     isPureVirtual(): boolean {
-        return this.isVirtual() && /\s*=\s*0\s*(\s*;)*$/.test(this.parsableText);
+        return /\s*=\s*0\s*(\s*;)*$/.test(this.parsableText) && this.isVirtual();
     }
 
     isDeletedOrDefaulted(): boolean {
