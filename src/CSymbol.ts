@@ -378,6 +378,17 @@ export class CSymbol extends SourceSymbol {
         return baseClasses;
     }
 
+    childNamespaces(): CSymbol[] {
+        const namespaces: CSymbol[] = [];
+        this.children.forEach(child => {
+            if (child.kind === vscode.SymbolKind.Namespace) {
+                namespaces.push(new CSymbol(child, this.document));
+            }
+        });
+
+        return namespaces;
+    }
+
     /**
      * Retruns the member variables of this class/struct that are const or a reference.
      */
@@ -576,6 +587,10 @@ export class CSymbol extends SourceSymbol {
             }
         }
         return this.isUnspecializedTemplate();
+    }
+
+    isNestedNamespace(): boolean {
+        return this.kind === vscode.SymbolKind.Namespace && !/\bnamespace\b/.test(this.parsableLeadingText);
     }
 
     isTypedef(): boolean {
@@ -788,6 +803,7 @@ export class CSymbol extends SourceSymbol {
 
     /**
      * clangd and ccls don't include template statements in provided DocumentSymbol ranges.
+     * For nested namespaces, finds the beginning of the unqualified namespace statement.
      */
     get trueStart(): vscode.Position {
         if (this._trueStart) {
@@ -796,6 +812,19 @@ export class CSymbol extends SourceSymbol {
 
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = parse.maskComments(this.document.getText(before), false);
+
+        if (this.isNestedNamespace()) {
+            const namespaceStartOffset = maskedText.search(
+                    /\b(inline\s*)?namespace\s*[\w_][\w\d_]*(\s*::\s*(inline\s*)?[\w_][\w\d_]*)*(\s*::\s*)?$/);
+            if (namespaceStartOffset === -1) {
+                this._trueStart = this.range.start;
+                return this._trueStart;
+            }
+
+            this._trueStart = this.document.positionAt(namespaceStartOffset);
+            return this._trueStart;
+        }
+
         maskedText = parse.maskAngleBrackets(maskedText).trimEnd();
         if (!maskedText.endsWith('>')) {
             this._trueStart = this.range.start;

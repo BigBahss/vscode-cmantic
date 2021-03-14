@@ -101,29 +101,6 @@ export class SourceFile {
         return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
     }
 
-    /**
-     * Returns a SourceSymbol tree of just the namespaces in this SourceFile.
-     */
-    async namespaces(): Promise<SourceSymbol[]> {
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
-        }
-
-        const uri = this.uri;
-
-        return function searchSymbolTree(sourceSymbols: SourceSymbol[]): SourceSymbol[] {
-            const namespaces: SourceSymbol[] = [];
-            for (const sourceSymbol of sourceSymbols) {
-                if (sourceSymbol.kind === vscode.SymbolKind.Namespace) {
-                    const namespace = new SourceSymbol(sourceSymbol, uri, sourceSymbol.parent);
-                    namespace.children = searchSymbolTree(sourceSymbol.children);
-                    namespaces.push(namespace);
-                }
-            }
-            return namespaces;
-        } (this.symbols);
-    }
-
     async isNamespaceBodyIndented(): Promise<boolean> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();

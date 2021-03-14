@@ -139,9 +139,7 @@ async function getNamespaceText(headerDoc: SourceDocument) {
 
     const eol = headerDoc.endOfLine;
     const namespaces = await headerDoc.namespaces();
-    const curlySeparator = getNamespaceCurlySeparator(namespaces, headerDoc);
-    const indentation = await getNamespaceIndentation(headerDoc);
-    const namespacesText = generateNamespaces(namespaces, eol, curlySeparator, indentation);
+    const namespacesText = generateNamespaces(namespaces, eol);
     if (namespacesText.length === 0) {
         return '';
     }
@@ -149,52 +147,53 @@ async function getNamespaceText(headerDoc: SourceDocument) {
     return eol + namespacesText + eol;
 }
 
-function getNamespaceCurlySeparator(namespaces: SourceSymbol[], headerDoc: SourceDocument): string {
-    const curlyFormat = cfg.namespaceCurlyBraceFormat();
-    if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
-        const namespace = new CSymbol(namespaces[0], headerDoc);
-        if (/^\s*namespace\s+[\w\d_]+[ \t]*{/.test(namespace.parsableText)) {
-            return ' ';
-        }
-        return headerDoc.endOfLine;
-    } else if (curlyFormat === cfg.CurlyBraceFormat.NewLine) {
-        return headerDoc.endOfLine;
-    }
-    return ' ';
-}
+function generateNamespaces(namespaces: CSymbol[], eol: string): string {
+    const indentation = util.indentation();
+    const curlySeparator = getNamespaceCurlySeparator(namespaces, eol);
 
-async function getNamespaceIndentation(headerDoc: SourceDocument): Promise<string> {
-    switch (cfg.indentNamespaceBody()) {
-    case cfg.NamespaceIndentation.Always:
-        return util.indentation();
-    case cfg.NamespaceIndentation.Never:
-        return '';
-    case cfg.NamespaceIndentation.Auto:
-        return (await headerDoc.isNamespaceBodyIndented()) ? util.indentation() : '';
-    }
-}
-
-function generateNamespaces(
-    namespaces: SourceSymbol[],
-    eol: string,
-    curlySeparator: string,
-    indentation: string
-): string {
-    function generateNamespacesRecursive(namespaces: SourceSymbol[]): string {
+    return function generateNamespacesRecursive(namespaces: CSymbol[]): string {
         let namespaceText = '';
         for (const namespace of namespaces) {
             if (namespaceText) {
                 namespaceText += eol + eol;
             }
-            namespaceText += 'namespace ' + namespace.name + curlySeparator + '{' + eol;
-            const body = generateNamespacesRecursive(namespace.children);
-            if (body) {
-                namespaceText += body.replace(/^/gm, indentation);
+
+            if (namespace.isNestedNamespace()) {
+                namespaceText += '::' + (namespace.isInline() ? 'inline ' : '') + namespace.name;
+            } else {
+                namespaceText += (namespace.isInline() ? 'inline ' : '') + 'namespace ' + namespace.name;
             }
-            namespaceText += eol + '} // namespace ' + namespace.name;
+
+            const childNamespaces = namespace.childNamespaces();
+            const body = generateNamespacesRecursive(childNamespaces);
+            if (!body.startsWith('::')) {
+                namespaceText += curlySeparator + '{' + eol;
+                if (body) {
+                    if (childNamespaces.length > 0
+                            && childNamespaces[0].trueStart.character > namespace.trueStart.character) {
+                        namespaceText += body.replace(/^/gm, indentation);
+                    } else {
+                        namespaceText += body;
+                    }
+                }
+                namespaceText += eol + '} // namespace ' + namespace.name;
+            } else {
+                namespaceText += body;
+            }
         }
         return namespaceText;
-    }
+    } (namespaces).replace(/\s+$/gm, eol);
+}
 
-    return generateNamespacesRecursive(namespaces).replace(/\s+$/gm, eol);
+function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string {
+    const curlyFormat = cfg.namespaceCurlyBraceFormat();
+    if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
+        if (/^(\s*::\s*[\w_][\w\d_]*)*[ \t]*{/.test(namespaces[0].parsableTrailingText)) {
+            return ' ';
+        }
+        return eol;
+    } else if (curlyFormat === cfg.CurlyBraceFormat.NewLine) {
+        return eol;
+    }
+    return ' ';
 }

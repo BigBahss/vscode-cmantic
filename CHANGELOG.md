@@ -10,6 +10,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Improved recognition of virtual functions, and functions that are deleted or defaulted.
 - Fixed `Move Definition into/out-of class body` code-action being suggested for free functions.
 - Fixed `Generate Constructor` recognizing the `virtual` keyword as a base class.
+- Fixed namespace generation for qualified namespace names and `inline` namespaces.
+- Improved `Auto` namespace indentation.
 
 ## [0.6.1] - March 11, 2021
 ### Added
