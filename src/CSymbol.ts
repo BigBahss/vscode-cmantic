@@ -241,7 +241,14 @@ export class CSymbol extends SourceSymbol {
                         nextTo: true
                     });
                 }
-            } else if (relativeName === undefined && this.positionHasAccess(child.range.end, access)) {
+            }
+        }
+
+        for (let i = this.children.length - 1, child: CSymbol;
+            i >= 0 && (child = new CSymbol(this.children[i], this.document));
+            --i
+        ) {
+            if (this.positionHasAccess(child.range.end, access)) {
                 return new ProposedPosition(child.trailingCommentEnd(), {
                     relativeTo: child.range,
                     after: true
