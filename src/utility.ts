@@ -25,11 +25,12 @@ export function fileNameBase(fsPath: string): string {
 }
 
 /**
- * Returns the number of different directories between directoryPath_a and directoryPath_b.
+ * Returns a coefficient of how similar the paths are to eachother.
+ * Lower numbers mean more similar. Equivalent paths will return 0.
  */
 export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: string): number {
-    const a_segments = directoryPath_a.split(path.sep);
-    const b_segments = directoryPath_b.split(path.sep);
+    const a_segments = directoryPath_a.split(path.sep).filter(segment => segment.length > 0);
+    const b_segments = directoryPath_b.split(path.sep).filter(segment => segment.length > 0);
     const minSegments = Math.min(a_segments.length, b_segments.length);
 
     let commonLeadingDirectories = 0;
@@ -41,7 +42,7 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
     }
 
     let commonTrailingDirectories = 0;
-    for (let i = 1; i < minSegments - commonLeadingDirectories - 1; ++i) {
+    for (let i = 1; i < minSegments - commonLeadingDirectories; ++i) {
         if (a_segments[a_segments.length - i] !== b_segments[b_segments.length - i]) {
             break;
         }

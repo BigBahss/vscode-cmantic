@@ -12,6 +12,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Fixed `Generate Constructor` recognizing the `virtual` keyword as a base class.
 - Fixed namespace generation for qualified namespace names and `inline` namespaces.
 - Improved `Auto` namespace indentation.
+- Fixed a bug when finding matching header/source files and when sorting directories displayed by `Create Matching Source File`.
 
 ## [0.6.1] - March 11, 2021
 ### Added
