@@ -48,7 +48,7 @@ const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.Auto;
 const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
-const defaultHeaderGuardDefineFormat = '${FILE_NAME_EXT}';
+const defaultHeaderGuardDefineFormat = '${FILE_NAME}_${EXT}';
 const defaultAccessorDefinitionLocation = DefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
@@ -140,6 +140,7 @@ export function headerGuardStyle(): HeaderGuardStyle {
     case 'Add #pragma once':
         return HeaderGuardStyle.PragmaOnce;
     case 'Add #define':
+        return HeaderGuardStyle.Define;
     default:
         return defaultHeaderGuardStyle;
     }
