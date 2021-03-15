@@ -5,8 +5,7 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { getMatchingSourceFile } from './extension';
-import { logger } from './logger';
+import { getMatchingHeaderSource, logger } from './extension';
 import { SourceFile } from './SourceFile';
 
 
@@ -48,7 +47,7 @@ export async function moveDefinitionToMatchingSourceFile(
         const sourceDoc = new SourceDocument(editor.document);
 
         const [matchingUri, symbol] = await Promise.all([
-            getMatchingSourceFile(sourceDoc.uri),
+            getMatchingHeaderSource(sourceDoc.uri),
             sourceDoc.getSymbol(editor.selection.start)
         ]);
 
@@ -108,7 +107,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         const sourceDoc = new SourceDocument(editor.document);
 
         const [matchingUri, symbol] = await Promise.all([
-            getMatchingSourceFile(sourceDoc.uri),
+            getMatchingHeaderSource(sourceDoc.uri),
             sourceDoc.getSymbol(editor.selection.start)
         ]);
 

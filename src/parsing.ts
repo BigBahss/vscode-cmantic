@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as xregexp from 'xregexp';
-import { logger } from './logger';
+import { logger } from './extension';
 import { CSymbol } from './CSymbol';
 
 

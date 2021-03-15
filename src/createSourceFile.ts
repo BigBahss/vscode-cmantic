@@ -3,8 +3,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import * as path from 'path';
 import { SourceDocument } from './SourceDocument';
-import { getMatchingSourceFile } from './extension';
-import { logger } from './logger';
+import { getMatchingHeaderSource, logger } from './extension';
 import { CSymbol } from './CSymbol';
 
 
@@ -36,7 +35,7 @@ export async function createMatchingSourceFile(): Promise<boolean | undefined> {
     if (!headerDoc.isHeader()) {
         logger.alertWarning(failure.notHeaderFile);
         return;
-    } else if (await getMatchingSourceFile(headerDoc.uri)) {
+    } else if (await getMatchingHeaderSource(headerDoc.uri)) {
         logger.alertInformation(failure.sourceFileExists);
         return;
     }

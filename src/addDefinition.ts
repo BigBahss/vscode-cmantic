@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { getMatchingSourceFile } from './extension';
-import { logger } from './logger';
+import { getMatchingHeaderSource, logger } from './extension';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
@@ -42,7 +41,7 @@ export async function addDefinitionInSourceFile(): Promise<boolean | undefined> 
     }
 
     const [matchingUri, symbol] = await Promise.all([
-        getMatchingSourceFile(headerDoc.uri),
+        getMatchingHeaderSource(headerDoc.uri),
         headerDoc.getSymbol(editor.selection.start)
     ]);
 

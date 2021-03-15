@@ -5,8 +5,7 @@ import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { Accessor, Getter, Setter } from "./Accessor";
-import { getMatchingSourceFile } from './extension';
-import { logger } from './logger';
+import { getMatchingHeaderSource, logger } from './extension';
 
 
 export const title = {
@@ -229,7 +228,7 @@ async function getTargetForAccessorDefinition(
         return new TargetLocation(declarationPos, classDoc);
     case cfg.DefinitionLocation.SourceFile:
         if (classDoc.isHeader()) {
-            const matchingUri = await getMatchingSourceFile(classDoc.uri);
+            const matchingUri = await getMatchingHeaderSource(classDoc.uri);
             if (matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
                 const targetDoc = await SourceDocument.open(matchingUri);
                 return new TargetLocation(

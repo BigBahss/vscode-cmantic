@@ -10,7 +10,7 @@ import { failure as getterSetterFailure, title as getterSetterTitle } from './ge
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { title as equalityTitle } from './generateEqualityOperators';
-import { getMatchingSourceFile, pushDisposable } from './extension';
+import { getMatchingHeaderSource } from './extension';
 import { SourceFile } from './SourceFile';
 
 
@@ -61,21 +61,18 @@ export class SourceAction extends CodeAction {
 }
 
 export class CodeActionProvider implements vscode.CodeActionProvider {
-    private addDefinitionEnabled: boolean = cfg.enableAddDefinition();
-    private addDeclarationEnabled: boolean = cfg.enableAddDeclaration();
-    private moveDefinitionEnabled: boolean = cfg.enableMoveDefinition();
-    private generateGetterSetterEnabled: boolean = cfg.enableGenerateGetterSetter();
+    readonly metadata: vscode.CodeActionProviderMetadata = {
+        providedCodeActionKinds: [
+            vscode.CodeActionKind.QuickFix,
+            vscode.CodeActionKind.Refactor,
+            vscode.CodeActionKind.Source
+        ]
+    };
 
-    constructor() {
-        pushDisposable(vscode.workspace.onDidChangeConfiguration((event: vscode.ConfigurationChangeEvent) => {
-            if (event.affectsConfiguration(cfg.baseConfigurationString)) {
-                this.addDefinitionEnabled = cfg.enableAddDefinition();
-                this.addDeclarationEnabled = cfg.enableAddDeclaration();
-                this.moveDefinitionEnabled = cfg.enableMoveDefinition();
-                this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
-            }
-        }));
-    }
+    addDefinitionEnabled: boolean = cfg.enableAddDefinition();
+    addDeclarationEnabled: boolean = cfg.enableAddDeclaration();
+    moveDefinitionEnabled: boolean = cfg.enableMoveDefinition();
+    generateGetterSetterEnabled: boolean = cfg.enableGenerateGetterSetter();
 
     async provideCodeActions(
         document: vscode.TextDocument,
@@ -86,7 +83,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const sourceDoc = new SourceDocument(document);
 
         const [matchingUri, symbol] = await Promise.all([
-            getMatchingSourceFile(sourceDoc.uri),
+            getMatchingHeaderSource(sourceDoc.uri),
             sourceDoc.getSymbol(rangeOrSelection.start)
         ]);
 

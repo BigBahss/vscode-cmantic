@@ -58,10 +58,10 @@ const defaultCaseStyle = CaseStyle.camelCase;
 const defaultBracedInitialization = false;
 const defaultExplicitThisPointer = false;
 
-export const baseConfigurationString = 'C_mantic';
+export const baseConfigurationKey = 'C_mantic';
 
 function configuration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration(baseConfigurationString);
+    return vscode.workspace.getConfiguration(baseConfigurationKey);
 }
 
 export function alertLevel(): AlertLevel {

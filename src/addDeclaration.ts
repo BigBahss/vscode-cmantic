@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import * as util from './utility';
-import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingHeaderSource, logger } from './extension';
 import { SourceFile } from './SourceFile';
 
 
@@ -34,7 +33,7 @@ export async function addDeclaration(
         definitionDoc = new SourceDocument(editor.document);
 
         const [matchingUri, symbol] = await Promise.all([
-            getMatchingSourceFile(definitionDoc.uri),
+            getMatchingHeaderSource(definitionDoc.uri),
             definitionDoc.getSymbol(editor.selection.start)
         ]);
 

@@ -2,12 +2,12 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 
 
-class Logger extends vscode.Disposable {
+export class Logger extends vscode.Disposable {
     private readonly output: vscode.OutputChannel;
 
-    constructor() {
+    constructor(name: string) {
         super(() => this.output.dispose());
-        this.output = vscode.window.createOutputChannel('C-mantic');
+        this.output = vscode.window.createOutputChannel(name);
     }
 
     logInfo(message: string): void { this.output.appendLine(`[${this.getTimeString()}  Info] ${message}`); }
@@ -43,5 +43,3 @@ class Logger extends vscode.Disposable {
         return `${(hours < 10 ? '0' : '') + hours}:${(minutes < 10 ? '0' : '') + minutes}:${(seconds < 10 ? '0' : '') + seconds}`;
     }
 }
-
-export const logger = new Logger();

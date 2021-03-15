@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { getMatchingSourceFile } from './extension';
-import { logger } from './logger';
+import { getMatchingHeaderSource, logger } from './extension';
 
 
 export async function switchHeaderSourceInWorkspace(): Promise<boolean | undefined> {
@@ -10,7 +9,7 @@ export async function switchHeaderSourceInWorkspace(): Promise<boolean | undefin
         return;
     }
 
-    const matchingUri = await getMatchingSourceFile(editor.document.uri);
+    const matchingUri = await getMatchingHeaderSource(editor.document.uri);
     if (!matchingUri) {
         logger.alertInformation('No matching header/source file was found.');
         return;

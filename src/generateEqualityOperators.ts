@@ -1,12 +1,11 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import { Operator, OpEqual, OpNotEqual } from './Operator';
-import { getMatchingSourceFile } from './extension';
+import { getMatchingHeaderSource, logger } from './extension';
 
 
 export const title = 'Generate Equality Operators';
@@ -151,7 +150,7 @@ async function promptUserForDefinitionLocations(
             new DefinitionLocationQuickPickItems(classOrStruct, classDoc),
             { placeHolder: 'Select where the definition of operator!= should be placed:' });
 
-    const matchingUri = await getMatchingSourceFile(classDoc.uri);
+    const matchingUri = await getMatchingHeaderSource(classDoc.uri);
 
     const equalityTargetDoc = (equalityDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri)
             ? await SourceDocument.open(matchingUri)

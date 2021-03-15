@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import * as path from 'path';
-import * as fs from 'fs';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
@@ -16,207 +14,149 @@ import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
-import { logger } from './logger';
+import { Logger } from './Logger';
+import { HeaderSourceCache } from './HeaderSourceCache';
 
 
-const disposables: vscode.Disposable[] = [];
-const headerSourceCache: Map<string, vscode.Uri> = new Map<string, vscode.Uri>();
+export const logger = new Logger('C-mantic');
+
+const disposables: vscode.Disposable[] = [logger];
+const codeActionProvider = new CodeActionProvider();
+const headerSourceCache = new HeaderSourceCache();
 
 export function activate(context: vscode.ExtensionContext): void {
-    pushDisposable(logger);
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInSourceFile", addDefinitionInSourceFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinitionInCurrentFile", addDefinitionInCurrentFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDefinition", addDefinition));
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addDeclaration", addDeclaration));
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionToMatchingSourceFile", moveDefinitionToMatchingSourceFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.moveDefinitionIntoOrOutOfClass", moveDefinitionIntoOrOutOfClass));
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetter", generateGetterSetter));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetter", generateGetter));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateSetter", generateSetter));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterSetterFor", generateGetterSetterFor));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateGetterFor", generateGetterFor));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateSetterFor", generateSetterFor));
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.generateEqualityOperators", generateEqualityOperators));
-
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.createMatchingSourceFile", createMatchingSourceFile));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addHeaderGuard", addHeaderGuard));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.addInclude", addInclude));
-    context.subscriptions.push(vscode.commands.registerCommand("cmantic.switchHeaderSourceInWorkspace", switchHeaderSourceInWorkspace));
-
-    vscode.languages.registerCodeActionsProvider(
-            [{ scheme: 'file', language: 'c' }, { scheme: 'file', language: 'cpp' }],
-            new CodeActionProvider(),
-            { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix, vscode.CodeActionKind.Refactor, vscode.CodeActionKind.Source] });
-
-    pushDisposable(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
-    pushDisposable(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
-
-    logger.logInfo('C-mantic extension activated.');
-    showMessageOnVersionUpdate(context);
-
-    vscode.workspace.textDocuments.forEach(onDidOpenTextDocument);
+    registerCommands(context);
+    registerCodeActionProvider(context);
+    registerEventListeners();
+    logActivation(context);
+    cacheOpenDocuments();
 }
 
 export function deactivate(): void {
     disposables.forEach(disposable => disposable.dispose());
 }
 
+export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
+    return headerSourceCache.get(uri);
+}
+
+const commands = {
+    'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
+    'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
+    'cmantic.addDefinition': addDefinition,
+    'cmantic.addDeclaration': addDeclaration,
+    'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
+    'cmantic.moveDefinitionIntoOrOutOfClass': moveDefinitionIntoOrOutOfClass,
+    'cmantic.generateGetterSetter': generateGetterSetter,
+    'cmantic.generateGetter': generateGetter,
+    'cmantic.generateSetter': generateSetter,
+    'cmantic.generateGetterSetterFor': generateGetterSetterFor,
+    'cmantic.generateGetterFor': generateGetterFor,
+    'cmantic.generateSetterFor': generateSetterFor,
+    'cmantic.generateEqualityOperators': generateEqualityOperators,
+    'cmantic.createMatchingSourceFile': createMatchingSourceFile,
+    'cmantic.addHeaderGuard': addHeaderGuard,
+    'cmantic.addInclude': addInclude,
+    'cmantic.switchHeaderSourceInWorkspace': switchHeaderSourceInWorkspace
+};
+
+function registerCommands(context: vscode.ExtensionContext): void {
+    Object.entries(commands).forEach(([command, handler]) => {
+        context.subscriptions.push(vscode.commands.registerCommand(command, handler));
+    });
+}
+
+function registerCodeActionProvider(context: vscode.ExtensionContext): void {
+    const documentSelector: vscode.DocumentSelector = [
+        { scheme: 'file', language: 'c' },
+        { scheme: 'file', language: 'cpp' }
+    ];
+
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            documentSelector,
+            codeActionProvider,
+            codeActionProvider.metadata
+        )
+    );
+}
+
+function registerEventListeners(): void {
+    disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
+    disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
+    disposables.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration));
+}
+
+function logActivation(context: vscode.ExtensionContext): void {
+    logger.logInfo('C-mantic extension activated.');
+    showMessageOnFeatureUpdate(context);
+}
+
+async function cacheOpenDocuments(): Promise<void> {
+    const p_cached: Promise<void>[] = [];
+    vscode.workspace.textDocuments.forEach(document => p_cached.push(onDidOpenTextDocument(document)));
+    await Promise.all(p_cached);
+}
+
+async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void> {
+    if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
+        return headerSourceCache.add(document.uri);
+    }
+}
+
+async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
+    const p_cached: Promise<void>[] = [];
+    event.files.forEach(uri => {
+        const ext = util.fileExtension(uri.fsPath);
+        if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
+            p_cached.push(headerSourceCache.add(uri));
+        }
+    });
+    await Promise.all(p_cached);
+}
+
+function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
+    if (event.affectsConfiguration(cfg.baseConfigurationKey)) {
+        codeActionProvider.addDefinitionEnabled = cfg.enableAddDefinition();
+        codeActionProvider.addDeclarationEnabled = cfg.enableAddDeclaration();
+        codeActionProvider.moveDefinitionEnabled = cfg.enableMoveDefinition();
+        codeActionProvider.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+    }
+}
+
 const re_semVer = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
 const extensionId = 'tdennis4496.cmantic';
-
-function showMessageOnVersionUpdate(context: vscode.ExtensionContext): void {
-    const previousVersion = context.globalState.get<string>(versionKey);
-	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version as string;
-    if (!re_semVer.test(currentVersion)) {
-        return;
-    }
-
-    const [,currentMinor,] = currentVersion.split('.');
-    if (previousVersion !== undefined && re_semVer.test(previousVersion)) {
-        const [,previousMinor,] = previousVersion.split('.');
-        if (+previousMinor < +currentMinor) {
-            showUpdateMessage();
-        }
-    } else {
-        showUpdateMessage();
-    }
-
-    context.globalState.update(versionKey, currentVersion);
-}
-
-const updateMessage = 'C-mantic v0.6.0: Added \'Add Declaration\' command and more options for generating header guards.';
+const updateMessage =
+        'C-mantic v0.6.0: Added \'Add Declaration\' command and more options for generating header guards.';
 const readmeButton = 'Open README';
 const changelogButton = 'Open CHANGELOG';
 const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/README.md');
 const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/CHANGELOG.md');
 
-function showUpdateMessage(): void {
-    vscode.window.showInformationMessage(updateMessage, readmeButton, changelogButton).then(value => {
-        if (value === readmeButton) {
-            vscode.env.openExternal(readmeUri);
-        } else if (value === changelogButton) {
-            vscode.env.openExternal(changelogUri);
-        }
-    });
-}
-
-export function pushDisposable(disposable: vscode.Disposable): void {
-    disposables.push(disposable);
-}
-
-export async function getMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
-    const cachedMatchingUri = headerSourceCache.get(uri.toString());
-    if (cachedMatchingUri) {
-        if (fs.existsSync(cachedMatchingUri.fsPath)) {
-            return cachedMatchingUri;
-        } else {
-            removeHeaderSourcePairFromCache(uri, cachedMatchingUri);
-        }
-    }
-
-    const matchingUri = await findMatchingSourceFile(uri);
-    if (!matchingUri) {
+async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
+	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version;
+    if (typeof currentVersion !== 'string' || !re_semVer.test(currentVersion)) {
         return;
     }
 
-    addHeaderSourcePairToCache(uri, matchingUri);
+    const previousVersion = context.globalState.get<string>(versionKey);
 
-    return matchingUri;
-}
-
-async function cacheMatchingSourceFile(uri: vscode.Uri): Promise<void> {
-    const matchingUri = await getMatchingSourceFile(uri);
-    if (matchingUri) {
-        addHeaderSourcePairToCache(uri, matchingUri);
-    }
-}
-
-function addHeaderSourcePairToCache(uri_a: vscode.Uri, uri_b: vscode.Uri): void {
-    headerSourceCache.set(uri_a.toString(), uri_b);
-    headerSourceCache.set(uri_b.toString(), uri_a);
-}
-
-function removeHeaderSourcePairFromCache(uri_a: vscode.Uri, uri_b?: vscode.Uri): void {
-    if (!uri_b) {
-        uri_b = headerSourceCache.get(uri_a.toString());
-    }
-
-    headerSourceCache.delete(uri_a.toString());
-    if (uri_b) {
-        headerSourceCache.delete(uri_b.toString());
-    }
-}
-
-async function findMatchingSourceFile(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-    if (!workspaceFolder) {
-        return;
-    }
-
-    const extension = util.fileExtension(uri.fsPath);
-    const baseName = util.fileNameBase(uri.fsPath);
-    const directory = path.dirname(uri.fsPath);
-    const parentDirectory = path.dirname(directory);
-    const headerExtensions = cfg.headerExtensions();
-    const sourceExtensions = cfg.sourceExtensions();
-
-    let globPattern: string;
-    if (headerExtensions.includes(extension)) {
-        globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
-    } else if (sourceExtensions.includes(extension)) {
-        globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
-    } else {
-        return;
-    }
-
-    const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
-    const parentDirRelativeUris = await vscode.workspace.findFiles(parentDirRelativePattern);
-    const bestParentDirRelativeMatch = findBestMatchingUri(directory, parentDirRelativeUris);
-    if (bestParentDirRelativeMatch) {
-        return bestParentDirRelativeMatch;
-    }
-
-    const workspaceRelativePattern = new vscode.RelativePattern(workspaceFolder, globPattern);
-    const workspaceRelativeUris = await vscode.workspace.findFiles(workspaceRelativePattern, parentDirectory);
-    return findBestMatchingUri(directory, workspaceRelativeUris);
-}
-
-function findBestMatchingUri(directoryToCompare: string, uris: vscode.Uri[]): vscode.Uri | undefined {
-    let bestMatch: vscode.Uri | undefined;
-    let smallestDiff: number | undefined;
-
-    for (const uri of uris) {
-        if (uri.scheme !== 'file') {
-            continue;
-        }
-
-        const diff = util.compareDirectoryPaths(path.dirname(uri.fsPath), directoryToCompare);
-        if (smallestDiff === undefined || diff < smallestDiff) {
-            smallestDiff = diff;
-            bestMatch = uri;
+    const [,currentMinor,] = currentVersion.split('.');
+    if (previousVersion !== undefined && re_semVer.test(previousVersion)) {
+        const [,previousMinor,] = previousVersion.split('.');
+        if (+previousMinor >= +currentMinor) {
+            context.globalState.update(versionKey, currentVersion);
+            return;
         }
     }
 
-    return bestMatch;
-}
+    context.globalState.update(versionKey, currentVersion);
 
-async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void> {
-    if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
-        return cacheMatchingSourceFile(document.uri);
-    }
-}
-
-async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
-    for (const uri of event.files) {
-        const ext = util.fileExtension(uri.fsPath);
-        if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
-            await cacheMatchingSourceFile(uri);
-        }
+    const selected = await vscode.window.showInformationMessage(updateMessage, readmeButton, changelogButton);
+    if (selected === readmeButton) {
+        vscode.env.openExternal(readmeUri);
+    } else if (selected === changelogButton) {
+        vscode.env.openExternal(changelogUri);
     }
 }
