@@ -70,7 +70,7 @@ export class SourceFile {
 
     static async getSymbol(location: vscode.Location): Promise<SourceSymbol | undefined> {
         const sourceFile = new SourceFile(location.uri);
-        return await sourceFile.getSymbol(location.range.start);
+        return sourceFile.getSymbol(location.range.start);
     }
 
     async findDefintions(position: vscode.Position): Promise<vscode.Location[]> {

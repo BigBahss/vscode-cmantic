@@ -5,6 +5,7 @@ import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { SourceSymbol } from './SourceSymbol';
 
+
 export interface Operator {
     readonly parent: CSymbol;
     name: string;

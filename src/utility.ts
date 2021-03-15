@@ -6,6 +6,7 @@ import { SourceSymbol } from './SourceSymbol';
 import { SubSymbol } from './SubSymbol';
 import { SourceDocument } from './SourceDocument';
 
+
 /**
  * Returns the file extension without the dot.
  */
@@ -121,7 +122,7 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
 
 export async function shouldIndentNamespaceBody(declarationDoc: SourceDocument): Promise<boolean | undefined> {
     const cfgIndent = cfg.indentNamespaceBody();
-    return cfgIndent === cfg.NamespaceIndentation.Always
+    return cfgIndent === cfg.NamespaceIndentation.Always /* eslint-disable no-return-await */
         || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented());
 }
 
@@ -219,7 +220,7 @@ export enum AccessLevel {
     public,
     protected,
     private
-};
+}
 
 export function accessSpecifierString(access: AccessLevel): string {
     switch (access) {

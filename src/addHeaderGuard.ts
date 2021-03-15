@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as path from 'path';
 import { SourceDocument } from './SourceDocument';
 import { logger } from './logger';
 
@@ -10,7 +9,6 @@ export const failure = {
     notHeaderFile: 'This file is not a header file.',
     headerGuardExists: 'A header guard already exists.'
 };
-
 
 export async function addHeaderGuard(): Promise<void> {
     const activeEditor = vscode.window.activeTextEditor;

@@ -6,7 +6,6 @@ import { logger } from './logger';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { SourceSymbol } from './SourceSymbol';
 import { SubSymbol } from './SubSymbol';
 
 
@@ -29,8 +28,7 @@ export const failure = {
     definitionExists: 'A definition for this function already exists.'
 };
 
-
-export async function addDefinitionInSourceFile(): Promise<void> {
+export async function addDefinitionInSourceFile(): Promise<boolean | undefined> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.alertError(failure.noActiveTextEditor);
@@ -62,12 +60,13 @@ export async function addDefinitionInSourceFile(): Promise<void> {
         return;
     } else if (symbol.hasUnspecializedTemplate()) {
         logger.alertInformation(failure.hasUnspecializedTemplate);
+        return;
     }
 
     await addDefinition(symbol, headerDoc, matchingUri);
 }
 
-export async function addDefinitionInCurrentFile(): Promise<void> {
+export async function addDefinitionInCurrentFile(): Promise<boolean | undefined> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.alertError(failure.noActiveTextEditor);
@@ -82,14 +81,14 @@ export async function addDefinitionInCurrentFile(): Promise<void> {
         return;
     }
 
-    await addDefinition(symbol, sourceDoc, sourceDoc.uri);
+    return addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
 export async function addDefinition(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
     targetUri: vscode.Uri
-): Promise<void> {
+): Promise<boolean | undefined> {
     const shouldReveal = cfg.revealNewDefinition();
     const existingDefinition = await functionDeclaration.findDefinition();
     if (existingDefinition) {
@@ -139,12 +138,14 @@ export async function addDefinition(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
-    await vscode.workspace.applyEdit(workspaceEdit);
+    const success = await vscode.workspace.applyEdit(workspaceEdit);
 
-    if (shouldReveal && editor) {
+    if (success && shouldReveal && editor) {
         const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPos, functionSkeleton));
         editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
     }
+
+    return success;
 }
 
 type Initializer = CSymbol | SubSymbol;

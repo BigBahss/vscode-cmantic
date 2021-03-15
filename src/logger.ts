@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 
+
 class Logger extends vscode.Disposable {
     private readonly output: vscode.OutputChannel;
 

@@ -22,7 +22,7 @@ export async function addDeclaration(
     functionDefinition?: CSymbol,
     definitionDoc?: SourceDocument,
     targetUri?: vscode.Uri
-): Promise<void> {
+): Promise<boolean | undefined> {
     if (!functionDefinition || !definitionDoc || !targetUri) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
@@ -82,5 +82,5 @@ export async function addDeclaration(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, formattedDeclaration);
-    await vscode.workspace.applyEdit(workspaceEdit);
+    return vscode.workspace.applyEdit(workspaceEdit);
 }

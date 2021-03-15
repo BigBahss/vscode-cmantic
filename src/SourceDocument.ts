@@ -7,6 +7,7 @@ import { SourceFile } from './SourceFile';
 import { SourceSymbol } from './SourceSymbol';
 import { ProposedPosition } from './ProposedPosition';
 
+
 /**
  * Represents a C/C++ source file.
  */
@@ -50,7 +51,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     static async getSymbol(location: vscode.Location): Promise<CSymbol | undefined> {
         const sourceDoc = await SourceDocument.open(location.uri);
-        return await sourceDoc.getSymbol(location.range.start);
+        return sourceDoc.getSymbol(location.range.start);
     }
 
     async findMatchingSymbol(target: CSymbol): Promise<CSymbol | undefined> {
@@ -105,7 +106,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     positionAfterHeaderComment(): ProposedPosition {
         const maskedText = parse.maskComments(this.getText(), false);
-        let offset = maskedText.search(/\S/);
+        const offset = maskedText.search(/\S/);
         if (offset !== -1) {
             // Return position before first non-comment text.
             return new ProposedPosition(this.positionAt(offset), { before: true });
@@ -128,14 +129,14 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         if (!targetDoc) {
             targetDoc = this;
         }
+
         if (!targetDoc.symbols) {
-            targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
-            if (targetDoc.symbols.length === 0) {
-                return util.positionAfterLastNonEmptyLine(targetDoc);
-            }
+            await targetDoc.executeSourceSymbolProvider();
         }
 
-        if (definition?.uri.fsPath !== this.uri.fsPath || (!definition.parent && this.symbols.length === 0)) {
+        if (!targetDoc.symbols || targetDoc.symbols.length === 0) {
+            return util.positionAfterLastNonEmptyLine(targetDoc);
+        } else if (definition?.uri.fsPath !== this.uri.fsPath || (!definition.parent && this.symbols.length === 0)) {
             return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
         }
 
@@ -184,26 +185,28 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-        let declaration: CSymbol | undefined;
-        if (declarationOrPosition instanceof ProposedPosition) {
-            declaration = declarationOrPosition.options.relativeTo !== undefined
-                    ? await this.getSymbol(declarationOrPosition.options.relativeTo.start)
-                    : await this.getSymbol(declarationOrPosition);
-        } else {
-            declaration = new CSymbol(declarationOrPosition, this);
-        }
+
+        const declaration = await async function (sourceDoc: SourceDocument): Promise<CSymbol | undefined> {
+            if (declarationOrPosition instanceof ProposedPosition) {
+                return declarationOrPosition.options.relativeTo !== undefined
+                        ? sourceDoc.getSymbol(declarationOrPosition.options.relativeTo.start)
+                        : sourceDoc.getSymbol(declarationOrPosition);
+            } else {
+                return new CSymbol(declarationOrPosition, sourceDoc);
+            }
+        } (this);
 
         if (!targetDoc) {
             targetDoc = this;
         }
+
         if (!targetDoc.symbols) {
-            targetDoc.symbols = await targetDoc.executeSourceSymbolProvider();
-            if (targetDoc.symbols.length === 0) {
-                return util.positionAfterLastNonEmptyLine(targetDoc);
-            }
+            await targetDoc.executeSourceSymbolProvider();
         }
 
-        if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration.parent && this.symbols.length === 0)) {
+        if (!targetDoc.symbols || targetDoc.symbols.length === 0) {
+            return util.positionAfterLastNonEmptyLine(targetDoc);
+        } else if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration.parent && this.symbols.length === 0)) {
             return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
         }
 

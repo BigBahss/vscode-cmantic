@@ -1,6 +1,6 @@
-import { Position, Range, TextDocument, TextLine } from 'vscode';
-import { SourceDocument } from './SourceDocument';
 import * as util from './utility';
+import { Position, Range, TextLine } from 'vscode';
+import { SourceDocument } from './SourceDocument';
 
 
 export interface PositionOptions {

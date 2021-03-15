@@ -3,6 +3,7 @@ import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
 
+
 /**
  * Represents a sub-symbol within a CSymbol, such as a data type or a keyword. Not provided by the language server.
  */

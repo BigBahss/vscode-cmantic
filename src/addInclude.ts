@@ -3,7 +3,7 @@ import { SourceDocument } from './SourceDocument';
 import { logger } from './logger';
 
 
-export async function addInclude(): Promise<void> {
+export async function addInclude(): Promise<boolean | undefined> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.alertError('No active text editor detected.');
@@ -18,9 +18,9 @@ export async function addInclude(): Promise<void> {
     const userInput = await p_userInput;
     if (userInput !== undefined) {
         if (/^\s*#\s*include\s*<.+>/.test(userInput)) {
-            editor.edit(edit => edit.insert(newIncludePosition.system, userInput + sourceDoc.endOfLine));
+            return editor.edit(edit => edit.insert(newIncludePosition.system, userInput + sourceDoc.endOfLine));
         } else if (/^\s*#\s*include\s*".+"/.test(userInput)) {
-            editor.edit(edit => edit.insert(newIncludePosition.project, userInput + sourceDoc.endOfLine));
+            return editor.edit(edit => edit.insert(newIncludePosition.project, userInput + sourceDoc.endOfLine));
         } else {
             logger.alertInformation('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
         }

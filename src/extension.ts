@@ -213,10 +213,10 @@ async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<voi
 }
 
 async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
-    event.files.forEach(async (uri) => {
+    for (const uri of event.files) {
         const ext = util.fileExtension(uri.fsPath);
         if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
-            return cacheMatchingSourceFile(uri);
+            await cacheMatchingSourceFile(uri);
         }
-    });
+    }
 }

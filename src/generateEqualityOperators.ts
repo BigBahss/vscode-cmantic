@@ -20,7 +20,7 @@ export const failure = {
 export async function generateEqualityOperators(
     classOrStruct?: CSymbol,
     classDoc?: SourceDocument
-): Promise<void> {
+): Promise<boolean | undefined> {
     if (!classOrStruct || !classDoc) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
@@ -75,7 +75,7 @@ export async function generateEqualityOperators(
         await addNewOperatorToWorkspaceEdit(
                 opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit, true);
     }
-    await vscode.workspace.applyEdit(workspaceEdit);
+    return vscode.workspace.applyEdit(workspaceEdit);
 }
 
 interface MemberVariableQuickPickItem extends vscode.QuickPickItem {

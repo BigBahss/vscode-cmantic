@@ -32,7 +32,7 @@ export class SourceSymbol extends vscode.DocumentSymbol {
 
         // cpptools puts function signatures in name, so we want to store the actual function name in name.
         let name = symbol.name;
-        const lastIndexOfParen = name.lastIndexOf('(');
+        const lastIndexOfParen = name.indexOf('(');
         if (lastIndexOfParen > 0) {
             name = name.slice(0, lastIndexOfParen);
         }

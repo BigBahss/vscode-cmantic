@@ -38,9 +38,9 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
             // This shouldn't happen, but log the error just in case.
             logger.alertError(`Unknown parsing error: ${message}`);
         }
-    } finally {
-        return text;
     }
+
+    return text;
 }
 
 export function maskComments(text: string, keepEnclosingChars: boolean = true): string {
@@ -82,7 +82,7 @@ export function maskQuotes(text: string, keepEnclosingChars: boolean = true): st
 
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
-};
+}
 
 export function maskBraces(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '{', '}', keepEnclosingChars);

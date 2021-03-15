@@ -36,13 +36,13 @@ export async function moveDefinitionToMatchingSourceFile(
     definition?: CSymbol,
     targetUri?: vscode.Uri,
     declaration?: CSymbol
-): Promise<boolean> {
+): Promise<boolean | undefined> {
     if (!definition || !targetUri) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             logger.alertError(failure.noActiveTextEditor);
-            return false;
+            return;
         }
 
         const sourceDoc = new SourceDocument(editor.document);
@@ -54,10 +54,10 @@ export async function moveDefinitionToMatchingSourceFile(
 
         if (!symbol?.isFunctionDefinition()) {
             logger.alertWarning(failure.noFunctionDefinition);
-            return false;
+            return;
         } else if (!matchingUri) {
             logger.alertWarning(failure.noMatchingSourceFile);
-            return false;
+            return;
         }
 
         definition = symbol;
@@ -96,13 +96,13 @@ export async function moveDefinitionIntoOrOutOfClass(
     definition?: CSymbol,
     classDoc?: SourceDocument,
     declaration?: CSymbol
-): Promise<boolean> {
+): Promise<boolean | undefined> {
     if (!definition || !classDoc) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             logger.alertError(failure.noActiveTextEditor);
-            return false;
+            return;
         }
 
         const sourceDoc = new SourceDocument(editor.document);
@@ -114,7 +114,7 @@ export async function moveDefinitionIntoOrOutOfClass(
 
         if (!symbol?.isFunctionDefinition()) {
             logger.alertWarning(failure.noFunctionDefinition);
-            return false;
+            return;
         }
         definition = symbol;
 
@@ -140,7 +140,7 @@ export async function moveDefinitionIntoOrOutOfClass(
                     classDoc = parentClass.document;
                 } else {
                     logger.alertWarning(failure.notMemberFunction);
-                    return false;
+                    return;
                 }
             }
         }
@@ -174,7 +174,7 @@ export async function moveDefinitionIntoOrOutOfClass(
             const access = await util.getMemberAccessFromUser();
             if (access === undefined) {
                 // User cancelled the access specifier selection.
-                return false;
+                return;
             }
 
             const position = await definition.document.findPositionForFunctionDeclaration(
@@ -196,7 +196,6 @@ export async function moveDefinitionIntoOrOutOfClass(
     }
 
     logger.alertWarning(failure.noFunctionDeclaration);
-    return false;
 }
 
 async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSymbol): Promise<ProposedPosition> {
@@ -205,7 +204,7 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
     }
 
     const declarationDoc = await SourceDocument.open(declaration.uri);
-    return await declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
+    return declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
 }
 
 function getDeletionRange(definition: CSymbol): vscode.Range {

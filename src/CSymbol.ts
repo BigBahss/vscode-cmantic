@@ -8,10 +8,10 @@ import { SourceFile } from './SourceFile';
 import { SourceDocument } from './SourceDocument';
 import { SubSymbol } from './SubSymbol';
 
+
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
 const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
-
 
 /**
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
@@ -631,7 +631,7 @@ export class CSymbol extends SourceSymbol {
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, parse.masker);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return await this.resolveThisType(this.startOffset() + index);
+                return this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypedef()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -645,7 +645,7 @@ export class CSymbol extends SourceSymbol {
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, parse.masker);
             const index = maskedText.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return await this.resolveThisType(this.startOffset() + index);
+                return this.resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypeAlias()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -664,7 +664,7 @@ export class CSymbol extends SourceSymbol {
             const type = this.parsableText.substring(indexOfEquals + 1);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return await this.resolveThisType(this.startOffset() + index);
+                return this.resolveThisType(this.startOffset() + index);
             }
         }
 
@@ -683,7 +683,7 @@ export class CSymbol extends SourceSymbol {
             } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
                 const typeDoc = await typeFile.openDocument();
                 const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                return await typeCSymbol.isPrimitive();
+                return typeCSymbol.isPrimitive();
             }
         }
 

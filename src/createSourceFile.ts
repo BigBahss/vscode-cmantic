@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as path from 'path';
-import { SourceSymbol } from './SourceSymbol';
 import { SourceDocument } from './SourceDocument';
 import { getMatchingSourceFile } from './extension';
 import { logger } from './logger';
@@ -16,8 +15,7 @@ export const failure = {
     sourceFileExists: 'A source file already exists for this header.'
 };
 
-
-export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined> {
+export async function createMatchingSourceFile(): Promise<boolean | undefined> {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
         logger.alertError(failure.noActiveTextEditor);
@@ -82,8 +80,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const editor = await vscode.window.showTextDocument(newFileUri);
     const cursorPosition = editor.document.lineAt(0).range.end;
     editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
-
-    return newFileUri;
+    return true;
 }
 
 interface FolderItem extends vscode.QuickPickItem {

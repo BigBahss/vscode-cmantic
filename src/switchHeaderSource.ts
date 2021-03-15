@@ -3,7 +3,7 @@ import { getMatchingSourceFile } from './extension';
 import { logger } from './logger';
 
 
-export async function switchHeaderSourceInWorkspace(): Promise<void> {
+export async function switchHeaderSourceInWorkspace(): Promise<boolean | undefined> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.alertError('No active text editor detected.');
@@ -17,4 +17,5 @@ export async function switchHeaderSourceInWorkspace(): Promise<void> {
     }
 
     await vscode.window.showTextDocument(matchingUri);
+    return true;
 }
