@@ -27,17 +27,23 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
             }
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : error as string;
-        const unbalancedIndexMatch = message.match(/\d+/);
-        if (unbalancedIndexMatch !== null) {
-            // There is an unbalanced delimiter, so we mask it and try again.
-            const unbalancedIndex: number = +unbalancedIndexMatch[0];
-            text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
-            text = maskBalanced(text, left, right, keepEnclosingChars);
+        if (error instanceof Error) {
+            const unbalancedIndexMatch = error.message.match(/\d+/);
+            if (unbalancedIndexMatch !== null) {
+                const unbalancedIndex: number = +unbalancedIndexMatch[0];
+                if (unbalancedIndex < text.length) {
+                    // There is an unbalanced delimiter, so we mask it and try again.
+                    text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
+                    return maskBalanced(text, left, right, keepEnclosingChars);
+                }
+            }
+
+            logger.alertError(`Unknown parsing error: ${error.message}`);
         } else {
-            // This shouldn't happen, but log the error just in case.
-            logger.alertError(`Unknown parsing error: ${message}`);
+            logger.alertError('Unknown parsing error');
         }
+
+        throw error;
     }
 
     return text;
