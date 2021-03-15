@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
+
 ## [0.6.2] - March 14, 2021
 ### Changed
 - Generating getters, setters, and equality operators will now insert a `public:` access specifier if one is not found in the class.

@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
-import * as parse from './parsing';
 import * as util from './utility';
 import { SourceDocument } from './SourceDocument';
 import { CSymbol } from './CSymbol';
@@ -271,9 +270,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     addDeclaration.setTitle(`Add Declaration in struct "${scopeName}"`);
                 }
                 addDeclaration.setArguments(definition, sourceDoc, parentClass.uri);
-                addDeclaration.kind = vscode.CodeActionKind.QuickFix;
-                addDeclaration.isPreferred = true;
-                addDeclaration.diagnostics = [...context.diagnostics];
+                if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+                    addDeclaration.kind = vscode.CodeActionKind.QuickFix;
+                    addDeclaration.isPreferred = true;
+                    addDeclaration.diagnostics = [...context.diagnostics];
+                }
             } else if (matchingUri && SourceFile.isHeader(matchingUri)) {
                 const displayPath = util.formatPathToDisplay(matchingUri);
                 addDeclaration.setTitle(`Add Declaration in "${displayPath}"`);
@@ -346,9 +347,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                             moveDefinitionIntoOrOutOfClass.setTitle(
                                     `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
                         }
-                        moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                        moveDefinitionIntoOrOutOfClass.isPreferred = true;
-                        moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                        if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+                            moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
+                            moveDefinitionIntoOrOutOfClass.isPreferred = true;
+                            moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                        }
                     } else {
                         moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
                     }
@@ -366,9 +369,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                         moveDefinitionIntoOrOutOfClass.setTitle(
                                 `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
                     }
-                    moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                    moveDefinitionIntoOrOutOfClass.isPreferred = true;
-                    moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                    if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+                        moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
+                        moveDefinitionIntoOrOutOfClass.isPreferred = true;
+                        moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
+                    }
                 } else {
                     moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notMemberFunction);
                 }
