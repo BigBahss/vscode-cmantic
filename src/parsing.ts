@@ -91,6 +91,12 @@ export function maskQuotes(text: string, keepEnclosingChars: boolean = true): st
     return text;
 }
 
+export function maskNonSourceText(text: string): string {
+    text = maskComments(text, false);
+    text = maskRawStringLiterals(text);
+    return maskQuotes(text);
+}
+
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
 }
@@ -135,9 +141,7 @@ export function getIndentationRegExp(symbol: CSymbol): RegExp {
 
 export function stripDefaultValues(parameters: string): string {
     // Mask anything that might contain commas or equals-signs.
-    let maskedParameters = maskComments(parameters, false);
-    maskedParameters = maskRawStringLiterals(maskedParameters);
-    maskedParameters = maskQuotes(maskedParameters);
+    let maskedParameters = maskNonSourceText(parameters);
     maskedParameters = maskParentheses(maskedParameters);
     maskedParameters = maskAngleBrackets(maskedParameters);
     maskedParameters = maskBraces(maskedParameters);

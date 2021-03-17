@@ -43,12 +43,10 @@ export class CSymbol extends SourceSymbol {
      * Returns the text contained in this symbol with comments masked with spaces.
      */
     get parsableText(): string {
-        if (this._parsableText) {
+        if (this._parsableText !== undefined) {
             return this._parsableText;
         }
-        this._parsableText = parse.maskComments(this.text(), false);
-        this._parsableText = parse.maskRawStringLiterals(this._parsableText);
-        this._parsableText = parse.maskQuotes(this._parsableText);
+        this._parsableText = parse.maskNonSourceText(this.text());
         return this._parsableText;
     }
     private _parsableText?: string;
@@ -72,7 +70,7 @@ export class CSymbol extends SourceSymbol {
     }
 
     private get parsableTemplateSnippet(): string {
-        if (this._parsableTemplateSnippet) {
+        if (this._parsableTemplateSnippet !== undefined) {
             return this._parsableTemplateSnippet;
         }
 
@@ -81,9 +79,7 @@ export class CSymbol extends SourceSymbol {
             return this._parsableTemplateSnippet;
         }
 
-        this._parsableTemplateSnippet = parse.maskComments(this._parsableTemplateSnippet, false);
-        this._parsableTemplateSnippet = parse.maskRawStringLiterals(this._parsableTemplateSnippet);
-        this._parsableTemplateSnippet = parse.maskQuotes(this._parsableTemplateSnippet);
+        this._parsableTemplateSnippet = parse.maskNonSourceText(this._parsableTemplateSnippet);
         return this._parsableTemplateSnippet;
     }
     private _parsableTemplateSnippet?: string;
@@ -738,9 +734,7 @@ export class CSymbol extends SourceSymbol {
         const declarationStart = this.declarationStart();
         const declarationRange = new vscode.Range(declarationStart, this.declarationEnd());
         const declaration = this.document.getText(declarationRange).replace(/;$/, '');
-        let maskedDeclaration = parse.maskComments(declaration, false);
-        maskedDeclaration = parse.maskRawStringLiterals(maskedDeclaration);
-        maskedDeclaration = parse.maskQuotes(maskedDeclaration);
+        let maskedDeclaration = parse.maskNonSourceText(declaration);
         maskedDeclaration = parse.maskParentheses(maskedDeclaration);
 
         const nameEndIndex =

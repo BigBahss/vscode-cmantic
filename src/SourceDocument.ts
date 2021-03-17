@@ -83,9 +83,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
         let offset: number | undefined;
-        let maskedText = parse.maskComments(this.getText(), false);
-        maskedText = parse.maskRawStringLiterals(maskedText);
-        maskedText = parse.maskQuotes(maskedText);
+        const maskedText = parse.maskNonSourceText(this.getText());
 
         const pragmaOnceOffset = maskedText.search(/^\s*#\s*pragma\s+once\b/);
         if (pragmaOnceOffset !== -1) {
@@ -105,7 +103,8 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
     }
 
     positionAfterHeaderComment(): ProposedPosition {
-        const maskedText = parse.maskComments(this.getText(), false);
+        const text = this.getText();
+        const maskedText = parse.maskComments(text, false);
         const offset = maskedText.search(/\S/);
         if (offset !== -1) {
             // Return position before first non-comment text.
@@ -113,7 +112,7 @@ export class SourceDocument extends SourceFile implements vscode.TextDocument {
         }
 
         // Return position after header comment when there is no non-comment text in the file.
-        const endTrimmedTextLength = this.getText().trimEnd().length;
+        const endTrimmedTextLength = text.trimEnd().length;
         return new ProposedPosition(this.positionAt(endTrimmedTextLength), {
             after: endTrimmedTextLength !== 0
         });
