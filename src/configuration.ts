@@ -60,12 +60,12 @@ const defaultExplicitThisPointer = false;
 
 export const baseConfigurationKey = 'C_mantic';
 
-function configuration(): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration(baseConfigurationKey);
+function configuration(scope?: vscode.ConfigurationScope): vscode.WorkspaceConfiguration {
+    return vscode.workspace.getConfiguration(baseConfigurationKey, scope);
 }
 
-export function alertLevel(): AlertLevel {
-    const level = configuration().get<string>('alertLevel');
+export function alertLevel(scope?: vscode.ConfigurationScope): AlertLevel {
+    const level = configuration(scope).get<string>('alertLevel');
     switch (level) {
     case 'Information':
         return AlertLevel.Info;
@@ -78,16 +78,16 @@ export function alertLevel(): AlertLevel {
     }
 }
 
-export function headerExtensions(): string[] {
-    return configuration().get<string[]>('extensions.headerFiles', defaultHeaderExtensions);
+export function headerExtensions(scope?: vscode.ConfigurationScope): string[] {
+    return configuration(scope).get<string[]>('extensions.headerFiles', defaultHeaderExtensions);
 }
 
-export function sourceExtensions(): string[] {
-    return configuration().get<string[]>('extensions.sourceFiles', defaultSourceExtensions);
+export function sourceExtensions(scope?: vscode.ConfigurationScope): string[] {
+    return configuration(scope).get<string[]>('extensions.sourceFiles', defaultSourceExtensions);
 }
 
-export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat {
-    const format = configuration().get<string>(languageId + '.curlyBraceFormat.function');
+export function functionCurlyBraceFormat(languageId: string, scope?: vscode.ConfigurationScope): CurlyBraceFormat {
+    const format = configuration(scope).get<string>(languageId + '.curlyBraceFormat.function');
     switch (format) {
     case 'New line':
         return CurlyBraceFormat.NewLine;
@@ -100,8 +100,8 @@ export function functionCurlyBraceFormat(languageId: string): CurlyBraceFormat {
     }
 }
 
-export function namespaceCurlyBraceFormat(): CurlyBraceFormat {
-    const format = configuration().get<string>('cpp.curlyBraceFormat.namespace');
+export function namespaceCurlyBraceFormat(scope?: vscode.ConfigurationScope): CurlyBraceFormat {
+    const format = configuration(scope).get<string>('cpp.curlyBraceFormat.namespace');
     switch (format) {
     case 'Auto':
         return CurlyBraceFormat.Auto;
@@ -114,8 +114,8 @@ export function namespaceCurlyBraceFormat(): CurlyBraceFormat {
     }
 }
 
-export function indentNamespaceBody(): NamespaceIndentation {
-    const indent = configuration().get<string>('cpp.indentation.namespace');
+export function indentNamespaceBody(scope?: vscode.ConfigurationScope): NamespaceIndentation {
+    const indent = configuration(scope).get<string>('cpp.indentation.namespace');
     switch (indent) {
     case 'Auto':
         return NamespaceIndentation.Auto;
@@ -128,12 +128,12 @@ export function indentNamespaceBody(): NamespaceIndentation {
     }
 }
 
-export function shouldGenerateNamespaces(): boolean {
-    return configuration().get<boolean>('cpp.generateNamespaces', defaultGenerateNamespaces);
+export function shouldGenerateNamespaces(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.generateNamespaces', defaultGenerateNamespaces);
 }
 
-export function headerGuardStyle(): HeaderGuardStyle {
-    const style = configuration().get<string>('headerGuard.style');
+export function headerGuardStyle(scope?: vscode.ConfigurationScope): HeaderGuardStyle {
+    const style = configuration(scope).get<string>('headerGuard.style');
     switch (style) {
     case 'Add both':
         return HeaderGuardStyle.Both;
@@ -146,8 +146,8 @@ export function headerGuardStyle(): HeaderGuardStyle {
     }
 }
 
-export function headerGuardDefineFormat(): string {
-    return configuration().get<string>('headerGuard.defineFormat', defaultHeaderGuardDefineFormat);
+export function headerGuardDefineFormat(scope?: vscode.ConfigurationScope): string {
+    return configuration(scope).get<string>('headerGuard.defineFormat', defaultHeaderGuardDefineFormat);
 }
 
 const re_charactersNotAllowedInIdentifiers = /[^\w\d_]/g;
@@ -161,7 +161,7 @@ export function headerGuardDefine(uri: vscode.Uri): string {
     const PROJECT_NAME = workspaceFolder ? workspaceFolder.name.toUpperCase() : '';
     const PROJECT_REL_PATH = vscode.workspace.asRelativePath(path.dirname(uri.fsPath), false).toUpperCase();
 
-    return headerGuardDefineFormat()
+    return headerGuardDefineFormat(uri)
             .replace('${FILE_NAME}', FILE_NAME)
             .replace('${EXT}', EXT)
             .replace('${FILE_NAME_EXT}', FILE_NAME_EXT)
@@ -172,8 +172,8 @@ export function headerGuardDefine(uri: vscode.Uri): string {
             .replace(/^(?=\d)/g, 'INC_');
 }
 
-export function getterDefinitionLocation(): DefinitionLocation {
-    const location = configuration().get<string>('cpp.accessor.getterDefinitionLocation');
+export function getterDefinitionLocation(scope?: vscode.ConfigurationScope): DefinitionLocation {
+    const location = configuration(scope).get<string>('cpp.accessor.getterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
         return DefinitionLocation.Inline;
@@ -186,8 +186,8 @@ export function getterDefinitionLocation(): DefinitionLocation {
     }
 }
 
-export function setterDefinitionLocation(): DefinitionLocation {
-    const location = configuration().get<string>('cpp.accessor.setterDefinitionLocation');
+export function setterDefinitionLocation(scope?: vscode.ConfigurationScope): DefinitionLocation {
+    const location = configuration(scope).get<string>('cpp.accessor.setterDefinitionLocation');
     switch (location) {
     case 'Generate definition inline':
         return DefinitionLocation.Inline;
@@ -200,36 +200,36 @@ export function setterDefinitionLocation(): DefinitionLocation {
     }
 }
 
-export function resolveTypes(): boolean {
-    return configuration().get<boolean>('cpp.resolveTypes', defaultResolveTypes);
+export function resolveTypes(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.resolveTypes', defaultResolveTypes);
 }
 
-export function revealNewDefinition(): boolean {
-    return configuration().get<boolean>('revealNewDefinition', defaultRevealNewDefinition);
+export function revealNewDefinition(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('revealNewDefinition', defaultRevealNewDefinition);
 }
 
-export function alwaysMoveComments(): boolean {
-    return configuration().get<boolean>('alwaysMoveComments', defaultAlwaysMoveComments);
+export function alwaysMoveComments(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('alwaysMoveComments', defaultAlwaysMoveComments);
 }
 
-export function enableAddDefinition(): boolean {
-    return configuration().get<boolean>('codeActions.enableAddDefinition', defaultEnableCodeAction);
+export function enableAddDefinition(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('codeActions.enableAddDefinition', defaultEnableCodeAction);
 }
 
-export function enableAddDeclaration(): boolean {
-    return configuration().get<boolean>('codeActions.enableAddDeclaration', defaultEnableCodeAction);
+export function enableAddDeclaration(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('codeActions.enableAddDeclaration', defaultEnableCodeAction);
 }
 
-export function enableMoveDefinition(): boolean {
-    return configuration().get<boolean>('codeActions.enableMoveDefinition', defaultEnableCodeAction);
+export function enableMoveDefinition(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('codeActions.enableMoveDefinition', defaultEnableCodeAction);
 }
 
-export function enableGenerateGetterSetter(): boolean {
-    return configuration().get<boolean>('codeActions.enableGenerateGetterSetter', defaultEnableCodeAction);
+export function enableGenerateGetterSetter(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('codeActions.enableGenerateGetterSetter', defaultEnableCodeAction);
 }
 
-export function caseStyle(): CaseStyle {
-    const style = configuration().get<string>('caseStyle');
+export function caseStyle(scope?: vscode.ConfigurationScope): CaseStyle {
+    const style = configuration(scope).get<string>('caseStyle');
     switch (style) {
     case 'snake_case':
         return CaseStyle.snake_case;
@@ -242,8 +242,8 @@ export function caseStyle(): CaseStyle {
     }
 }
 
-export function formatToCaseStyle(text: string): string {
-    switch (caseStyle()) {
+export function formatToCaseStyle(text: string, scope?: vscode.ConfigurationScope): string {
+    switch (caseStyle(scope)) {
     case CaseStyle.snake_case:
         return util.make_snake_case(text);
     case CaseStyle.camelCase:
@@ -253,10 +253,10 @@ export function formatToCaseStyle(text: string): string {
     }
 }
 
-export function bracedInitialization(): boolean {
-    return configuration().get<boolean>('cpp.bracedInitialization', defaultBracedInitialization);
+export function bracedInitialization(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.bracedInitialization', defaultBracedInitialization);
 }
 
-export function useExplicitThisPointer(): boolean {
-    return configuration().get<boolean>('cpp.useExplicitThisPointer', defaultExplicitThisPointer);
+export function useExplicitThisPointer(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.useExplicitThisPointer', defaultExplicitThisPointer);
 }
