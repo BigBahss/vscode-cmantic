@@ -1,7 +1,7 @@
 {
   "name": "cmantic",
   "displayName": "C-mantic",
-  "description": "C/C++ refactorings: Add Definition, Generate Getters & Setters, and more.",
+  "description": "C/C++ refactorings: Add Definition, Generate Getters & Setters, and much more.",
   "version": "0.6.2",
   "icon": "images/cmantic.png",
   "publisher": "tdennis4496",
@@ -121,22 +121,22 @@
           "C_mantic.codeActions.enableAddDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+            "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
           },
           "C_mantic.codeActions.enableAddDeclaration": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Add Declaration' code action is suggested (light-bulb menu). This does not prevent the command from being used."
+            "description": "Controls whether the 'Add Declaration' code action is suggested (light-bulb menu). The code action will still be available from the 'Refactor...' menu."
           },
           "C_mantic.codeActions.enableMoveDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Move Definition' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+            "description": "Controls whether the 'Move Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
           },
           "C_mantic.codeActions.enableGenerateGetterSetter": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Generate Getter/Setter' code actions are suggested (light-bulb menu). This does not prevent the corresponding commands from being used."
+            "description": "Controls whether the 'Generate Getter/Setter' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
           },
           "C_mantic.extensions.headerFiles": {
             "type": "array",
@@ -146,7 +146,7 @@
               "hh",
               "hxx"
             ],
-            "description": "File extensions to associate header files."
+            "description": "File extensions to associate with header files."
           },
           "C_mantic.extensions.sourceFiles": {
             "type": "array",
@@ -156,7 +156,7 @@
               "cc",
               "cxx"
             ],
-            "description": "File extensions to associate source files."
+            "description": "File extensions to associate with source files."
           },
           "C_mantic.c.curlyBraceFormat.function": {
             "type": "string",
@@ -225,7 +225,7 @@
           "C_mantic.cpp.resolveTypes": {
             "type": "boolean",
             "default": false,
-            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may decrease the performance of the generating setters."
+            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may impact the performance of the generating setters."
           },
           "C_mantic.cpp.bracedInitialization": {
             "type": "boolean",
@@ -250,12 +250,12 @@
               "Add both"
             ],
             "default": "Add #define",
-            "description": "Controls what style of header guard that is added with the 'Add Header Guard' command."
+            "description": "Controls what kind of header guard is added with the 'Add Header Guard' command."
           },
           "C_mantic.headerGuard.defineFormat": {
             "type": "string",
             "default": "${FILE_NAME}_${EXT}",
-            "description": "Controls how new header guard defines are generated. There are many variables you can use to generate them:\n${FILE_NAME} : The name of the file without the file extension.\n${EXT} : The file extension.\n${DIR} : The name of the directory the file exists in.\n${PROJECT_NAME} : The name of the workspace.\n${PROJECT_REL_PATH} : The path to the file, relative to the workspace, not including the file name.\nAll characters are in upper-case and all symbols are replaced with underscores."
+            "description": "Controls how new header guard defines are generated. There are many variables you can use to generate them:\n${FILE_NAME} : The name of the file without the file extension.\n${EXT} : The file extension.\n${DIR} : The name of the directory the file exists in.\n${PROJECT_NAME} : The name of the workspace.\n${PROJECT_REL_PATH} : The path to the file, relative to the workspace, not including the file name.\nAll characters are made upper-case and all symbols are replaced with underscores."
           },
           "C_mantic.revealNewDefinition": {
             "type": "boolean",
