@@ -140,6 +140,9 @@
           },
           "C_mantic.extensions.headerFiles": {
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "default": [
               "h",
               "hpp",
@@ -150,6 +153,9 @@
           },
           "C_mantic.extensions.sourceFiles": {
             "type": "array",
+            "items": {
+              "type": "string"
+            },
             "default": [
               "c",
               "cpp",
