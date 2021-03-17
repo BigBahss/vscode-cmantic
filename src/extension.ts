@@ -109,7 +109,7 @@ async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<voi
 
 function onDidCloseTextDocument(document: vscode.TextDocument): void {
     if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
-        return headerSourceCache.delete(document.uri);
+        headerSourceCache.delete(document.uri);
     }
 }
 
@@ -133,7 +133,7 @@ function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void 
     }
 }
 
-const re_semVer = /^\d+\.\d+\.\d+$/;
+const re_semver = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
 const updateMessage =
         'C-mantic v0.6.0: Added \'Add Declaration\' command and more options for generating header guards.';
@@ -144,22 +144,20 @@ const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmanti
 
 async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
 	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version;
-    if (typeof currentVersion !== 'string' || !re_semVer.test(currentVersion)) {
+    if (typeof currentVersion !== 'string' || !re_semver.test(currentVersion)) {
         return;
     }
 
     const previousVersion = context.globalState.get<string>(versionKey);
+    context.globalState.update(versionKey, currentVersion);
 
     const [,currentMinor,] = currentVersion.split('.');
-    if (previousVersion !== undefined && re_semVer.test(previousVersion)) {
+    if (previousVersion !== undefined && re_semver.test(previousVersion)) {
         const [,previousMinor,] = previousVersion.split('.');
         if (+previousMinor >= +currentMinor) {
-            context.globalState.update(versionKey, currentVersion);
             return;
         }
     }
-
-    context.globalState.update(versionKey, currentVersion);
 
     const selected = await vscode.window.showInformationMessage(updateMessage, readmeButton, changelogButton);
     if (selected === readmeButton) {
