@@ -114,7 +114,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const refactorActionArrays = await Promise.all([
+        const refactorActions = await Promise.all([
             this.getAddDefinitionRefactorings(context, symbol, sourceDoc, matchingUri),
             this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
@@ -122,10 +122,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getClassRefactorings(context, symbol, sourceDoc)
         ]);
 
-        const refactorActions: RefactorAction[] = [];
-        refactorActionArrays.forEach(refactorActionArray => refactorActions.push(...refactorActionArray));
-
-        return refactorActions;
+        return refactorActions.flat();
     }
 
     private shouldProvideAddDefinition(
