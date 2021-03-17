@@ -18,6 +18,8 @@ import { Logger } from './Logger';
 import { HeaderSourceCache } from './HeaderSourceCache';
 
 
+export const extensionId = 'tdennis4496.cmantic';
+
 export const logger = new Logger('C-mantic');
 
 const disposables: vscode.Disposable[] = [logger];
@@ -40,7 +42,7 @@ export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return headerSourceCache.get(uri);
 }
 
-const commands = {
+export const commands = {
     'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
     'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
     'cmantic.addDefinition': addDefinition,
@@ -133,7 +135,6 @@ function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void 
 
 const re_semVer = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
-const extensionId = 'tdennis4496.cmantic';
 const updateMessage =
         'C-mantic v0.6.0: Added \'Add Declaration\' command and more options for generating header guards.';
 const readmeButton = 'Open README';

@@ -16,7 +16,8 @@
 			"outFiles": [
 				"${workspaceFolder}/out/**/*.js"
             ],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "${defaultBuildTask}",
+            "internalConsoleOptions": "neverOpen"
 		},
 		{
 			"name": "Extension Tests",
@@ -31,7 +32,8 @@
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "${defaultBuildTask}",
+            "internalConsoleOptions": "openOnSessionStart"
 		}
 	]
 }

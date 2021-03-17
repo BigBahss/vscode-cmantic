@@ -1,12 +1,12 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as xregexp from 'xregexp';
 import { SourceDocument } from '../../src/SourceDocument';
 import { SourceSymbol } from '../../src/SourceSymbol';
 import { CSymbol } from '../../src/CSymbol';
 import { CodeActionProvider } from '../../src/codeActions';
 import * as parse from '../../src/parsing';
+import { extensionId, commands } from '../../src/extension';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
 
@@ -39,29 +39,21 @@ suite('Extension Test Suite', function () {
 
     test('Test CodeActionProvider', async () => {
         const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            throw new Error('Active text editor is undefined.');
-        }
+        assert(editor);
 
         await wait(4000);
 
         const sourceDoc = new SourceDocument(editor.document);
         await sourceDoc.executeSourceSymbolProvider();
-        if (!sourceDoc.symbols) {
-            throw new Error('sourceDoc.symbols is undefined.');
-        }
+        assert(sourceDoc.symbols);
 
         const testClass = getClass(sourceDoc.symbols);
-        if (testClass.children.length === 0) {
-            throw new Error('Class has no children.');
-        }
+        assert(testClass.children.length > 0);
 
         for (const child of testClass.children) {
             const codeActions = await codeActionProvider.provideCodeActions(
                     sourceDoc, child.selectionRange, { diagnostics: [] });
-            if (codeActions.length === 0) {
-                throw new Error('CodeActions[] are empty.');
-            }
+            assert(codeActions.length > 0);
 
             const member = new CSymbol(child, sourceDoc);
             if (member.isFunctionDeclaration()) {
@@ -99,5 +91,19 @@ suite('Extension Test Suite', function () {
 
         const angleBrackets = parse.maskAngleBrackets('<foo>>');
         assert.strictEqual(angleBrackets, '<   > ');
+    });
+
+    interface ContributedCommand { command: string; title: string }
+
+    test('Test Registered Commands', () => {
+        const contributedCommands = vscode.extensions.getExtension(extensionId)?.packageJSON.contributes.commands;
+        assert(contributedCommands instanceof Array);
+
+        contributedCommands.forEach((contributedCommand: ContributedCommand) => {
+            assert(
+                Object.keys(commands).some(command => command === contributedCommand.command),
+                `Add '${contributedCommand.command}' to commands in 'src/extension.ts' so that it gets registered.`
+            );
+        });
     });
 });
