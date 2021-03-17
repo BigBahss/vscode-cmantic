@@ -77,9 +77,9 @@ Additionally, for non-primitive, non-pointer data types, setters will be generat
 
 ### **Generate Equality Operators**
 
-With your cursor inside of a class/struct, `Generate equality operators` can be found in the `Refactor...` menu.
+With your cursor inside of a class/struct, `Generate Equality Operators` can be found in the `Refactor...` menu.
 
-`Generate equality operators` will prompt you to select what member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File' or 'Source File').
+`Generate Equality Operators` will prompt you to select what member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File' or 'Source File').
 
 ### **Create Matching Source File**
 
@@ -109,7 +109,7 @@ The `Switch Header/Source in Workspace` command will open and switch to the matc
 
 If you find that features of C-mantic aren't working, make sure your language server is working correctly. To do this, check out the Outline View, usually found under Explorer in the side-bar. The Outline View should show all symbols for the current file. Also, make sure 'Go to Definition' and 'Go to Declaration' are working.
 
-C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and include what language server you are using.
+C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and state what language server you are using.
 
 ## **Tips**
 
