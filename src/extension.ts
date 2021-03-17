@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
+import Logger from './Logger';
+import HeaderSourceCache from './HeaderSourceCache';
 import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
@@ -14,8 +16,6 @@ import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
 import { CodeActionProvider } from './codeActions';
-import { Logger } from './Logger';
-import { HeaderSourceCache } from './HeaderSourceCache';
 
 
 export const extensionId = 'tdennis4496.cmantic';

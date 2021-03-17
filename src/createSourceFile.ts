@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as path from 'path';
-import { SourceDocument } from './SourceDocument';
+import SourceDocument from './SourceDocument';
+import CSymbol from './CSymbol';
 import { getMatchingHeaderSource, logger } from './extension';
-import { CSymbol } from './CSymbol';
 
 
 export const failure = {

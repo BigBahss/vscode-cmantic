@@ -2,11 +2,11 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as parse from './parsing';
-import { SourceSymbol } from './SourceSymbol';
+import SourceFile from './SourceFile';
+import SourceDocument from './SourceDocument';
+import SourceSymbol from './SourceSymbol';
+import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { SourceFile } from './SourceFile';
-import { SourceDocument } from './SourceDocument';
-import { SubSymbol } from './SubSymbol';
 
 
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
@@ -16,7 +16,7 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 /**
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
  */
-export class CSymbol extends SourceSymbol {
+export default class CSymbol extends SourceSymbol {
     readonly document: SourceDocument;
     parent?: CSymbol;
 

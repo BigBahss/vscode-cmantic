@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cfg from './configuration';
+import SourceDocument from './SourceDocument';
+import SourceSymbol from './SourceSymbol';
+import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { SourceSymbol } from './SourceSymbol';
-import { SubSymbol } from './SubSymbol';
-import { SourceDocument } from './SourceDocument';
 
 
 /**

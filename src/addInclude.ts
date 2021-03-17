@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SourceDocument } from './SourceDocument';
+import SourceDocument from './SourceDocument';
 import { logger } from './extension';
 
 

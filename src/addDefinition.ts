@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
+import SourceDocument from './SourceDocument';
+import CSymbol from './CSymbol';
+import SubSymbol from './SubSymbol';
 import { getMatchingHeaderSource, logger } from './extension';
-import { SourceDocument } from './SourceDocument';
-import { CSymbol } from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
-import { SubSymbol } from './SubSymbol';
 
 
 export const title = {

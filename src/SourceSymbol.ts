@@ -7,7 +7,7 @@ import * as util from './utility';
  * Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
  * Additionally, some properties are normalized for different language servers.
  */
-export class SourceSymbol extends vscode.DocumentSymbol {
+export default class SourceSymbol extends vscode.DocumentSymbol {
     readonly uri: vscode.Uri;
     signature: string;
     parent?: SourceSymbol;

@@ -1,11 +1,11 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { SourceDocument } from '../../src/SourceDocument';
-import { SourceSymbol } from '../../src/SourceSymbol';
-import { CSymbol } from '../../src/CSymbol';
-import { CodeActionProvider } from '../../src/codeActions';
 import * as parse from '../../src/parsing';
+import SourceDocument from '../../src/SourceDocument';
+import SourceSymbol from '../../src/SourceSymbol';
+import CSymbol from '../../src/CSymbol';
+import { CodeActionProvider } from '../../src/codeActions';
 import { extensionId, commands } from '../../src/extension';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));

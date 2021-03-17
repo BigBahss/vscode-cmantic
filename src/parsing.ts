@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as xregexp from 'xregexp';
+import CSymbol from './CSymbol';
 import { logger } from './extension';
-import { CSymbol } from './CSymbol';
 
 
 export function masker(match: string): string { return ' '.repeat(match.length); }

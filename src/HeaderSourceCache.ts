@@ -5,7 +5,7 @@ import * as cfg from './configuration';
 import * as util from './utility';
 
 
-export class HeaderSourceCache {
+export default class HeaderSourceCache {
     private readonly cache = new Map<string, vscode.Uri>();
 
     /**

@@ -1,15 +1,15 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceSymbol } from './SourceSymbol';
-import { SourceDocument } from './SourceDocument';
-import { CSymbol } from './CSymbol';
+import SourceDocument from './SourceDocument';
+import SourceSymbol from './SourceSymbol';
+import CSymbol from './CSymbol';
 
 
 /**
  * Represents a C/C++ source file.
  */
-export class SourceFile {
+export default class SourceFile {
     readonly uri: vscode.Uri;
     symbols?: SourceSymbol[];
 

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceDocument } from './SourceDocument';
-import { CSymbol } from './CSymbol';
+import SourceDocument from './SourceDocument';
+import CSymbol from './CSymbol';
 
 
 const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;

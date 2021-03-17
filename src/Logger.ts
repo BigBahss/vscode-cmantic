@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 
 
-export class Logger extends vscode.Disposable {
+export default class Logger extends vscode.Disposable {
     private readonly output: vscode.OutputChannel;
 
     constructor(name: string) {

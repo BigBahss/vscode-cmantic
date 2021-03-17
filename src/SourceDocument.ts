@@ -2,16 +2,16 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import * as parse from './parsing';
-import { CSymbol } from './CSymbol';
-import { SourceFile } from './SourceFile';
-import { SourceSymbol } from './SourceSymbol';
+import SourceFile from './SourceFile';
+import SourceSymbol from './SourceSymbol';
+import CSymbol from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
 
 
 /**
  * Represents a C/C++ source file.
  */
-export class SourceDocument extends SourceFile implements vscode.TextDocument {
+export default class SourceDocument extends SourceFile implements vscode.TextDocument {
     private readonly doc: vscode.TextDocument;
 
     constructor(document: vscode.TextDocument, sourceFile?: SourceFile) {

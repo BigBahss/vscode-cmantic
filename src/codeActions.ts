@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceDocument } from './SourceDocument';
-import { CSymbol } from './CSymbol';
+import SourceFile from './SourceFile';
+import SourceDocument from './SourceDocument';
+import CSymbol from './CSymbol';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
 import { failure as addDeclarationFailure, title as addDeclarationTitle } from './addDeclaration';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
@@ -11,7 +12,6 @@ import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
 import { title as equalityTitle } from './generateEqualityOperators';
 import { getMatchingHeaderSource } from './extension';
-import { SourceFile } from './SourceFile';
 
 
 export class CodeAction extends vscode.CodeAction {

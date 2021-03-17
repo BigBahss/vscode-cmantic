@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
-import { SourceDocument } from './SourceDocument';
-import { CSymbol } from './CSymbol';
-import { SourceSymbol } from './SourceSymbol';
+import SourceDocument from './SourceDocument';
+import SourceSymbol from './SourceSymbol';
+import CSymbol from './CSymbol';
 
 
 export interface Operator {
