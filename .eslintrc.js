@@ -50,7 +50,6 @@ module.exports = {
         "no-duplicate-imports": "error",
         "no-caller": "error",
         "no-duplicate-case": "error",
-        "no-invalid-this": "error",
         "no-irregular-whitespace": "error",
         "no-undef-init": "warn",
         "use-isnan": "error",

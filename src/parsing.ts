@@ -6,6 +6,8 @@ import { CSymbol } from './CSymbol';
 
 export function masker(match: string): string { return ' '.repeat(match.length); }
 
+const re_matchRecursiveError = /^Unbalanced (left|right) delimiter found in string at position (\d+)$/;
+
 /**
  * Performs a balanced mask of text between left and right, accounting for depth.
  * Should only be used with single characters.
@@ -28,12 +30,15 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
         });
     } catch (error) {
         if (error instanceof Error) {
-            const unbalancedIndexMatch = error.message.match(/\d+/);
+            const unbalancedIndexMatch = error.message.match(re_matchRecursiveError);
             if (unbalancedIndexMatch !== null) {
-                const unbalancedIndex: number = +unbalancedIndexMatch[0];
+                const unbalancedIndex: number = +unbalancedIndexMatch[2];
                 if (unbalancedIndex < text.length) {
                     // There is an unbalanced delimiter, so we mask it and try again.
-                    text = text.substring(0, unbalancedIndex) + ' ' + text.substring(unbalancedIndex + 1);
+                    text = text.substring(0, unbalancedIndex) + ' ';
+                    if (unbalancedIndex !== text.length - 1) {
+                        text += text.substring(unbalancedIndex + 1);
+                    }
                     return maskBalanced(text, left, right, keepEnclosingChars);
                 }
             }
