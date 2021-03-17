@@ -2,6 +2,9 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Added settings to specify header and source folders.
+
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
 
