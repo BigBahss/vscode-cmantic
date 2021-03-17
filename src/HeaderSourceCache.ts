@@ -54,7 +54,8 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
 
     const p_matchingUris: Thenable<vscode.Uri[]>[] = [];
     getMatchingHeaderSourcePatterns(uri).forEach(pattern => {
-        const relativePattern = new vscode.RelativePattern(workspaceFolder, pattern);
+        const relativeBase = path.resolve(path.dirname(uri.fsPath),pattern[0])
+        const relativePattern = new vscode.RelativePattern(relativeBase, pattern[1]);
         p_matchingUris.push(vscode.workspace.findFiles(relativePattern));
     });
     const matchingUris = await Promise.all(p_matchingUris);
@@ -62,7 +63,7 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return findBestMatchingUri(path.dirname(uri.fsPath), matchingUris.flat());
 }
 
-function getMatchingHeaderSourcePatterns(uri: vscode.Uri): string[] {
+function getMatchingHeaderSourcePatterns(uri: vscode.Uri): string[][] {
     const extension = util.fileExtension(uri.fsPath);
     const baseName = util.fileNameBase(uri.fsPath);
 
@@ -77,10 +78,10 @@ function getMatchingHeaderSourcePatterns(uri: vscode.Uri): string[] {
     return [];
 }
 
-function buildFilePatterns(directoryPatterns: string[], baseName: string, extensions: string[]): string[] {
-    const patterns: string[] = [];
+function buildFilePatterns(directoryPatterns: string[], baseName: string, extensions: string[]): string[][] {
+    const patterns: string[][] = [];
     directoryPatterns.forEach(directoryPattern => {
-        patterns.push(directoryPattern + `${baseName}.{${extensions.join(",")}}`);
+        patterns.push([directoryPattern, `${baseName}.{${extensions.join(",")}}`]);
     });
     return patterns;
 }
