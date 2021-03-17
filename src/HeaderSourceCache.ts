@@ -41,15 +41,8 @@ export class HeaderSourceCache {
         this.cache.set(uri_b.toString(), uri_a);
     }
 
-    delete(uri_a: vscode.Uri, uri_b?: vscode.Uri): void {
-        if (!uri_b) {
-            uri_b = this.cache.get(uri_a.toString());
-        }
-
-        this.cache.delete(uri_a.toString());
-        if (uri_b) {
-            this.cache.delete(uri_b.toString());
-        }
+    delete(...uris: vscode.Uri[]): void {
+        uris.forEach(uri => this.cache.delete(uri.toString()));
     }
 }
 
