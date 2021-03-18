@@ -22,18 +22,11 @@ export default class HeaderSourceCache {
             }
         }
 
-        const matchingUri = await findMatchingHeaderSource(uri);
-        if (!matchingUri) {
-            return;
-        }
-
-        this.set(uri, matchingUri);
-
-        return matchingUri;
+        return this.findAndSet(uri);
     }
 
     async add(uri: vscode.Uri): Promise<void> {
-        await this.get(uri);
+        await this.findAndSet(uri);
     }
 
     set(uri_a: vscode.Uri, uri_b: vscode.Uri): void {
@@ -43,6 +36,17 @@ export default class HeaderSourceCache {
 
     delete(...uris: vscode.Uri[]): void {
         uris.forEach(uri => this.cache.delete(uri.toString()));
+    }
+
+    private async findAndSet(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
+        const matchingUri = await findMatchingHeaderSource(uri);
+        if (!matchingUri) {
+            return;
+        }
+
+        this.set(uri, matchingUri);
+
+        return matchingUri;
     }
 }
 
