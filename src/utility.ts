@@ -76,7 +76,16 @@ export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {
     return true;
 }
 
-export function existsInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean {
+export function uriExists(uri: vscode.Uri): boolean {
+    try {
+        vscode.workspace.fs.stat(uri);
+    } catch (e) {
+        return false;
+    }
+    return true;
+}
+
+export function containedInWorkspace(locationOrUri: vscode.Location | vscode.Uri): boolean {
     if (locationOrUri instanceof vscode.Location) {
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;
     }
@@ -153,7 +162,7 @@ function findMostLikelyResult(
 ): vscode.Location | undefined {
     const thisFileNameBase = fileNameBase(symbol.uri.fsPath);
     for (const location of makeLocationArray(results)) {
-        if (!existsInWorkspace(location)) {
+        if (!containedInWorkspace(location)) {
             continue;
         }
 
