@@ -86,29 +86,6 @@ export function sourceExtensions(scope?: vscode.ConfigurationScope): string[] {
     return configuration(scope).get<string[]>('extensions.sourceFiles', defaultSourceExtensions);
 }
 
-export function headerFolderPatterns(scope?: vscode.ConfigurationScope): string[] {
-    const patterns = configuration(scope).get<string[]>('folders.headerFiles', []);
-    return normalizePatterns(patterns);
-}
-
-export function sourceFolderPatterns(scope?: vscode.ConfigurationScope): string[] {
-    const patterns = configuration(scope).get<string[]>('folders.sourceFiles', []);
-    return normalizePatterns(patterns);
-}
-
-function normalizePatterns(patterns: string[]): string[] {
-    if (patterns.length === 0) {
-        return ['**/'];
-    }
-
-    const normalizedPatterns: string[] = [];
-    patterns.forEach(pattern => {
-        normalizedPatterns.push(path.normalize(pattern + '/'));
-    });
-
-    return normalizedPatterns;
-}
-
 export function functionCurlyBraceFormat(languageId: string, scope?: vscode.ConfigurationScope): CurlyBraceFormat {
     const format = configuration(scope).get<string>(languageId + '.curlyBraceFormat.function');
     switch (format) {
