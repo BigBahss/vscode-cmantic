@@ -1,16 +1,23 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import * as cfg from './configuration';
 import * as util from './utility';
 
 
 export default class HeaderSourceCache {
     private readonly cache = new Map<string, vscode.Uri>();
+    private readonly directories = new Map<string, CodeDirectories>();
+
+    async findHeaderSourceDirectories(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+        const newDirectories = await findHeaderSourceDirectories(
+                workspaceFolder.uri, cfg.headerExtensions(), cfg.sourceExtensions());
+        this.directories.set(workspaceFolder.uri.toString(), newDirectories);
+    }
 
     /**
-     * Gets the matching header/source file from the cache. If not cached, searches for one in the
-     * workspace, caches it, and returns it. Returns undefined if not found.
+     * Gets the matching header/source uri from the cache, checking that the file still exists. If the uri
+     * is not cached/no longer exists, this searches for one in the workspace, caches it, and returns it.
+     * Returns undefined if not found.
      */
     async get(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
         const cachedMatchingUri = this.cache.get(uri.toString());
@@ -39,7 +46,18 @@ export default class HeaderSourceCache {
     }
 
     private async findAndSet(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
-        const matchingUri = await findMatchingHeaderSource(uri);
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        if (!workspaceFolder) {
+            return;
+        }
+
+        let directories = this.directories.get(workspaceFolder.uri.toString());
+        if (!directories) {
+            await this.findHeaderSourceDirectories(workspaceFolder);
+            directories = this.directories.get(workspaceFolder.uri.toString())!;
+        }
+
+        const matchingUri = await findMatchingHeaderSource(uri, directories);
         if (!matchingUri) {
             return;
         }
@@ -50,14 +68,60 @@ export default class HeaderSourceCache {
     }
 }
 
-async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
+interface CodeDirectories {
+    headers: string[];
+    sources: string[];
+}
+
+async function findHeaderSourceDirectories(
+    directoryUri: vscode.Uri, headerExtensions: string[], sourceExtensions: string[]
+): Promise<CodeDirectories> {
+    const headerDirectories: string[] = [];
+    const sourceDirectories: string[] = [];
+    const p_directories: Promise<CodeDirectories>[] = [];
+    let foundHeader = false;
+    let foundSource = false;
+
+    (await vscode.workspace.fs.readDirectory(directoryUri)).forEach(fileSystemItem => {
+        const ext = util.fileExtension(fileSystemItem[0]);
+        if (fileSystemItem[1] === vscode.FileType.Directory) {
+            p_directories.push(findHeaderSourceDirectories(
+                    vscode.Uri.joinPath(directoryUri, fileSystemItem[0]), headerExtensions, sourceExtensions));
+        } else if (!foundHeader && fileSystemItem[1] === vscode.FileType.File && headerExtensions.includes(ext)) {
+            foundHeader = true;
+            headerDirectories.push(getWorkspaceRelativePath(directoryUri));
+        } else if (!foundSource && fileSystemItem[1] === vscode.FileType.File && sourceExtensions.includes(ext)) {
+            foundSource = true;
+            sourceDirectories.push(getWorkspaceRelativePath(directoryUri));
+        }
+    });
+
+    (await Promise.all(p_directories)).forEach(directories => {
+        headerDirectories.push(...directories.headers);
+        sourceDirectories.push(...directories.sources);
+    });
+
+    return { headers: headerDirectories, sources: sourceDirectories };
+}
+
+function getWorkspaceRelativePath(directoryUri: vscode.Uri): string {
+    const path = vscode.workspace.asRelativePath(directoryUri.path);
+    if (path === directoryUri.path) {
+        return '';
+    }
+    return path + '/';
+}
+
+async function findMatchingHeaderSource(
+    uri: vscode.Uri, directories: CodeDirectories
+): Promise<vscode.Uri | undefined> {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
     if (!workspaceFolder) {
         return;
     }
 
     const p_matchingUris: Thenable<vscode.Uri[]>[] = [];
-    getMatchingHeaderSourcePatterns(uri).forEach(pattern => {
+    getMatchingHeaderSourcePatterns(uri, directories).forEach(pattern => {
         const relativePattern = new vscode.RelativePattern(workspaceFolder, pattern);
         p_matchingUris.push(vscode.workspace.findFiles(relativePattern));
     });
@@ -66,25 +130,25 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return findBestMatchingUri(path.dirname(uri.fsPath), matchingUris.flat());
 }
 
-function getMatchingHeaderSourcePatterns(uri: vscode.Uri): string[] {
-    const extension = util.fileExtension(uri.fsPath);
+function getMatchingHeaderSourcePatterns(uri: vscode.Uri, directories: CodeDirectories): string[] {
+    const ext = util.fileExtension(uri.fsPath);
     const baseName = util.fileNameBase(uri.fsPath);
 
-    if (cfg.headerExtensions(uri).includes(extension)) {
-        return buildFilePatterns(cfg.sourceFolderPatterns(uri), baseName, cfg.sourceExtensions(uri));
+    if (cfg.headerExtensions(uri).includes(ext)) {
+        return buildFilePatterns(directories.sources, baseName, cfg.sourceExtensions(uri));
     }
 
-    if (cfg.sourceExtensions(uri).includes(extension)) {
-        return buildFilePatterns(cfg.headerFolderPatterns(uri), baseName, cfg.headerExtensions(uri));
+    if (cfg.sourceExtensions(uri).includes(ext)) {
+        return buildFilePatterns(directories.headers, baseName, cfg.headerExtensions(uri));
     }
 
     return [];
 }
 
-function buildFilePatterns(directoryPatterns: string[], baseName: string, extensions: string[]): string[] {
+function buildFilePatterns(directories: string[], baseName: string, extensions: string[]): string[] {
     const patterns: string[] = [];
-    directoryPatterns.forEach(directoryPattern => {
-        patterns.push(directoryPattern + `${baseName}.{${extensions.join(",")}}`);
+    directories.forEach(directory => {
+        patterns.push(directory + `${baseName}.{${extensions.join(",")}}`);
     });
     return patterns;
 }

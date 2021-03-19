@@ -26,12 +26,12 @@ const disposables: vscode.Disposable[] = [logger];
 const codeActionProvider = new CodeActionProvider();
 const headerSourceCache = new HeaderSourceCache();
 
-export function activate(context: vscode.ExtensionContext): void {
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
     registerCommands(context);
+    await setupHeaderSourceCache();
     registerCodeActionProvider(context);
     registerEventListeners();
     logActivation(context);
-    cacheOpenDocuments();
 }
 
 export function deactivate(): void {
@@ -68,6 +68,14 @@ function registerCommands(context: vscode.ExtensionContext): void {
     });
 }
 
+async function setupHeaderSourceCache(): Promise<void> {
+    const p_setup: Promise<void>[] = [];
+    vscode.workspace.workspaceFolders?.forEach(workspaceFolder => {
+        p_setup.push(headerSourceCache.findHeaderSourceDirectories(workspaceFolder));
+    });
+    await Promise.all(p_setup);
+}
+
 function registerCodeActionProvider(context: vscode.ExtensionContext): void {
     const documentSelector: vscode.DocumentSelector = [
         { scheme: 'file', language: 'c' },
@@ -93,12 +101,6 @@ function registerEventListeners(): void {
 function logActivation(context: vscode.ExtensionContext): void {
     logger.logInfo('C-mantic extension activated.');
     showMessageOnFeatureUpdate(context);
-}
-
-async function cacheOpenDocuments(): Promise<void> {
-    const p_cached: Promise<void>[] = [];
-    vscode.workspace.textDocuments.forEach(document => p_cached.push(onDidOpenTextDocument(document)));
-    await Promise.all(p_cached);
 }
 
 async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void> {
