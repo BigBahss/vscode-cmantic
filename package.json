@@ -164,20 +164,6 @@
             ],
             "description": "File extensions to associate with source files."
           },
-          "C_mantic.folders.headerFiles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Patterns used to search for header files. Note, it is not necessary to utilize this setting, but doing so will restrict the search which can increase performance for complex/large workspaces.\nIf you would like to search recursively within a folder, for example, you would use 'include/**'."
-          },
-          "C_mantic.folders.sourceFiles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Patterns used to search for source files. Note, it is not necessary to utilize this setting, but doing so will restrict the search which can increase performance for complex/large workspaces.\nIf you would like to search recursively within a folder, for example, you would use 'src/**'."
-          },
           "C_mantic.c.curlyBraceFormat.function": {
             "type": "string",
             "enum": [
