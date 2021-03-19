@@ -59,8 +59,8 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     const baseName = util.fileNameBase(uri.fsPath);
     const directory = path.dirname(uri.fsPath);
     const parentDirectory = path.dirname(directory);
-    const headerExtensions = cfg.headerExtensions(uri);
-    const sourceExtensions = cfg.sourceExtensions(uri);
+    const headerExtensions = cfg.headerExtensions(workspaceFolder);
+    const sourceExtensions = cfg.sourceExtensions(workspaceFolder);
 
     let globPattern: string;
     if (headerExtensions.includes(extension)) {
@@ -69,6 +69,12 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
         globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
     } else {
         return;
+    }
+
+    const currentDirRelativePattern = new vscode.RelativePattern(directory, globPattern);
+    const currentDirRelativeUris = await vscode.workspace.findFiles(currentDirRelativePattern);
+    if (currentDirRelativeUris.length > 0) {
+        return currentDirRelativeUris[0];
     }
 
     const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
