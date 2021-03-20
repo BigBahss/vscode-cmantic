@@ -64,29 +64,36 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
 
     let globPattern: string;
     if (headerExtensions.includes(extension)) {
-        globPattern = `**/${baseName}.{${sourceExtensions.join(",")}}`;
+        globPattern = `${baseName}.{${sourceExtensions.join(",")}}`;
     } else if (sourceExtensions.includes(extension)) {
-        globPattern = `**/${baseName}.{${headerExtensions.join(",")}}`;
+        globPattern = `${baseName}.{${headerExtensions.join(",")}}`;
     } else {
         return;
     }
 
     const currentDirRelativePattern = new vscode.RelativePattern(directory, globPattern);
-    const currentDirRelativeUris = await vscode.workspace.findFiles(currentDirRelativePattern);
+    const p_currentDirRelativeUris = vscode.workspace.findFiles(currentDirRelativePattern);
+
+    globPattern = '**/' + globPattern;
+
+    const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
+    const p_parentDirRelativeUris = vscode.workspace.findFiles(parentDirRelativePattern);
+
+    const workspaceRelativePattern = new vscode.RelativePattern(workspaceFolder, globPattern);
+    const p_workspaceRelativeUris = vscode.workspace.findFiles(workspaceRelativePattern, parentDirectory);
+
+    const currentDirRelativeUris = await p_currentDirRelativeUris;
     if (currentDirRelativeUris.length > 0) {
         return currentDirRelativeUris[0];
     }
 
-    const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
-    const parentDirRelativeUris = await vscode.workspace.findFiles(parentDirRelativePattern);
+    const parentDirRelativeUris = await p_parentDirRelativeUris;
     const bestParentDirRelativeMatch = findBestMatchingUri(directory, parentDirRelativeUris);
     if (bestParentDirRelativeMatch) {
         return bestParentDirRelativeMatch;
     }
 
-    const workspaceRelativePattern = new vscode.RelativePattern(workspaceFolder, globPattern);
-    const workspaceRelativeUris = await vscode.workspace.findFiles(workspaceRelativePattern, parentDirectory);
-    return findBestMatchingUri(directory, workspaceRelativeUris);
+    return findBestMatchingUri(directory, await p_workspaceRelativeUris);
 }
 
 function findBestMatchingUri(directoryToCompare: string, uris: vscode.Uri[]): vscode.Uri | undefined {
