@@ -64,9 +64,9 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
 
     let globPattern: string;
     if (headerExtensions.includes(extension)) {
-        globPattern = `${baseName}.{${sourceExtensions.join(",")}}`;
+        globPattern = `${baseName}.{${sourceExtensions.join(',')}}`;
     } else if (sourceExtensions.includes(extension)) {
-        globPattern = `${baseName}.{${headerExtensions.join(",")}}`;
+        globPattern = `${baseName}.{${headerExtensions.join(',')}}`;
     } else {
         return;
     }

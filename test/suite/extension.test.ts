@@ -30,7 +30,7 @@ suite('Extension Test Suite', function () {
     const codeActionProvider = new CodeActionProvider();
 
     suiteSetup(async () => {
-        const cpptools = vscode.extensions.getExtension("ms-vscode.cpptools");
+        const cpptools = vscode.extensions.getExtension('ms-vscode.cpptools');
         if (cpptools && !cpptools.isActive) {
             await cpptools.activate();
         }
