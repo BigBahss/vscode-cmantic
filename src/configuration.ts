@@ -260,3 +260,29 @@ export function bracedInitialization(scope?: vscode.ConfigurationScope): boolean
 export function useExplicitThisPointer(scope?: vscode.ConfigurationScope): boolean {
     return configuration(scope).get<boolean>('cpp.useExplicitThisPointer', defaultExplicitThisPointer);
 }
+
+export function filesExclude(scope?: vscode.ConfigurationScope): string[] {
+    const exclude = vscode.workspace.getConfiguration('files.exclude', scope);
+    const patterns: string[] = [];
+    Object.entries(exclude).forEach(([key, value]) => {
+        if (value === true) {
+            patterns.push(key);
+        }
+    });
+    return patterns;
+}
+
+export function searchExclude(scope?: vscode.ConfigurationScope): string[] {
+    const exclude = vscode.workspace.getConfiguration('search.exclude', scope);
+    const patterns: string[] = filesExclude(scope);
+    Object.entries(exclude).forEach(([key, value]) => {
+        if (value === true && !patterns.some(pattern => pattern === key)) {
+            patterns.push(key);
+        }
+    });
+    return patterns;
+}
+
+export function searchExcludeGlobPattern(scope?: vscode.ConfigurationScope): vscode.GlobPattern {
+    return `{${searchExclude(scope).join(',')}}`;
+}

@@ -71,16 +71,18 @@ async function findMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
         return;
     }
 
+    const excludeGlobPattern = cfg.searchExcludeGlobPattern(workspaceFolder);
+
     const currentDirRelativePattern = new vscode.RelativePattern(directory, globPattern);
-    const p_currentDirRelativeUris = vscode.workspace.findFiles(currentDirRelativePattern);
+    const p_currentDirRelativeUris = vscode.workspace.findFiles(currentDirRelativePattern, excludeGlobPattern);
 
     globPattern = '**/' + globPattern;
 
     const parentDirRelativePattern = new vscode.RelativePattern(parentDirectory, globPattern);
-    const p_parentDirRelativeUris = vscode.workspace.findFiles(parentDirRelativePattern);
+    const p_parentDirRelativeUris = vscode.workspace.findFiles(parentDirRelativePattern, excludeGlobPattern);
 
     const workspaceRelativePattern = new vscode.RelativePattern(workspaceFolder, globPattern);
-    const p_workspaceRelativeUris = vscode.workspace.findFiles(workspaceRelativePattern, parentDirectory);
+    const p_workspaceRelativeUris = vscode.workspace.findFiles(workspaceRelativePattern, excludeGlobPattern);
 
     const currentDirRelativeUris = await p_currentDirRelativeUris;
     if (currentDirRelativeUris.length > 0) {
