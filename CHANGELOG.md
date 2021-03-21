@@ -2,6 +2,9 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- Searching for matching header/source files will now take into account the settings `Files: Exclude` and `Search: Exclude`.
+
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
 
