@@ -91,7 +91,6 @@ function registerCodeActionProvider(context: vscode.ExtensionContext): void {
 
 function registerEventListeners(): void {
     disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
-    disposables.push(vscode.workspace.onDidCloseTextDocument(onDidCloseTextDocument));
     disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
     disposables.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration));
 }
@@ -104,12 +103,6 @@ function logActivation(context: vscode.ExtensionContext): void {
 async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<void> {
     if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
         return headerSourceCache.add(document.uri);
-    }
-}
-
-function onDidCloseTextDocument(document: vscode.TextDocument): void {
-    if (document.uri.scheme === 'file' && (document.languageId === 'c' || document.languageId === 'cpp')) {
-        headerSourceCache.delete(document.uri);
     }
 }
 
