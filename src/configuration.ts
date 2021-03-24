@@ -178,21 +178,14 @@ export function boolGetterIsPrefix(scope?: vscode.ConfigurationScope): boolean {
 }
 
 export function getterDefinitionLocation(scope?: vscode.ConfigurationScope): DefinitionLocation {
-    const location = configuration(scope).get<string>('cpp.accessor.getterDefinitionLocation');
-    switch (location) {
-    case 'Generate definition inline':
-        return DefinitionLocation.Inline;
-    case 'Generate definition below class body':
-        return DefinitionLocation.CurrentFile;
-    case 'Generate definition in matching source file':
-        return DefinitionLocation.SourceFile;
-    default:
-        return defaultAccessorDefinitionLocation;
-    }
+    return stringToDefinitionLocation(configuration(scope).get<string>('cpp.accessor.getterDefinitionLocation'));
 }
 
 export function setterDefinitionLocation(scope?: vscode.ConfigurationScope): DefinitionLocation {
-    const location = configuration(scope).get<string>('cpp.accessor.setterDefinitionLocation');
+    return stringToDefinitionLocation(configuration(scope).get<string>('cpp.accessor.setterDefinitionLocation'));
+}
+
+function stringToDefinitionLocation(location?: string): DefinitionLocation {
     switch (location) {
     case 'Generate definition inline':
         return DefinitionLocation.Inline;
