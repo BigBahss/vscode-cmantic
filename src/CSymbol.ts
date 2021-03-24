@@ -203,13 +203,62 @@ export default class CSymbol extends SourceSymbol {
         return this.rangesOfAccess(access).some(range => range.contains(position));
     }
 
+    getterName(): string {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        const formattedBaseName = cfg.formatToCaseStyle(this.baseName());
+
+        if (cfg.boolGetterIsPrefix(this.uri)) {
+            const maskedLeadingText = parse.maskParentheses(parse.maskAngleBrackets(this.parsableLeadingText));
+            if (/\bbool\b/.test(maskedLeadingText)) {
+                return cfg.formatToCaseStyle('is_' + formattedBaseName);
+            }
+        }
+
+        if (formattedBaseName !== this.name) {
+            return formattedBaseName;
+        }
+
+        return cfg.formatToCaseStyle('get_' + formattedBaseName);
+    }
+
+    setterName(): string {
+        if (!this.isMemberVariable()) {
+            return '';
+        }
+
+        return cfg.formatToCaseStyle('set_' + this.baseName());
+    }
+
+    findGetterFor(memberVariable: CSymbol): SourceSymbol | undefined {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const getterName = memberVariable.getterName();
+
+        return this.children.find(child => child.name === getterName);
+    }
+
+    findSetterFor(memberVariable: CSymbol): SourceSymbol | undefined {
+        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
+            return;
+        }
+
+        const setterName = memberVariable.setterName();
+
+        return this.children.find(child => child.name === setterName);
+    }
+
     /**
      * Finds a position for a new member function within this class or struct. Optionally provide a relativeName
      * to look for a position next to. Optionally provide a memberVariable if the new member function is an
      * accessor. Returns undefined if this is not a class or struct.
      */
     findPositionForNewMemberFunction(
-        access: util.AccessLevel, relativeName?: string, memberVariable?: SourceSymbol
+        access: util.AccessLevel, relativeName?: string, memberVariable?: CSymbol
     ): ProposedPosition | undefined {
         if (!this.isClassOrStruct()) {
             return;

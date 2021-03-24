@@ -171,55 +171,16 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         if (/^_+|_+$/.test(this.name)) {
             return this.name.replace(/^_+|_+$/g, '');
         }
+
         if (/^m_[\w_][\w\d_]*$/.test(this.name)) {
             return this.name.replace(/^m_/, '');
         }
+
         if (/^s_[\w_][\w\d_]*$/.test(this.name)) {
             return this.name.replace(/^s_/, '');
         }
 
         return this.name;
-    }
-
-    getterName(): string {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        const formattedBaseName = cfg.formatToCaseStyle(this.baseName());
-        if (formattedBaseName !== this.name) {
-            return formattedBaseName;
-        }
-
-        return cfg.formatToCaseStyle('get_' + formattedBaseName);
-    }
-
-    setterName(): string {
-        if (!this.isMemberVariable()) {
-            return '';
-        }
-
-        return cfg.formatToCaseStyle('set_' + this.baseName());
-    }
-
-    findGetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const getterName = memberVariable.getterName();
-
-        return this.children.find(child => child.name === getterName);
-    }
-
-    findSetterFor(memberVariable: SourceSymbol): SourceSymbol | undefined {
-        if (memberVariable.parent !== this || !memberVariable.isMemberVariable()) {
-            return;
-        }
-
-        const setterName = memberVariable.setterName();
-
-        return this.children.find(child => child.name === setterName);
     }
 
     memberVariables(): SourceSymbol[] {
