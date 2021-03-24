@@ -49,6 +49,7 @@ const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME}_${EXT}';
+const defaultBoolGetterIsPrefix = false;
 const defaultAccessorDefinitionLocation = DefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
@@ -170,6 +171,10 @@ export function headerGuardDefine(uri: vscode.Uri): string {
             .replace('${PROJECT_REL_PATH}', PROJECT_REL_PATH)
             .replace(re_charactersNotAllowedInIdentifiers, '_')
             .replace(/^(?=\d)/g, 'INC_');
+}
+
+export function boolGetterIsPrefix(scope?: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.accessor.boolGetterIsPrefix', defaultBoolGetterIsPrefix);
 }
 
 export function getterDefinitionLocation(scope?: vscode.ConfigurationScope): DefinitionLocation {

@@ -208,6 +208,11 @@
             "default": true,
             "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces."
           },
+          "C_mantic.cpp.accessor.boolGetterIsPrefix": {
+            "type": "boolean",
+            "default": false,
+            "description": "Generate bool getters with an 'is' prefix. For example, a data member 'bool enabled' will generate a getter named 'isEnabled'."
+          },
           "C_mantic.cpp.accessor.getterDefinitionLocation": {
             "type": "string",
             "enum": [
