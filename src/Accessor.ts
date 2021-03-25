@@ -89,6 +89,7 @@ export class Setter implements Accessor {
     name: string;
     isStatic: boolean;
     returnType: string;
+    parameterName: string;
     parameter: string;
     body: string;
 
@@ -103,9 +104,9 @@ export class Setter implements Accessor {
             setter.parameter = (memberVariable.isReference()
                 ? 'const ' + type
                 : 'const ' + type + '&'
-            ) + 'value';
+            ) + setter.parameterName;
         } else {
-            setter.parameter = type.replace(/&(?!.*>)/, '') + 'value';
+            setter.parameter = type.replace(/&(?!.*>)/, '') + setter.parameterName;
         }
 
         return setter;
@@ -117,6 +118,17 @@ export class Setter implements Accessor {
         this.name = memberVariable.setterName();
         this.isStatic = memberVariable.isStatic();
         this.returnType = 'void ';
+        let baseName = memberVariable.baseName();
+        if (baseName !== memberVariable.name) {
+            this.parameterName = baseName;
+        } else {
+            baseName = cfg.formatToCaseStyle(baseName);
+            if (baseName !== memberVariable.name) {
+                this.parameterName = baseName;
+            } else {
+                this.parameterName = baseName + '_';
+            }
+        }
         this.parameter = '';
         let memberPrefix = '';
         if (cfg.useExplicitThisPointer() && !this.isStatic) {
@@ -124,7 +136,7 @@ export class Setter implements Accessor {
         } else if (this.isStatic && memberVariable.parent) {
             memberPrefix = memberVariable.parent.name + '::';
         }
-        this.body = memberPrefix + memberVariable.name + ' = value;';
+        this.body = `${memberPrefix + memberVariable.name} = ${this.parameterName};`;
     }
 
     get declaration(): string {
