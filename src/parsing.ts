@@ -97,6 +97,13 @@ export function maskNonSourceText(text: string): string {
     return maskQuotes(text);
 }
 
+export function maskAttributes(text: string, keepEnclosingChars: boolean = true): string {
+    if (keepEnclosingChars) {
+        return text.replace(/(?<=\[\[).*(?=\]\])/g, masker);
+    }
+    return text.replace(/\[\[.*\]\]/g, masker);
+}
+
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
     return maskBalanced(text, '\\(', '\\)', keepEnclosingChars);
 }
