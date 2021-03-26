@@ -35,7 +35,7 @@ export class Getter implements Accessor {
     body: string;
 
     constructor(memberVariable: CSymbol) {
-        const leadingText = memberVariable.parsableLeadingText;
+        const leadingText = memberVariable.parsableLeadingText.replace('[[', '').replace(']]', '');
         this.parent = memberVariable.parent;
         this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
@@ -47,9 +47,9 @@ export class Getter implements Accessor {
             this.returnType = leadingText.slice(0, templateParamStart).replace(re_qualifiers, '')
                     + leadingText.slice(templateParamStart, templateParamEnd + 1)
                     + leadingText.slice(templateParamEnd + 1).replace(re_qualifiers, '');
-            this.returnType = this.returnType.replace(/\s{2,}/g, ' ').trimStart();
+            this.returnType = this.returnType.replace(/\s+/g, ' ').trimStart();
         } else {
-            this.returnType = leadingText.replace(re_qualifiers, '').replace(/\s{2,}/g, ' ').trimStart();
+            this.returnType = leadingText.replace(re_qualifiers, '').replace(/\s+/g, ' ').trimStart();
         }
 
         this.parameter = '';
@@ -98,7 +98,8 @@ export class Setter implements Accessor {
      */
     static async create(memberVariable: CSymbol): Promise<Setter> {
         const setter = new Setter(memberVariable);
-        const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '').trimStart();
+        const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '')
+                .replace('[[', '').replace(']]', '').replace(/\s+/g, ' ').trimStart();
 
         if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
             setter.parameter = (memberVariable.isReference()
