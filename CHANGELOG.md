@@ -7,9 +7,11 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Changed
 - Searching for matching header/source files will now take into account the settings `Files: Exclude` and `Search: Exclude`.
+- Setters will now be generated with a more appropriate parameter name instead of 'value'.
 
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
+- Fixed an oversight where attributes would end up in getter's and setter's return/parameter type.
 
 ## [0.6.2] - March 14, 2021
 ### Changed
