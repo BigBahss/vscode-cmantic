@@ -91,17 +91,26 @@ export function maskQuotes(text: string, keepEnclosingChars: boolean = true): st
     return text;
 }
 
+export function maskAttributes(text: string, keepEnclosingChars: boolean = true): string {
+    return replaceAttributes(text, keepEnclosingChars, masker);
+}
+
+export function removeAttributes(text: string): string {
+    return replaceAttributes(text, false, '');
+}
+
+function replaceAttributes(text: string, keepEnclosingChars: boolean = true, replacer: any): string {
+    if (keepEnclosingChars) {
+        return text.replace(/(?<=\[\[).*(?=\]\])/g, replacer);
+    }
+    return text.replace(/\[\[.*\]\]/g, replacer);
+}
+
 export function maskNonSourceText(text: string): string {
     text = maskComments(text, false);
     text = maskRawStringLiterals(text);
-    return maskQuotes(text);
-}
-
-export function maskAttributes(text: string, keepEnclosingChars: boolean = true): string {
-    if (keepEnclosingChars) {
-        return text.replace(/(?<=\[\[).*(?=\]\])/g, masker);
-    }
-    return text.replace(/\[\[.*\]\]/g, masker);
+    text = maskQuotes(text);
+    return maskAttributes(text);
 }
 
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
