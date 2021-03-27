@@ -4,6 +4,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [Unreleased]
 ### Added
 - Added a setting `Accessor: Bool Getter Is Prefix` to prefix getters of `bool` members with 'is' (e.g. `bool enabled` generates `bool isEnabled() const`).
+- Base class(es) can now be selected to compare when using `Generate Equality Operators`.
 
 ### Changed
 - Searching for matching header/source files will now take into account the settings `Files: Exclude` and `Search: Exclude`.
