@@ -3,8 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
+import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { Operator, OpEqual, OpNotEqual } from './Operator';
+import { Operator, OpEqual, OpNotEqual, Operand } from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
 
@@ -40,7 +41,7 @@ export async function generateEqualityOperators(
         }
     }
 
-    const p_memberVariables = promptUserForMemberVariables(classOrStruct);
+    const p_operands = promptUserForOperands(classOrStruct);
 
     const equalPosition = classOrStruct.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!equalPosition) {
@@ -48,12 +49,12 @@ export async function generateEqualityOperators(
         return;
     }
 
-    const memberVariables = await p_memberVariables;
-    if (!memberVariables) {
+    const operands = await p_operands;
+    if (!operands) {
         return;
     }
 
-    const opEqual = new OpEqual(classOrStruct, memberVariables);
+    const opEqual = new OpEqual(classOrStruct, operands);
     const opNotEqual = new OpNotEqual(classOrStruct);
 
     const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, equalPosition);
@@ -77,30 +78,39 @@ export async function generateEqualityOperators(
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
-interface MemberVariableQuickPickItem extends vscode.QuickPickItem {
-    memberVariable: CSymbol;
+interface OperandQuickPickItem extends vscode.QuickPickItem {
+    operand: Operand;
 }
 
-async function promptUserForMemberVariables(classOrStruct: CSymbol): Promise<CSymbol[] | undefined> {
-    const memberVariables = classOrStruct.nonStaticMemberVariables();
+async function promptUserForOperands(classOrStruct: CSymbol): Promise<Operand[] | undefined> {
+    const operands: Operand[] = [...classOrStruct.baseClasses(), ...classOrStruct.nonStaticMemberVariables()];
 
-    if (memberVariables.length === 0) {
+    if (operands.length === 0) {
         return [];
     }
 
-    const memberVariablesItems: MemberVariableQuickPickItem[] = [];
-    memberVariables.forEach(memberVariable => {
-        memberVariablesItems.push({
-            label: '$(symbol-field) ' + memberVariable.name,
-            description: memberVariable.text(),
-            memberVariable: memberVariable,
-            picked: true
-        });
+    const operandItems: OperandQuickPickItem[] = [];
+    operands.forEach(operand => {
+        if (operand instanceof SubSymbol) {
+            operandItems.push({
+                label: '$(symbol-class) ' + operand.name,
+                description: 'Base class comparison',
+                operand: operand,
+                picked: true
+            });
+        } else {
+            operandItems.push({
+                label: '$(symbol-field) ' + operand.name,
+                description: operand.text(),
+                operand: operand,
+                picked: true
+            });
+        }
     });
 
-    const selectedIems = await vscode.window.showQuickPick<MemberVariableQuickPickItem>(memberVariablesItems, {
+    const selectedIems = await vscode.window.showQuickPick<OperandQuickPickItem>(operandItems, {
         matchOnDescription: true,
-        placeHolder: 'Select what member variables you would like to compare:',
+        placeHolder: 'Select what you would like to compare in the equality operator:',
         canPickMany: true
     });
 
@@ -108,10 +118,10 @@ async function promptUserForMemberVariables(classOrStruct: CSymbol): Promise<CSy
         return;
     }
 
-    const selectedMemberVariables: CSymbol[] = [];
-    selectedIems.forEach(item => selectedMemberVariables.push(item.memberVariable));
+    const selectedOperands: Operand[] = [];
+    selectedIems.forEach(item => selectedOperands.push(item.operand));
 
-    return selectedMemberVariables;
+    return selectedOperands;
 }
 
 interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {

@@ -4,7 +4,10 @@ import * as util from './utility';
 import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
+import SubSymbol from './SubSymbol';
 
+
+export type Operand = CSymbol | SubSymbol;
 
 export interface Operator {
     readonly parent: CSymbol;
@@ -23,14 +26,14 @@ export class OpEqual implements Operator {
     parameter: string;
     body: string;
 
-    constructor(parent: CSymbol, memberVariables?: SourceSymbol[]) {
+    constructor(parent: CSymbol, operands?: Operand[]) {
         this.parent = parent;
         this.name = 'operator==';
         this.returnType = 'bool ';
         this.parameter = 'const ' + parent.templatedName() + ' &other';
         this.body = '';
-        if (memberVariables) {
-            this.setMemberVariables(memberVariables);
+        if (operands) {
+            this.setOperands(operands);
         }
     }
 
@@ -50,17 +53,19 @@ export class OpEqual implements Operator {
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 
-    setMemberVariables(memberVariables: SourceSymbol[]): void {
-        const eol = util.endOfLine(this.parent.document);
+    setOperands(operands: Operand[]): void {
+        const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
-
-        if (this.body) {
-            this.body = '';
-        }
-
         const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
-        memberVariables.forEach(memberVariable => {
-            this.body += `${thisPointer}${memberVariable.name} == other.${memberVariable.name}${eol}${indent}${indent}&& `;
+
+        this.body = '';
+
+        operands.forEach(operand => {
+            if (operand instanceof SubSymbol) {
+                this.body += `static_cast<const ${operand.name} &>(*this) == static_cast<const ${operand.name} &>(other)${eol}${indent}${indent}&& `;
+            } else {
+                this.body += `${thisPointer}${operand.name} == other.${operand.name}${eol}${indent}${indent}&& `;
+            }
         });
 
         if (this.body.length > 3) {
