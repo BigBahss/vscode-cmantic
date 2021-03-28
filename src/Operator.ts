@@ -139,7 +139,7 @@ export class StreamOutputOperator implements Operator {
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
+        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
                 + await this.parent.scopeString(target, position, true) + this.name + '(' + this.parameters + ')'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
@@ -147,14 +147,15 @@ export class StreamOutputOperator implements Operator {
     setOperands(operands: Operand[]): void {
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
+        const alignment = indent.includes(' ') ? '   ' : indent;
 
         this.body = '';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
-                this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol}${indent}${indent}`;
+                this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol}${indent}${alignment}`;
             } else {
-                this.body += `<< " ${operand.name}: " << rhs.${operand.name}${eol}${indent}${indent}`;
+                this.body += `<< " ${operand.name}: " << rhs.${operand.name}${eol}${indent}${alignment}`;
             }
         });
 
