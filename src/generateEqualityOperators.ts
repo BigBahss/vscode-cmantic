@@ -5,7 +5,7 @@ import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { Operator, OpEqual, OpNotEqual, Operand, StreamOutputOperator } from './Operator';
+import { Operator, EqualsOperator, NotEqualsOperator, Operand, StreamOutputOperator } from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
 
@@ -57,8 +57,8 @@ export async function generateEqualityOperators(
         return;
     }
 
-    const opEqual = new OpEqual(classOrStruct, operands);
-    const opNotEqual = new OpNotEqual(classOrStruct);
+    const equalsOp = new EqualsOperator(classOrStruct, operands);
+    const notEqualsOp = new NotEqualsOperator(classOrStruct);
 
     const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, equalPosition);
     if (!targets) {
@@ -73,10 +73,10 @@ export async function generateEqualityOperators(
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(opEqual, equalPosition, classDoc, targets.equal, workspaceEdit);
-    if (targets.notEqual) {
+    await addNewOperatorToWorkspaceEdit(equalsOp, equalPosition, classDoc, targets.equals, workspaceEdit);
+    if (targets.notEquals) {
         await addNewOperatorToWorkspaceEdit(
-                opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit, true);
+                notEqualsOp, notEqualPosition, classDoc, targets.notEquals, workspaceEdit, true);
     }
     return vscode.workspace.applyEdit(workspaceEdit);
 }
@@ -126,7 +126,7 @@ export async function generateStreamOutputOperator(
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.equal, workspaceEdit);
+    await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.equals, workspaceEdit);
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -192,8 +192,8 @@ class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPick
 }
 
 interface TargetLocations {
-    equal: TargetLocation;
-    notEqual?: TargetLocation;
+    equals: TargetLocation;
+    notEquals?: TargetLocation;
 }
 
 async function promptUserForDefinitionLocations(
@@ -224,7 +224,7 @@ async function promptUserForDefinitionLocations(
 
     const inequalityDefinitionItem = await p_inequalityDefinitionItem;
     if (!inequalityDefinitionItem) {
-        return { equal: equalityTargetLocation };
+        return { equals: equalityTargetLocation };
     }
 
     let inequalityTargetLocation: TargetLocation | undefined;
@@ -243,7 +243,7 @@ async function promptUserForDefinitionLocations(
         inequalityTargetLocation = new TargetLocation(inequalityDefinitionPos, classDoc);
     }
 
-    return { equal: equalityTargetLocation, notEqual: inequalityTargetLocation };
+    return { equals: equalityTargetLocation, notEquals: inequalityTargetLocation };
 }
 
 async function addNewOperatorToWorkspaceEdit(

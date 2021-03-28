@@ -18,7 +18,7 @@ export interface Operator {
     definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string>;
 }
 
-export class OpEqual implements Operator {
+export class EqualsOperator implements Operator {
     readonly parent: CSymbol;
     name: string;
     returnType: string;
@@ -73,7 +73,7 @@ export class OpEqual implements Operator {
     }
 }
 
-export class OpNotEqual implements Operator {
+export class NotEqualsOperator implements Operator {
     readonly parent: CSymbol;
     name: string;
     returnType: string;
