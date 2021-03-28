@@ -150,18 +150,21 @@ export class StreamOutputOperator implements Operator {
     }
 
     setOperands(operands: Operand[]): void {
+        this.body = '';
+
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '   ' : indent;
 
-        this.body = '';
+        let spacer = '';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
                 this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol}${indent}${alignment}`;
             } else {
-                this.body += `<< " ${operand.name}: " << rhs.${operand.name}${eol}${indent}${alignment}`;
+                this.body += `<< "${spacer}${operand.name}: " << rhs.${operand.name}${eol}${indent}${alignment}`;
             }
+            spacer = ' ';
         });
 
         if (this.body.length > 0) {
