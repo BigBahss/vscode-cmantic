@@ -212,7 +212,7 @@ export default class CSymbol extends SourceSymbol {
 
         if (cfg.boolGetterIsPrefix(this.uri)) {
             const maskedLeadingText = parse.maskParentheses(parse.maskAngleBrackets(this.parsableLeadingText));
-            if (/\bbool\b/.test(maskedLeadingText)) {
+            if (/\bbool\b/.test(maskedLeadingText) && !/^[iI]s[_A-Z]/.test(formattedBaseName)) {
                 return cfg.formatToCaseStyle('is_' + formattedBaseName);
             }
         }
