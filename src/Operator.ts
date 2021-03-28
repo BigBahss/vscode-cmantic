@@ -140,7 +140,7 @@ export class StreamOutputOperator implements Operator {
                 ? 'inline '
                 : '';
         return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameters + ')'
+                + await this.parent.scopeString(target, position, true) + this.name + '(' + this.parameters + ')'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 
