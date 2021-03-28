@@ -5,11 +5,14 @@ import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { Operator, OpEqual, OpNotEqual, Operand } from './Operator';
+import { Operator, OpEqual, OpNotEqual, Operand, StreamOutputOperator } from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
 
-export const title = 'Generate Equality Operators';
+export const title = {
+    equality: 'Generate Equality Operators',
+    streamOutput: 'Generate Stream Output Operator'
+};
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
@@ -75,6 +78,55 @@ export async function generateEqualityOperators(
         await addNewOperatorToWorkspaceEdit(
                 opNotEqual, notEqualPosition, classDoc, targets.notEqual, workspaceEdit, true);
     }
+    return vscode.workspace.applyEdit(workspaceEdit);
+}
+
+export async function generateStreamOutputOperator(
+    classOrStruct?: CSymbol,
+    classDoc?: SourceDocument
+): Promise<boolean | undefined> {
+    if (!classOrStruct || !classDoc) {
+        // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        classDoc = new SourceDocument(editor.document);
+
+        const symbol = await classDoc.getSymbol(editor.selection.start);
+
+        classOrStruct = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
+
+        if (!classOrStruct?.isClassOrStruct()) {
+            logger.alertWarning(failure.noClassOrStruct);
+            return;
+        }
+    }
+
+    const p_operands = promptUserForOperands(classOrStruct);
+
+    const declarationPos = classOrStruct.findPositionForNewMemberFunction(util.AccessLevel.public);
+    if (!declarationPos) {
+        logger.alertError(failure.positionNotFound);
+        return;
+    }
+
+    const operands = await p_operands;
+    if (!operands) {
+        return;
+    }
+
+    const streamOutputOp = new StreamOutputOperator(classOrStruct, operands);
+
+    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, declarationPos);
+    if (!targets) {
+        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.equal, workspaceEdit);
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
