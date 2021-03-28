@@ -44,7 +44,7 @@ export async function generateEqualityOperators(
         }
     }
 
-    const p_operands = promptUserForOperands(parentClass);
+    const p_operands = promptUserForOperands(parentClass, 'Select what you would like to compare in operator==');
 
     const equalPosition = parentClass.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!equalPosition) {
@@ -106,7 +106,7 @@ export async function generateStreamOutputOperator(
         }
     }
 
-    const p_operands = promptUserForOperands(parentClass);
+    const p_operands = promptUserForOperands(parentClass, 'Select what you would like to output in operator<<');
 
     const declarationPos = parentClass.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!declarationPos) {
@@ -135,7 +135,7 @@ interface OperandQuickPickItem extends vscode.QuickPickItem {
     operand: Operand;
 }
 
-async function promptUserForOperands(parentClass: CSymbol): Promise<Operand[] | undefined> {
+async function promptUserForOperands(parentClass: CSymbol, prompt: string): Promise<Operand[] | undefined> {
     const operands: Operand[] = [...parentClass.baseClasses(), ...parentClass.nonStaticMemberVariables()];
 
     if (operands.length === 0) {
@@ -147,7 +147,7 @@ async function promptUserForOperands(parentClass: CSymbol): Promise<Operand[] | 
         if (operand instanceof SubSymbol) {
             operandItems.push({
                 label: '$(symbol-class) ' + operand.name,
-                description: 'Base class comparison',
+                description: 'Base class',
                 operand: operand,
                 picked: true
             });
@@ -163,7 +163,7 @@ async function promptUserForOperands(parentClass: CSymbol): Promise<Operand[] | 
 
     const selectedIems = await vscode.window.showQuickPick<OperandQuickPickItem>(operandItems, {
         matchOnDescription: true,
-        placeHolder: 'Select what you would like to compare in the equality operator:',
+        placeHolder: prompt,
         canPickMany: true
     });
 
@@ -201,21 +201,21 @@ async function promptUserForDefinitionLocations(
     parentClass: CSymbol,
     classDoc: SourceDocument,
     declarationPos: ProposedPosition,
-    first: string,
-    second?: string
+    firstOperatorName: string,
+    secondOperatorName?: string
 ): Promise<TargetLocations | undefined> {
     const firstDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
             new DefinitionLocationQuickPickItems(parentClass, classDoc),
-            { placeHolder: `Select where the definition of ${first} should be placed:` });
+            { placeHolder: `Select where to place the definition of ${firstOperatorName}` });
     if (!firstDefinitionItem) {
         return;
     }
 
-    const p_secondDefinitionItem = second
-        ? vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(parentClass, classDoc),
-            { placeHolder: `Select where the definition of ${second} should be placed:` })
-        : undefined;
+    const p_secondDefinitionItem = secondOperatorName !== undefined
+            ? vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
+                new DefinitionLocationQuickPickItems(parentClass, classDoc),
+                { placeHolder: `Select where to place the definition of ${secondOperatorName}` })
+            : undefined;
 
     const matchingUri = await getMatchingHeaderSource(classDoc.uri);
 
