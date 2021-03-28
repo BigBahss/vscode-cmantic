@@ -134,12 +134,17 @@ export class StreamOutputOperator implements Operator {
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
+        const friendSpecifier =
+            (util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
+                ? 'friend '
+                : '';
         const inlineSpecifier =
             (!util.containsExclusive(this.parent.range, position)
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return this.parent.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
+        return this.parent.combinedTemplateStatements(true, eol) + friendSpecifier + inlineSpecifier + this.returnType
                 + await this.parent.scopeString(target, position, true) + this.name + '(' + this.parameters + ')'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
