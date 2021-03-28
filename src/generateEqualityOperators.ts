@@ -21,10 +21,10 @@ export const failure = {
 };
 
 export async function generateEqualityOperators(
-    classOrStruct?: CSymbol,
+    parentClass?: CSymbol,
     classDoc?: SourceDocument
 ): Promise<boolean | undefined> {
-    if (!classOrStruct || !classDoc) {
+    if (!parentClass || !classDoc) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -36,17 +36,17 @@ export async function generateEqualityOperators(
 
         const symbol = await classDoc.getSymbol(editor.selection.start);
 
-        classOrStruct = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
+        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
 
-        if (!classOrStruct?.isClassOrStruct()) {
+        if (!parentClass?.isClassOrStruct()) {
             logger.alertWarning(failure.noClassOrStruct);
             return;
         }
     }
 
-    const p_operands = promptUserForOperands(classOrStruct);
+    const p_operands = promptUserForOperands(parentClass);
 
-    const equalPosition = classOrStruct.findPositionForNewMemberFunction(util.AccessLevel.public);
+    const equalPosition = parentClass.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!equalPosition) {
         logger.alertError(failure.positionNotFound);
         return;
@@ -57,10 +57,11 @@ export async function generateEqualityOperators(
         return;
     }
 
-    const equalsOp = new EqualsOperator(classOrStruct, operands);
-    const notEqualsOp = new NotEqualsOperator(classOrStruct);
+    const equalsOp = new EqualsOperator(parentClass, operands);
+    const notEqualsOp = new NotEqualsOperator(parentClass);
 
-    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, equalPosition);
+    const targets = await promptUserForDefinitionLocations(
+            parentClass, classDoc, equalPosition, equalsOp.name, notEqualsOp.name);
     if (!targets) {
         return;
     }
@@ -73,19 +74,19 @@ export async function generateEqualityOperators(
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(equalsOp, equalPosition, classDoc, targets.equals, workspaceEdit);
-    if (targets.notEquals) {
+    await addNewOperatorToWorkspaceEdit(equalsOp, equalPosition, classDoc, targets.first, workspaceEdit);
+    if (targets.second) {
         await addNewOperatorToWorkspaceEdit(
-                notEqualsOp, notEqualPosition, classDoc, targets.notEquals, workspaceEdit, true);
+                notEqualsOp, notEqualPosition, classDoc, targets.second, workspaceEdit, true);
     }
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
 export async function generateStreamOutputOperator(
-    classOrStruct?: CSymbol,
+    parentClass?: CSymbol,
     classDoc?: SourceDocument
 ): Promise<boolean | undefined> {
-    if (!classOrStruct || !classDoc) {
+    if (!parentClass || !classDoc) {
         // Command was called from the command-palette
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -97,17 +98,17 @@ export async function generateStreamOutputOperator(
 
         const symbol = await classDoc.getSymbol(editor.selection.start);
 
-        classOrStruct = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
+        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
 
-        if (!classOrStruct?.isClassOrStruct()) {
+        if (!parentClass?.isClassOrStruct()) {
             logger.alertWarning(failure.noClassOrStruct);
             return;
         }
     }
 
-    const p_operands = promptUserForOperands(classOrStruct);
+    const p_operands = promptUserForOperands(parentClass);
 
-    const declarationPos = classOrStruct.findPositionForNewMemberFunction(util.AccessLevel.public);
+    const declarationPos = parentClass.findPositionForNewMemberFunction(util.AccessLevel.public);
     if (!declarationPos) {
         logger.alertError(failure.positionNotFound);
         return;
@@ -118,15 +119,15 @@ export async function generateStreamOutputOperator(
         return;
     }
 
-    const streamOutputOp = new StreamOutputOperator(classOrStruct, operands);
+    const streamOutputOp = new StreamOutputOperator(parentClass, operands);
 
-    const targets = await promptUserForDefinitionLocations(classOrStruct, classDoc, declarationPos);
+    const targets = await promptUserForDefinitionLocations(parentClass, classDoc, declarationPos, streamOutputOp.name);
     if (!targets) {
         return;
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.equals, workspaceEdit);
+    await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.first, workspaceEdit);
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -134,8 +135,8 @@ interface OperandQuickPickItem extends vscode.QuickPickItem {
     operand: Operand;
 }
 
-async function promptUserForOperands(classOrStruct: CSymbol): Promise<Operand[] | undefined> {
-    const operands: Operand[] = [...classOrStruct.baseClasses(), ...classOrStruct.nonStaticMemberVariables()];
+async function promptUserForOperands(parentClass: CSymbol): Promise<Operand[] | undefined> {
+    const operands: Operand[] = [...parentClass.baseClasses(), ...parentClass.nonStaticMemberVariables()];
 
     if (operands.length === 0) {
         return [];
@@ -181,69 +182,73 @@ interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
 }
 
 class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPickItem> {
-    constructor(classOrStruct: CSymbol, sourceDoc: SourceDocument) {
+    constructor(parentClass: CSymbol, sourceDoc: SourceDocument) {
         super({ label: 'Inline', location: cfg.DefinitionLocation.Inline },
               { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile });
 
-        if (sourceDoc.isHeader() && !classOrStruct.hasUnspecializedTemplate()) {
+        if (sourceDoc.isHeader() && !parentClass.hasUnspecializedTemplate()) {
             this.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
         }
     }
 }
 
 interface TargetLocations {
-    equals: TargetLocation;
-    notEquals?: TargetLocation;
+    first: TargetLocation;
+    second?: TargetLocation;
 }
 
 async function promptUserForDefinitionLocations(
-    classOrStruct: CSymbol,
+    parentClass: CSymbol,
     classDoc: SourceDocument,
-    declarationPos: ProposedPosition
+    declarationPos: ProposedPosition,
+    first: string,
+    second?: string
 ): Promise<TargetLocations | undefined> {
-    const equalityDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(classOrStruct, classDoc),
-            { placeHolder: 'Select where the definition of operator== should be placed:' });
-    if (!equalityDefinitionItem) {
+    const firstDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
+            new DefinitionLocationQuickPickItems(parentClass, classDoc),
+            { placeHolder: `Select where the definition of ${first} should be placed:` });
+    if (!firstDefinitionItem) {
         return;
     }
 
-    const p_inequalityDefinitionItem = vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(classOrStruct, classDoc),
-            { placeHolder: 'Select where the definition of operator!= should be placed:' });
+    const p_secondDefinitionItem = second
+        ? vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
+            new DefinitionLocationQuickPickItems(parentClass, classDoc),
+            { placeHolder: `Select where the definition of ${second} should be placed:` })
+        : undefined;
 
     const matchingUri = await getMatchingHeaderSource(classDoc.uri);
 
-    const equalityTargetDoc = (equalityDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri)
+    const firstTargetDoc = (firstDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri)
             ? await SourceDocument.open(matchingUri)
             : classDoc;
-    const equalityDefinitionPos = (equalityDefinitionItem.location === cfg.DefinitionLocation.Inline)
+    const firstDefinitionPos = (firstDefinitionItem.location === cfg.DefinitionLocation.Inline)
             ? declarationPos
-            : await classDoc.findPositionForFunctionDefinition(declarationPos, equalityTargetDoc);
-    const equalityTargetLocation = new TargetLocation(equalityDefinitionPos, equalityTargetDoc);
+            : await classDoc.findPositionForFunctionDefinition(declarationPos, firstTargetDoc);
+    const firstTargetLocation = new TargetLocation(firstDefinitionPos, firstTargetDoc);
 
-    const inequalityDefinitionItem = await p_inequalityDefinitionItem;
-    if (!inequalityDefinitionItem) {
-        return { equals: equalityTargetLocation };
+    const secondDefinitionItem = await p_secondDefinitionItem;
+    if (!secondDefinitionItem) {
+        return { first: firstTargetLocation };
     }
 
-    let inequalityTargetLocation: TargetLocation | undefined;
+    let secondTargetLocation: TargetLocation | undefined;
 
-    if (inequalityDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri) {
-        const inequalityTargetDoc = (equalityTargetDoc.uri.fsPath === matchingUri.fsPath)
-                ? equalityTargetDoc
+    if (secondDefinitionItem.location === cfg.DefinitionLocation.SourceFile && matchingUri) {
+        const secondTargetDoc = (firstTargetDoc.uri.fsPath === matchingUri.fsPath)
+                ? firstTargetDoc
                 : await SourceDocument.open(matchingUri);
-        const inequalityDefinitionPos =
-                await classDoc.findPositionForFunctionDefinition(declarationPos, inequalityTargetDoc);
-        inequalityTargetLocation = new TargetLocation(inequalityDefinitionPos, inequalityTargetDoc);
+        const secondDefinitionPos =
+                await classDoc.findPositionForFunctionDefinition(declarationPos, secondTargetDoc);
+        secondTargetLocation = new TargetLocation(secondDefinitionPos, secondTargetDoc);
     } else {
-        const inequalityDefinitionPos = inequalityDefinitionItem.location === cfg.DefinitionLocation.Inline
+        const secondDefinitionPos = secondDefinitionItem.location === cfg.DefinitionLocation.Inline
                 ? declarationPos
                 : await classDoc.findPositionForFunctionDefinition(declarationPos);
-        inequalityTargetLocation = new TargetLocation(inequalityDefinitionPos, classDoc);
+        secondTargetLocation = new TargetLocation(secondDefinitionPos, classDoc);
     }
 
-    return { equals: equalityTargetLocation, notEquals: inequalityTargetLocation };
+    return { first: firstTargetLocation, second: secondTargetLocation };
 }
 
 async function addNewOperatorToWorkspaceEdit(
