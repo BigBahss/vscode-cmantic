@@ -28,6 +28,7 @@ export const failure = {
     isTemplate: 'Function templates must be defined in the file that they are declared.',
     isClassTemplate: 'Class template member functions must be defined in the same file.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
+    isConsteval: 'Consteval functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.'
 };
 
