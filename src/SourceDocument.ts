@@ -6,7 +6,10 @@ import SourceFile from './SourceFile';
 import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import SubSymbol from './SubSymbol';
 
+
+const re_preprocessorDirective = /(?<=^\s*)#.*\S(?=\s*$)/gm;
 
 /**
  * Represents a C/C++ source file.
@@ -86,6 +89,25 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     hasHeaderGuard(): boolean {
         return this.positionAfterHeaderGuard() !== undefined;
     }
+
+    get preprocessorDirectives(): SubSymbol[] {
+        if (this._preprocessorDirectives) {
+            return this._preprocessorDirectives;
+        }
+
+        this._preprocessorDirectives = [];
+        const maskedText = parse.maskNonSourceText(this.getText());
+
+        for (const match of maskedText.matchAll(re_preprocessorDirective)) {
+            if (match.index) {
+                const range = this.rangeAt(match.index, match.index + match[0].length);
+                this._preprocessorDirectives.push(new SubSymbol(this, range));
+            }
+        }
+
+        return this._preprocessorDirectives;
+    }
+    private _preprocessorDirectives?: SubSymbol[];
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
         let offset: number | undefined;
