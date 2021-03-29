@@ -44,6 +44,12 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
     get endOfLine(): string { return util.endOfLine(this); }
 
+    rangeAt(startOffset: number, endOffset: number): vscode.Range {
+        const start = this.positionAt(startOffset);
+        const end = this.positionAt(endOffset);
+        return new vscode.Range(start, end);
+    }
+
     async getSymbol(position: vscode.Position): Promise<CSymbol | undefined> {
         const symbol = await super.getSymbol(position);
         return symbol ? new CSymbol(symbol, this) : undefined;
