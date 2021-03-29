@@ -212,7 +212,7 @@ export default class CSymbol extends SourceSymbol {
 
         if (cfg.boolGetterIsPrefix(this.uri)) {
             const maskedLeadingText = parse.maskParentheses(parse.maskAngleBrackets(this.parsableLeadingText));
-            if (/\bbool\b/.test(maskedLeadingText)) {
+            if (/\bbool\b/.test(maskedLeadingText) && !/^[iI]s[_A-Z]/.test(formattedBaseName)) {
                 return cfg.formatToCaseStyle('is_' + formattedBaseName);
             }
         }
@@ -610,12 +610,16 @@ export default class CSymbol extends SourceSymbol {
         return /\s*=\s*(delete|default)\s*(\s*;)*$/.test(this.parsableText);
     }
 
+    isInline(): boolean {
+        return /\binline\b/.test(this.parsableLeadingText);
+    }
+
     isConstexpr(): boolean {
         return /\bconstexpr\b/.test(this.parsableLeadingText);
     }
 
-    isInline(): boolean {
-        return /\binline\b/.test(this.parsableLeadingText);
+    isConsteval(): boolean {
+        return /\bconsteval\b/.test(this.parsableLeadingText);
     }
 
     isPointer(): boolean {
@@ -804,7 +808,7 @@ export default class CSymbol extends SourceSymbol {
         const inlineSpecifier =
             ((!this.parent || !util.containsExclusive(this.parent.range, position))
             && (this.document.fileName === targetDoc.fileName || targetDoc.isHeader())
-            && !this.isInline() && !this.isConstexpr() && checkForInline)
+            && checkForInline && !this.isInline() && !this.isConstexpr() && !this.isConsteval())
                 ? 'inline '
                 : '';
 

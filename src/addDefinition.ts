@@ -23,6 +23,7 @@ export const failure = {
     noMatchingSourceFile: 'No matching source file was found.',
     hasUnspecializedTemplate: 'Unspecialized templates must be defined in the file that they are declared.',
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
+    isConsteval: 'Consteval functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
     definitionExists: 'A definition for this function already exists.'
 };
@@ -51,11 +52,14 @@ export async function addDefinitionInSourceFile(): Promise<boolean | undefined> 
     } else if (!matchingUri) {
         logger.alertWarning(failure.noMatchingSourceFile);
         return;
+    } else if (symbol.isInline()) {
+        logger.alertInformation(failure.isInline);
+        return;
     } else if (symbol.isConstexpr()) {
         logger.alertInformation(failure.isConstexpr);
         return;
-    } else if (symbol.isInline()) {
-        logger.alertInformation(failure.isInline);
+    } else if (symbol.isConsteval()) {
+        logger.alertInformation(failure.isConsteval);
         return;
     } else if (symbol.hasUnspecializedTemplate()) {
         logger.alertInformation(failure.hasUnspecializedTemplate);

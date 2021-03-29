@@ -1,16 +1,16 @@
 # TODO
 
+`Generate Stream Output Operator` is coming for v0.7.0.
+
 Things higher on the list generally correspond to higher priority, although the first few are in no particular order.
 
 ## Ideas/Plans for features and improvements
 
-- Generate all definitions from a header file. Additionally, add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
+- Generate many definitions at a time. Additionally, add a setting to do this automatically when when invoking `cmantic.createMatchingSourceFile`.
 
 - Generate relational operators.
 
-- Generate stream output operator.
-
-- Add a code action (`CodeActionKind.RefactorRewrite`) to edit a function's signature and synchronize the change between declaration and definition. I imagine this would work similar to `Rename Symbol`. We might be able to synchronize the change across references for trivial changes, such as re-ordering parameters.
+- Update function signature. After changing a function's signature, the light-bulb will popup to prompt the user to update the declaration or definition of the function. Vscode offers a built-in `CodeActionKind.RefactorRewrite` which is perfect for this feature.
 
 - Add a command/code-action to update a header guard if it doesn't match the configured settings.
 
