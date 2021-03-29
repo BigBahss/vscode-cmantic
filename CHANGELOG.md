@@ -10,6 +10,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Searching for matching header/source files will now take into account the settings `Files: Exclude` and `Search: Exclude`.
 - Setters will now be generated with a more appropriate parameter name instead of 'value'.
 - `Add Definition` will now check for C++20's `consteval` keyword when determining where a definition can be placed.
+- Extension is now packaged with webpack to improve load times.
 
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
