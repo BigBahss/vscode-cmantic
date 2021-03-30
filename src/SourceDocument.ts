@@ -86,10 +86,6 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return namespaces;
     }
 
-    hasHeaderGuard(): boolean {
-        return this.positionAfterHeaderGuard() !== undefined;
-    }
-
     get preprocessorDirectives(): SubSymbol[] {
         if (this._preprocessorDirectives) {
             return this._preprocessorDirectives;
@@ -109,24 +105,35 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     }
     private _preprocessorDirectives?: SubSymbol[];
 
+    hasHeaderGuard(): boolean {
+        return this.positionAfterHeaderGuard() !== undefined;
+    }
+
     positionAfterHeaderGuard(): vscode.Position | undefined {
-        let offset: number | undefined;
-        const maskedText = parse.maskNonSourceText(this.getText());
+        let line: number | undefined;
 
-        const pragmaOnceOffset = maskedText.search(/^\s*#\s*pragma\s+once\b/);
-        if (pragmaOnceOffset !== -1) {
-            offset = pragmaOnceOffset;
+        for (let i = 0; i < this.preprocessorDirectives.length; ++i) {
+            if (/^#\s*pragma\s+once\b/.test(this.preprocessorDirectives[i].text())) {
+                line = this.preprocessorDirectives[i].range.start.line;
+                continue;
+            }
+
+            const match = this.preprocessorDirectives[i].text().match(/(?<=^#\s*ifndef\s+)[\w_][\w\d_]*/);
+            if (match && ++i < this.preprocessorDirectives.length) {
+                const re_headerGuardDefine = new RegExp(`^#\\s*define\\s+${match[0]}\\b`);
+                if (re_headerGuardDefine.test(this.preprocessorDirectives[i].text())) {
+                    line = this.preprocessorDirectives[i].range.start.line;
+                    break;
+                }
+            }
+
+            if (line !== undefined) {
+                break;
+            }
         }
 
-        const headerGuardDefine = cfg.headerGuardDefine(this.uri);
-        const re_headerGuardDefine = new RegExp(`^\\s*#\\s*define\\s+${headerGuardDefine}\\b`, 'm');
-        const defineOffset = maskedText.search(re_headerGuardDefine);
-        if (defineOffset !== -1) {
-            offset = defineOffset;
-        }
-
-        if (offset !== undefined) {
-            return new vscode.Position(this.positionAt(offset).line + 1, 0);
+        if (line !== undefined) {
+            return new vscode.Position(line + 1, 0);
         }
     }
 
