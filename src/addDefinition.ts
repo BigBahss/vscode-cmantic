@@ -90,18 +90,21 @@ export async function addDefinitionInCurrentFile(): Promise<boolean | undefined>
 export async function addDefinition(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
-    targetUri: vscode.Uri
+    targetUri: vscode.Uri,
+    skipExistingDefinitionCheck?: boolean
 ): Promise<boolean | undefined> {
     const shouldReveal = cfg.revealNewDefinition();
-    const existingDefinition = await functionDeclaration.findDefinition();
-    if (existingDefinition) {
-        if (!shouldReveal) {
-            logger.alertInformation(failure.definitionExists);
+    if (!skipExistingDefinitionCheck) {
+        const existingDefinition = await functionDeclaration.findDefinition();
+        if (existingDefinition) {
+            if (!shouldReveal) {
+                logger.alertInformation(failure.definitionExists);
+                return;
+            }
+            const editor = await vscode.window.showTextDocument(existingDefinition.uri);
+            editor.revealRange(existingDefinition.range, vscode.TextEditorRevealType.InCenter);
             return;
         }
-        const editor = await vscode.window.showTextDocument(existingDefinition.uri);
-        editor.revealRange(existingDefinition.range, vscode.TextEditorRevealType.InCenter);
-        return;
     }
 
     const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);

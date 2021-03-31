@@ -188,8 +188,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const addDefinitionInCurrentFile = new RefactorAction(
                 addDefinitionTitle.currentFile, 'cmantic.addDefinition');
 
-        addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
-        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri);
+        addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri, true);
+        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri, true);
 
         if (declaration.isConstructor()) {
             addDefinitionInCurrentFile.setTitle(addDefinitionTitle.constructorCurrentFile);
