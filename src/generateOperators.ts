@@ -114,6 +114,8 @@ export async function generateStreamOutputOperator(
         return;
     }
 
+    const newOstreamIncludePos = getPositionForOstreamInclude(classDoc, declarationPos);
+
     const operands = await p_operands;
     if (!operands) {
         return;
@@ -128,7 +130,21 @@ export async function generateStreamOutputOperator(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewOperatorToWorkspaceEdit(streamOutputOp, declarationPos, classDoc, targets.first, workspaceEdit);
+    if (newOstreamIncludePos) {
+        workspaceEdit.insert(classDoc.uri, newOstreamIncludePos, '#include <ostream>' + classDoc.endOfLine);
+    }
     return vscode.workspace.applyEdit(workspaceEdit);
+}
+
+/**
+ * Returns undefined if the file already includes ostream or iostream.
+ */
+function getPositionForOstreamInclude(
+    classDoc: SourceDocument, declarationPos: vscode.Position
+): vscode.Position | undefined {
+    if (!classDoc.includedFiles.some(file => file === 'ostream' || file === 'iostream')) {
+        return classDoc.findPositionForNewInclude(declarationPos).system;
+    }
 }
 
 interface OperandQuickPickItem extends vscode.QuickPickItem {
