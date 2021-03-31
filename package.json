@@ -78,6 +78,10 @@
         "title": "C-mantic: Generate Equality Operators"
       },
       {
+        "command": "cmantic.generateStreamOutputOperator",
+        "title": "C-mantic: Generate Stream Output Operator"
+      },
+      {
         "command": "cmantic.createMatchingSourceFile",
         "title": "C-mantic: Create Matching Source File"
       },
