@@ -105,6 +105,24 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     }
     private _preprocessorDirectives?: SubSymbol[];
 
+    get includedFiles(): string[] {
+        if (this._includedFiles) {
+            return this._includedFiles;
+        }
+
+        this._includedFiles = [];
+
+        for (const directive of this.preprocessorDirectives) {
+            const fileMatch = directive.text().match(/(?<=^#\s*include\s*[<"]).+(?=[>"])/);
+            if (fileMatch) {
+                this._includedFiles.push(fileMatch[0]);
+            }
+        }
+
+        return this._includedFiles;
+    }
+    private _includedFiles?: string[];
+
     hasHeaderGuard(): boolean {
         return this.positionAfterHeaderGuard() !== undefined;
     }
@@ -151,6 +169,49 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return new ProposedPosition(this.positionAt(endTrimmedTextLength), {
             after: endTrimmedTextLength !== 0
         });
+    }
+
+    /**
+     * Returns the best positions to place new includes (system and project includes).
+     * Optionally provide a beforePos to enforce that the positions returned are before it.
+     */
+     findPositionForNewInclude(beforePos?: vscode.Position): { system: vscode.Position; project: vscode.Position } {
+        let systemIncludeLine: number | undefined;
+        let projectIncludeLine: number | undefined;
+
+        for (const directive of this.preprocessorDirectives) {
+            if (beforePos?.isBefore(directive.range.end)) {
+                break;
+            }
+
+            const directiveText = directive.text();
+            if (/^#\s*include\s*<.+>/.test(directiveText)) {
+                systemIncludeLine = directive.range.start.line;
+            } else if (/^#\s*include\s*".+"/.test(directiveText)) {
+                projectIncludeLine = directive.range.start.line;
+            }
+        }
+
+        if (systemIncludeLine === undefined) {
+            systemIncludeLine = projectIncludeLine;
+        }
+
+        if (projectIncludeLine === undefined) {
+            projectIncludeLine = systemIncludeLine;
+        }
+
+        if (systemIncludeLine === undefined || projectIncludeLine === undefined) {
+            let position = this.positionAfterHeaderGuard();
+            if (!position) {
+                position = this.positionAfterHeaderComment();
+            }
+            return { system: position, project: position };
+        }
+
+        return {
+            system: new vscode.Position(systemIncludeLine + 1, 0),
+            project: new vscode.Position(projectIncludeLine + 1, 0)
+        };
     }
 
     async findPositionForFunctionDeclaration(
@@ -272,49 +333,6 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         // If all else fails then return a position after the last symbol in the document.
         return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
-    }
-
-    /**
-     * Returns the best positions to place new includes (system and project includes).
-     * Optionally provide a beforePos to enforce that the positions returned are before it.
-     */
-    findPositionForNewInclude(beforePos?: vscode.Position): { system: vscode.Position; project: vscode.Position } {
-        let systemIncludeLine: number | undefined;
-        let projectIncludeLine: number | undefined;
-
-        for (const directive of this.preprocessorDirectives) {
-            if (beforePos?.isBefore(directive.range.end)) {
-                break;
-            }
-
-            const directiveText = directive.text();
-            if (/^#\s*include\s*<.+>/.test(directiveText)) {
-                systemIncludeLine = directive.range.start.line;
-            } else if (/^#\s*include\s*".+"/.test(directiveText)) {
-                projectIncludeLine = directive.range.start.line;
-            }
-        }
-
-        if (systemIncludeLine === undefined) {
-            systemIncludeLine = projectIncludeLine;
-        }
-
-        if (projectIncludeLine === undefined) {
-            projectIncludeLine = systemIncludeLine;
-        }
-
-        if (systemIncludeLine === undefined || projectIncludeLine === undefined) {
-            let position = this.positionAfterHeaderGuard();
-            if (!position) {
-                position = this.positionAfterHeaderComment();
-            }
-            return { system: position, project: position };
-        }
-
-        return {
-            system: new vscode.Position(systemIncludeLine + 1, 0),
-            project: new vscode.Position(projectIncludeLine + 1, 0)
-        };
     }
 
     /**
