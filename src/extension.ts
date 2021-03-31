@@ -10,7 +10,7 @@ import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
 } from './generateGetterSetter';
-import { generateEqualityOperators, generateStreamOutputOperator } from './generateEqualityOperators';
+import { generateEqualityOperators, generateStreamOutputOperator } from './generateOperators';
 import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
 import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';

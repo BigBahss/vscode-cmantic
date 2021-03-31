@@ -10,7 +10,7 @@ import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from '
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
-import { title as operatorTitle } from './generateEqualityOperators';
+import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
 
