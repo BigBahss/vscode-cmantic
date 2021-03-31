@@ -378,6 +378,26 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
     }
 
     const undefinedFunctions: CSymbol[] = [];
+
+    async function findDefinitionsForNextChunkOfFunctions(i: number): Promise<void> {
+        const p_declarationDefinitionLinks: Promise<DeclarationDefinitionLink>[] = [];
+        functionDeclarations.slice(i, i + 20).forEach(declaration => {
+            p_declarationDefinitionLinks.push(makeLink(declaration));
+        });
+
+        (await Promise.all(p_declarationDefinitionLinks)).forEach(link => {
+            if (!link.definition) {
+                undefinedFunctions.push(link.declaration);
+            }
+        });
+    }
+
+    await findDefinitionsForNextChunkOfFunctions(0);
+
+    if (functionDeclarations.length <= 20) {
+        return undefinedFunctions;
+    }
+
     const increment = (20 / functionDeclarations.length) * 100;
     let userCancelledOperation = false;
 
@@ -386,27 +406,21 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
         title: 'Finding undefined functions',
         cancellable: true
     }, async (progress, token) => {
-        progress.report({ message: `0/${functionDeclarations.length}`, increment: 0 });
-
-        for (let i = 0; i < functionDeclarations.length; i += 20) {
+        for (let i = 20; i < functionDeclarations.length; i += 20) {
             if (token.isCancellationRequested) {
                 userCancelledOperation = true;
                 return;
             }
 
-            const p_declarationDefinitionLinks: Promise<DeclarationDefinitionLink>[] = [];
-            functionDeclarations.slice(i, i + 20).forEach(declaration => {
-                p_declarationDefinitionLinks.push(makeLink(declaration));
-            });
+            progress.report({ message: `${i}/${functionDeclarations.length}`, increment: increment });
 
-            (await Promise.all(p_declarationDefinitionLinks)).forEach(link => {
-                if (!link.definition) {
-                    undefinedFunctions.push(link.declaration);
-                }
-            });
-
-            progress.report({ message: `${i + 20}/${functionDeclarations.length}`, increment: increment });
+            await findDefinitionsForNextChunkOfFunctions(i);
         }
+
+        progress.report({
+            message: `${functionDeclarations.length}/${functionDeclarations.length}`,
+            increment: increment
+        });
     });
 
     if (!userCancelledOperation) {
