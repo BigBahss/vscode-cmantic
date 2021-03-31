@@ -138,7 +138,7 @@ export function normalize(text: string): string {
 }
 
 /**
- * DocumentSymbol ranges don't always include the final semi-colon.
+ * DocumentSymbol ranges don't always include the final semi-colon, so this finds the end of the last semi-colon.
  */
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));

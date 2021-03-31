@@ -9,7 +9,7 @@ import { ProposedPosition } from './ProposedPosition';
 
 
 /**
- * Represents a C/C++ source file.
+ * Represents a C/C++ source file that has access to the contents of the file.
  */
 export default class SourceDocument extends SourceFile implements vscode.TextDocument {
     private readonly doc: vscode.TextDocument;
@@ -164,7 +164,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             }
         }
 
-        // If a sibling declaration couldn't be found in targetDoc, look for a cooresponding scope block.
+        // If a sibling declaration couldn't be found in targetDoc, look for a position in a parent namespace.
         const namespacePos = await this.findPositionInParentNamespace(definition, targetDoc);
         if (namespacePos) {
             return namespacePos;
@@ -229,7 +229,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             return position;
         }
 
-        // If a sibling definition couldn't be found in targetDoc, look for a cooresponding namespace block.
+        // If a sibling definition couldn't be found in targetDoc, look for a position in a parent namespace.
         const namespacePos = await this.findPositionInParentNamespace(declaration, targetDoc);
         if (namespacePos) {
             return namespacePos;

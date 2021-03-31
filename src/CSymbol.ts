@@ -20,9 +20,6 @@ export default class CSymbol extends SourceSymbol {
     readonly document: SourceDocument;
     parent?: CSymbol;
 
-    /**
-     * When constructing with a SourceSymbol that has a parent, the parent parameter may be omitted.
-     */
     constructor(symbol: SourceSymbol, document: SourceDocument) {
         super(symbol, document.uri);
         this.document = document;
@@ -34,13 +31,12 @@ export default class CSymbol extends SourceSymbol {
         this.range = this.range.with(this.range.start, parse.getEndOfStatement(this.document, this.range.end));
     }
 
-    /**
-     * Returns the text contained in this symbol.
-     */
     text(): string { return this.document.getText(this.range); }
 
+    fullText(): string { return this.document.getText(this.fullRange()); }
+
     /**
-     * Returns the text contained in this symbol with comments masked with spaces.
+     * Returns the text contained in this symbol with comments, strings, and attributes masked with spaces.
      */
     get parsableText(): string {
         if (this._parsableText !== undefined) {
@@ -83,11 +79,6 @@ export default class CSymbol extends SourceSymbol {
         return this._parsableTemplateSnippet;
     }
     private _parsableTemplateSnippet?: string;
-
-    /**
-     * Returns the text of this symbol including potential template statement.
-     */
-    fullText(): string { return this.document.getText(this.fullRange()); }
 
     fullTextWithLeadingComment(): string {
         return this.document.getText(this.rangeWithLeadingComment());
@@ -755,7 +746,7 @@ export default class CSymbol extends SourceSymbol {
             comment = comment.replace(parse.getIndentationRegExp(this), '');
         }
 
-        // This CSymbol is a definition, but it can be treated as a declaration for the purpose of this function.
+        // This CSymbol is a definition, but it can be treated as a declaration for the purposes of this function.
         const declaration = await this.formatDeclaration(targetDoc, position, scopeString, checkForInline);
         return comment + declaration + bodyText;
     }
@@ -867,8 +858,10 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * clangd and ccls don't include template statements in provided DocumentSymbol ranges.
-     * For nested namespaces, finds the beginning of the unqualified namespace statement.
+     * Finds the beginning of template statement(s) preceeding this symbol since clangd and ccls
+     * don't include template statements in provided DocumentSymbol ranges.
+     * For nested namespaces (namespace unqualified::nested), this finds the beginning of the
+     * unqualified namespace statement.
      */
     get trueStart(): vscode.Position {
         if (this._trueStart) {
