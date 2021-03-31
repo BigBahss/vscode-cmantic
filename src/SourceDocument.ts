@@ -276,77 +276,49 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
     /**
      * Returns the best positions to place new includes (system and project includes).
+     * Optionally provide a beforePos to enforce that the positions returned are before it.
      */
-    findPositionForNewInclude(): { system: vscode.Position; project: vscode.Position } {
-        // TODO: Clean up this mess.
-        function largestBlock (
-            line: vscode.TextLine, start: vscode.Position, largest: vscode.Range | undefined
-        ): vscode.Range {
-            const r = new vscode.Range(start, line.range.start);
-            return (!largest || r > largest) ? r : largest;
-        }
+    findPositionForNewInclude(beforePos?: vscode.Position): { system: vscode.Position; project: vscode.Position } {
+        let systemIncludeLine: number | undefined;
+        let projectIncludeLine: number | undefined;
 
-        let systemIncludeStart: vscode.Position | undefined;
-        let projectIncludeStart: vscode.Position | undefined;
-        let largestSystemIncludeBlock: vscode.Range | undefined;
-        let largestProjectIncludeBlock: vscode.Range | undefined;
-        for (let i = 0; i < this.lineCount; ++i) {
-            const line = this.lineAt(i);
-            if (!/^\s*#\s*include\s*(<.+>)|(".+")/.test(line.text)) {
-                if (systemIncludeStart) {
-                    largestSystemIncludeBlock = largestBlock(line, systemIncludeStart, largestSystemIncludeBlock);
-                    systemIncludeStart = undefined;
-                } else if (projectIncludeStart) {
-                    largestProjectIncludeBlock = largestBlock(line, projectIncludeStart, largestProjectIncludeBlock);
-                    projectIncludeStart = undefined;
-                }
-            } else if (/<.+>/.test(line.text)) {
-                if (!systemIncludeStart) {
-                    systemIncludeStart = line.range.start;
-                }
-                if (projectIncludeStart) {
-                    largestProjectIncludeBlock = largestBlock(line, projectIncludeStart, largestProjectIncludeBlock);
-                    projectIncludeStart = undefined;
-                }
-            } else if (/".+"/.test(line.text)) {
-                if (!projectIncludeStart) {
-                    projectIncludeStart = line.range.start;
-                }
-                if (systemIncludeStart) {
-                    largestSystemIncludeBlock = largestBlock(line, systemIncludeStart, largestSystemIncludeBlock);
-                    systemIncludeStart = undefined;
-                }
+        for (const directive of this.preprocessorDirectives) {
+            if (beforePos?.isBefore(directive.range.end)) {
+                break;
+            }
+
+            const directiveText = directive.text();
+            if (/^#\s*include\s*<.+>/.test(directiveText)) {
+                systemIncludeLine = directive.range.start.line;
+            } else if (/^#\s*include\s*".+"/.test(directiveText)) {
+                projectIncludeLine = directive.range.start.line;
             }
         }
 
-        let systemIncludePos: vscode.Position | undefined;
-        let projectIncludePos: vscode.Position | undefined;
-        if (largestSystemIncludeBlock) {
-            systemIncludePos = largestSystemIncludeBlock.end;
-            if (!largestProjectIncludeBlock) {
-                projectIncludePos = systemIncludePos;
-            }
-        }
-        if (largestProjectIncludeBlock) {
-            projectIncludePos = largestProjectIncludeBlock.end;
-            if (!largestSystemIncludeBlock) {
-                systemIncludePos = projectIncludePos;
-            }
-        }
-        if (systemIncludePos && projectIncludePos) {
-            return { system: systemIncludePos, project: projectIncludePos };
+        if (systemIncludeLine === undefined) {
+            systemIncludeLine = projectIncludeLine;
         }
 
-        let position = this.positionAfterHeaderGuard();
-        if (!position) {
-            position = this.positionAfterHeaderComment();
+        if (projectIncludeLine === undefined) {
+            projectIncludeLine = systemIncludeLine;
         }
 
-        return { system: position, project: position };
+        if (systemIncludeLine === undefined || projectIncludeLine === undefined) {
+            let position = this.positionAfterHeaderGuard();
+            if (!position) {
+                position = this.positionAfterHeaderComment();
+            }
+            return { system: position, project: position };
+        }
+
+        return {
+            system: new vscode.Position(systemIncludeLine + 1, 0),
+            project: new vscode.Position(projectIncludeLine + 1, 0)
+        };
     }
 
     /**
-     * Returns a position after the last symbol in this SourceDocument, or the last non-empty line.
+     * Returns a position after the last symbol in this SourceDocument, or after the last non-empty line.
      */
     async findPositionForNewSymbol(): Promise<ProposedPosition> {
         if (!this.symbols) {
