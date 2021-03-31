@@ -11,6 +11,7 @@ import { ProposedPosition } from './ProposedPosition';
 export const title = {
     currentFile: 'Add Definition in this file',
     matchingSourceFile: 'Add Definition in matching source file',
+    multiple: 'Add Definitions...',
     constructorCurrentFile: 'Generate Constructor in this file',
     constructorMatchingSourceFile: 'Generate Constructor in matching source file'
 };
@@ -25,7 +26,8 @@ export const failure = {
     isConstexpr: 'Constexpr functions must be defined in the file that they are declared.',
     isConsteval: 'Consteval functions must be defined in the file that they are declared.',
     isInline: 'Inline functions must be defined in the file that they are declared.',
-    definitionExists: 'A definition for this function already exists.'
+    definitionExists: 'A definition for this function already exists.',
+    noUndefinedFunctions: 'No undefined functions found in this file.'
 };
 
 export async function addDefinitionInSourceFile(): Promise<boolean | undefined> {
@@ -85,6 +87,44 @@ export async function addDefinitionInCurrentFile(): Promise<boolean | undefined>
     }
 
     return addDefinition(symbol, sourceDoc, sourceDoc.uri);
+}
+
+export async function addMultipleDefinitions(sourceDoc: SourceDocument, matchingUri?: vscode.Uri): Promise<boolean | undefined> {
+    const functionDeclarations: CSymbol[] = [];
+
+    (await sourceDoc.allFunctions()).forEach(functionSymbol => {
+        if (functionSymbol.isFunctionDeclaration()) {
+            functionDeclarations.push(functionSymbol);
+        }
+    });
+
+    const undefinedFunctions = await findAllUndefinedFunctions(functionDeclarations);
+    if (!undefinedFunctions) {
+        return;
+    } else if (undefinedFunctions.length === 0) {
+        logger.alertInformation(failure.noUndefinedFunctions);
+        return;
+    }
+
+    const selectedFunctions = await promptUserToSelectFunctions(undefinedFunctions);
+    if (!selectedFunctions || selectedFunctions.length === 0) {
+        return;
+    }
+
+    const targetUri = await promptUserForDefinitionLocation(sourceDoc, matchingUri);
+    if (!targetUri) {
+        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    const p_addedDefinitions: Promise<void>[] = [];
+    selectedFunctions.forEach(functionDeclaration => {
+        p_addedDefinitions.push(addDefinitionToWorkspaceEdit(functionDeclaration, sourceDoc, targetUri, workspaceEdit));
+    });
+
+    await Promise.all(p_addedDefinitions);
+
+    return vscode.workspace.applyEdit(workspaceEdit);
 }
 
 export async function addDefinition(
@@ -154,13 +194,39 @@ export async function addDefinition(
     return success;
 }
 
+async function addDefinitionToWorkspaceEdit(
+    functionDeclaration: CSymbol,
+    declarationDoc: SourceDocument,
+    targetUri: vscode.Uri,
+    workspaceEdit: vscode.WorkspaceEdit
+): Promise<void> {
+    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
+
+    // Find the position for the new function definition.
+    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
+            ? declarationDoc
+            : await SourceDocument.open(targetUri);
+    const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+
+    const functionSkeleton = await constructFunctionSkeleton(
+            functionDeclaration, targetDoc, targetPos, p_initializers);
+
+    if (functionSkeleton === undefined) {
+        return;
+    }
+
+    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
+}
+
 type Initializer = CSymbol | SubSymbol;
 
 interface InitializerQuickPickItem extends vscode.QuickPickItem {
     initializer: Initializer;
 }
 
-async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymbol): Promise<Initializer[] | undefined> {
+async function getInitializersIfFunctionIsConstructor(
+    functionDeclaration: CSymbol
+): Promise<Initializer[] | undefined> {
     if (!functionDeclaration.isConstructor() || !functionDeclaration.parent?.isClassOrStruct()) {
         return [];
     }
@@ -194,7 +260,7 @@ async function getInitializersIfFunctionIsConstructor(functionDeclaration: CSymb
 
     const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
-        placeHolder: 'Select what you would like to initialize in this constructor:',
+        placeHolder: `Select what you would like to initialize in ${functionDeclaration.name} constructor:`,
         canPickMany: true
     });
 
@@ -292,4 +358,121 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
         }
     }
     return new vscode.Position(0, 0);
+}
+
+/**
+ * Returns the functionDeclarations that do not have a definition.
+ * Returns undefined if the user cancels the operation.
+ */
+ async function findAllUndefinedFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
+    interface DeclarationDefinitionLink {
+        declaration: CSymbol;
+        definition?: vscode.Location;
+    }
+
+    async function makeLink(declaration: CSymbol): Promise<DeclarationDefinitionLink> {
+        return {
+            declaration: declaration,
+            definition: await declaration.findDefinition()
+        };
+    }
+
+    const undefinedFunctions: CSymbol[] = [];
+    const increment = (20 / functionDeclarations.length) * 100;
+    let userCancelledOperation = false;
+
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Finding undefined functions',
+        cancellable: true
+    }, async (progress, token) => {
+        progress.report({ message: `0/${functionDeclarations.length}`, increment: 0 });
+
+        for (let i = 0; i < functionDeclarations.length; i += 20) {
+            if (token.isCancellationRequested) {
+                userCancelledOperation = true;
+                return;
+            }
+
+            const p_declarationDefinitionLinks: Promise<DeclarationDefinitionLink>[] = [];
+            functionDeclarations.slice(i, i + 20).forEach(declaration => {
+                p_declarationDefinitionLinks.push(makeLink(declaration));
+            });
+
+            (await Promise.all(p_declarationDefinitionLinks)).forEach(link => {
+                if (!link.definition) {
+                    undefinedFunctions.push(link.declaration);
+                }
+            });
+
+            progress.report({ message: `${i + 20}/${functionDeclarations.length}`, increment: increment });
+        }
+    });
+
+    if (!userCancelledOperation) {
+        return undefinedFunctions;
+    }
+}
+
+async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
+    interface FunctionQuickPickItem extends vscode.QuickPickItem {
+        declaration: CSymbol;
+    }
+
+    const functionItems: FunctionQuickPickItem[] = [];
+    functionDeclarations.forEach(declaration => {
+        functionItems.push({
+            label: '$(symbol-function) ' + declaration.name,
+            description: declaration.text(),
+            declaration: declaration
+        });
+    });
+
+    const selectedItems = await vscode.window.showQuickPick<FunctionQuickPickItem>(functionItems, {
+        matchOnDescription: true,
+        placeHolder: 'Select the functions to add definitions for:',
+        ignoreFocusOut: true,
+        canPickMany: true
+    });
+
+    if (!selectedItems) {
+        return;
+    }
+
+    const selectedFunctions: CSymbol[] = [];
+    selectedItems.forEach(item => selectedFunctions.push(item.declaration));
+
+    return selectedFunctions;
+}
+
+async function promptUserForDefinitionLocation(
+    sourceDoc: SourceDocument, matchingUri?: vscode.Uri
+): Promise<vscode.Uri | undefined> {
+    if (!sourceDoc.isHeader() || !matchingUri) {
+        return sourceDoc.uri;
+    }
+
+    interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
+        uri: vscode.Uri;
+    }
+
+    const locationItems: DefinitionLocationQuickPickItem[] = [
+        {
+            label: vscode.workspace.asRelativePath(matchingUri),
+            uri: matchingUri
+        },
+        {
+            label: 'Current File',
+            uri: sourceDoc.uri
+        }
+    ];
+
+    const selectedItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(locationItems, {
+        placeHolder: 'Select where to place the definitions of these functions:',
+        ignoreFocusOut: true
+    });
+
+    if (selectedItem) {
+        return selectedItem.uri;
+    }
 }

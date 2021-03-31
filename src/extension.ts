@@ -3,7 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
-import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
+import {
+    addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile, addMultipleDefinitions
+} from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
@@ -45,6 +47,7 @@ export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
 export const commands = {
     'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
     'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
+    'cmantic.addMultipleDefinitions': addMultipleDefinitions,
     'cmantic.addDefinition': addDefinition,
     'cmantic.addDeclaration': addDeclaration,
     'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,

@@ -111,7 +111,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
         if (!symbol) {
-            return [];
+            return this.getFileRefactorings(context, sourceDoc, matchingUri);
         }
 
         const refactorActions = await Promise.all([
@@ -119,7 +119,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc),
-            this.getClassRefactorings(context, symbol, sourceDoc)
+            this.getClassRefactorings(context, symbol, sourceDoc),
+            this.getFileRefactorings(context, sourceDoc, matchingUri)
         ]);
 
         return refactorActions.flat();
@@ -466,6 +467,21 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
 
         return [generateEqualityOperators, generateStreamOutputOperator];
+    }
+
+    private async getFileRefactorings(
+        context: vscode.CodeActionContext,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<RefactorAction[]> {
+        if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+            return [];
+        }
+
+        const addMultipleDefinitions = new RefactorAction(addDefinitionTitle.multiple, 'cmantic.addMultipleDefinitions');
+        addMultipleDefinitions.setArguments(sourceDoc, matchingUri);
+
+        return [addMultipleDefinitions];
     }
 
     private async getSourceActions(
