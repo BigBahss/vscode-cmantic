@@ -5,7 +5,8 @@ import CSymbol from './CSymbol';
 
 
 /**
- * Represents a sub-symbol within a CSymbol, such as a data type or a keyword. Not provided by the language server.
+ * Represents a sub-symbol within a CSymbol or SourceDocument, such as a keyword, type, or preprocessor directive.
+ * Not provided by the language server.
  */
 export default class SubSymbol {
     readonly document: SourceDocument;

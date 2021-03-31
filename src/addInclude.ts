@@ -12,8 +12,9 @@ export async function addInclude(): Promise<boolean | undefined> {
 
     const p_userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
+    const currentPos = getCurrentPositionFromEditor(editor);
     const sourceDoc = new SourceDocument(editor.document);
-    const newIncludePosition = sourceDoc.findPositionForNewInclude();
+    const newIncludePosition = sourceDoc.findPositionForNewInclude(currentPos);
 
     const userInput = await p_userInput;
     if (userInput !== undefined) {
@@ -25,4 +26,14 @@ export async function addInclude(): Promise<boolean | undefined> {
             logger.alertInformation('This doesn\'t seem to be a valid include statement. It wasn\'t added.');
         }
     }
+}
+
+function getCurrentPositionFromEditor(editor: vscode.TextEditor): vscode.Position | undefined {
+    let pos: vscode.Position | undefined;
+    for (const visibleRange of editor.visibleRanges) {
+        if (!pos?.isAfter(visibleRange.end)) {
+            pos = visibleRange.end;
+        }
+    }
+    return pos;
 }

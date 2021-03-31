@@ -340,13 +340,17 @@ export default class CSymbol extends SourceSymbol {
         return allScopes;
     }
 
-    async scopeString(target: SourceDocument, position: vscode.Position): Promise<string> {
+    async scopeString(target: SourceDocument, position: vscode.Position, namespacesOnly?: boolean): Promise<string> {
         let scopeString = '';
         const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
                 ? [...this.scopes(), this]
                 : this.scopes();
 
         for (const scope of scopes) {
+            if (namespacesOnly && scope.isClassOrStruct()) {
+                break;
+            }
+
             let targetScope = await target.findMatchingSymbol(scope);
             // Check if position exists inside of a corresponding scope block. If so, omit that scope.name.
             if (!targetScope || !util.containsExclusive(targetScope.range, position)) {

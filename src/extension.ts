@@ -10,7 +10,7 @@ import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
 } from './generateGetterSetter';
-import { generateEqualityOperators } from './generateEqualityOperators';
+import { generateEqualityOperators, generateStreamOutputOperator } from './generateOperators';
 import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
 import { createMatchingSourceFile } from './createSourceFile';
 import { addInclude } from './addInclude';
@@ -56,6 +56,7 @@ export const commands = {
     'cmantic.generateGetterFor': generateGetterFor,
     'cmantic.generateSetterFor': generateSetterFor,
     'cmantic.generateEqualityOperators': generateEqualityOperators,
+    'cmantic.generateStreamOutputOperator': generateStreamOutputOperator,
     'cmantic.createMatchingSourceFile': createMatchingSourceFile,
     'cmantic.addHeaderGuard': addHeaderGuard,
     'cmantic.addInclude': addInclude,

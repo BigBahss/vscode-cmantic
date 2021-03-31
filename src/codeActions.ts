@@ -10,7 +10,7 @@ import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from '
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure } from './addHeaderGuard';
-import { title as equalityTitle } from './generateEqualityOperators';
+import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
 
@@ -458,9 +458,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
-        const generateEqualityOperators = new RefactorAction(equalityTitle, 'cmantic.generateEqualityOperators');
+        const generateEqualityOperators = new RefactorAction(
+                operatorTitle.equality, 'cmantic.generateEqualityOperators');
+        const generateStreamOutputOperator = new RefactorAction(
+                operatorTitle.streamOutput, 'cmantic.generateStreamOutputOperator');
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
-        return [generateEqualityOperators];
+        generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
+
+        return [generateEqualityOperators, generateStreamOutputOperator];
     }
 
     private async getSourceActions(

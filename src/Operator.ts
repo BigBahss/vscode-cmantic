@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import * as util from './utility';
 import SourceDocument from './SourceDocument';
-import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 
@@ -13,24 +12,24 @@ export interface Operator {
     readonly parent: CSymbol;
     name: string;
     returnType: string;
-    parameter: string;
+    parameters: string;
     body: string;
     declaration: string;
     definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string>;
 }
 
-export class OpEqual implements Operator {
+export class EqualsOperator implements Operator {
     readonly parent: CSymbol;
     name: string;
     returnType: string;
-    parameter: string;
+    parameters: string;
     body: string;
 
     constructor(parent: CSymbol, operands?: Operand[]) {
         this.parent = parent;
         this.name = 'operator==';
         this.returnType = 'bool ';
-        this.parameter = 'const ' + parent.templatedName() + ' &other';
+        this.parameters = `const ${parent.templatedName()} &other`;
         this.body = '';
         if (operands) {
             this.setOperands(operands);
@@ -38,7 +37,7 @@ export class OpEqual implements Operator {
     }
 
     get declaration(): string {
-        return this.returnType + this.name + '(' + this.parameter + ') const';
+        return `${this.returnType + this.name}(${this.parameters}) const`;
     }
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
@@ -49,7 +48,7 @@ export class OpEqual implements Operator {
                 ? 'inline '
                 : '';
         return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
+                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameters + ') const'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 
@@ -74,18 +73,18 @@ export class OpEqual implements Operator {
     }
 }
 
-export class OpNotEqual implements Operator {
+export class NotEqualsOperator implements Operator {
     readonly parent: CSymbol;
     name: string;
     returnType: string;
-    parameter: string;
+    parameters: string;
     body: string;
 
     constructor(parent: CSymbol) {
         this.parent = parent;
         this.name = 'operator!=';
         this.returnType = 'bool ';
-        this.parameter = 'const ' + parent.templatedName() + ' &other';
+        this.parameters = `const ${parent.templatedName()} &other`;
         if (cfg.useExplicitThisPointer()) {
             this.body = 'return !(*this == other);';
         } else {
@@ -94,7 +93,7 @@ export class OpNotEqual implements Operator {
     }
 
     get declaration(): string {
-        return this.returnType + this.name + '(' + this.parameter + ') const';
+        return `${this.returnType + this.name}(${this.parameters}) const`;
     }
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
@@ -105,7 +104,71 @@ export class OpNotEqual implements Operator {
                 ? 'inline '
                 : '';
         return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameter + ') const'
+                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameters + ') const'
                 + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+    }
+}
+
+
+export class StreamOutputOperator implements Operator {
+    readonly parent: CSymbol;
+    name: string;
+    returnType: string;
+    parameters: string;
+    body: string;
+
+    constructor(parent: CSymbol, operands?: Operand[]) {
+        this.parent = parent;
+        this.name = 'operator<<';
+        this.returnType = 'std::ostream &';
+        this.parameters = `std::ostream &os, const ${parent.templatedName()} &rhs`;
+        this.body = '';
+        if (operands) {
+            this.setOperands(operands);
+        }
+    }
+
+    get declaration(): string {
+        return `friend ${this.returnType + this.name}(${this.parameters})`;
+    }
+
+    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
+        const eol = target.endOfLine;
+        const friendSpecifier =
+            (util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
+                ? 'friend '
+                : '';
+        const inlineSpecifier =
+            (!util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return this.parent.combinedTemplateStatements(true, eol) + friendSpecifier + inlineSpecifier + this.returnType
+                + await this.parent.scopeString(target, position, true) + this.name + '(' + this.parameters + ')'
+                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+    }
+
+    setOperands(operands: Operand[]): void {
+        this.body = '';
+
+        const eol = this.parent.document.endOfLine;
+        const indent = util.indentation();
+        const alignment = indent.includes(' ') ? '   ' : indent;
+
+        let spacer = '';
+
+        operands.forEach(operand => {
+            if (operand instanceof SubSymbol) {
+                this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol}${indent}${alignment}`;
+            } else {
+                this.body += `<< "${spacer}${operand.name}: " << rhs.${operand.name}${eol}${indent}${alignment}`;
+            }
+            spacer = ' ';
+        });
+
+        if (this.body.length > 0) {
+            this.body = `os ${this.body.trimEnd()};${eol}${indent}return os;`;
+        }
     }
 }
