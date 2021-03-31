@@ -15,6 +15,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
 - Fixed an oversight where attributes would end up in getter's and setter's return/parameter type.
+- Fixed a bug in identifying ranges of member access levels when consecutive access levels are the same.
 
 ## [0.6.2] - March 14, 2021
 ### Changed
