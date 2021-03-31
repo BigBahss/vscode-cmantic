@@ -71,6 +71,28 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return SourceFile.findMatchingSymbol(target, this.symbols, this) as CSymbol | undefined;
     }
 
+    async allFunctions(): Promise<CSymbol[]> {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+
+        const sourceDoc = this;
+
+        return function findFunctions(symbols: SourceSymbol[]): CSymbol[] {
+            const functions: CSymbol[] = [];
+
+            symbols.forEach(symbol => {
+                if (symbol.isFunction()) {
+                    functions.push(new CSymbol(symbol, sourceDoc));
+                } else if (symbol.children.length > 0) {
+                    functions.push(...findFunctions(symbol.children));
+                }
+            });
+
+            return functions;
+        } (this.symbols);
+    }
+
     async namespaces(): Promise<CSymbol[]> {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
