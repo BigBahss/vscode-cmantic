@@ -5,7 +5,9 @@ src
 test
 .gitignore
 tsconfig.json
+webpack.config.js
 .eslintrc.js
+.eslintignore
 .editorconfig
 **/*.map
 **/*.ts
