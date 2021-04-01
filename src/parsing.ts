@@ -143,7 +143,7 @@ export function normalize(text: string): string {
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
     const match = text.match(/^(\s*;)*/);
-    if (!match || match.length === 0) {
+    if (!match || match.length === 0 || !match[0]) {
         return position;
     }
     return document.positionAt(document.offsetAt(position) + match[0].length);

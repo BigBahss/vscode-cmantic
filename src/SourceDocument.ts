@@ -308,6 +308,8 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 return declarationOrPosition.options.relativeTo !== undefined
                         ? sourceDoc.getSymbol(declarationOrPosition.options.relativeTo.start)
                         : sourceDoc.getSymbol(declarationOrPosition);
+            } else if (declarationOrPosition instanceof CSymbol) {
+                return declarationOrPosition;
             } else {
                 return new CSymbol(declarationOrPosition, sourceDoc);
             }
