@@ -64,26 +64,18 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
             this.signature = parent.name + '::' + this.signature;
         }
 
-        // Sort docSymbol.children based on their relative position to eachother.
+        // Sort DocumentSymbol.children based on their relative position to eachother.
         symbol.children.sort(util.sortByRange);
 
-        // Convert docSymbol.children to SourceSymbols to set the children property.
+        // Convert DocumentSymbol.children to SourceSymbols to set the children property.
         this.children = [];
         symbol.children.forEach(child => this.children.push(new SourceSymbol(child, uri, this)));
     }
 
-    /**
-     * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
-     * Returns undefined if the most likely definition is this SourceSymbol.
-     */
     async findDefinition(): Promise<vscode.Location | undefined> {
         return util.findDefinition(this);
     }
 
-    /**
-     * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
-     * Returns undefined if the most likely declaration is this SourceSymbol.
-     */
     async findDeclaration(): Promise<vscode.Location | undefined> {
         return util.findDeclaration(this);
     }

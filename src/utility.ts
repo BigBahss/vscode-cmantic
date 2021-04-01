@@ -135,22 +135,26 @@ export async function shouldIndentNamespaceBody(declarationDoc: SourceDocument):
         || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented());
 }
 
-interface RangedObject {
-    range: vscode.Range;
-}
-
-export function sortByRange(a: RangedObject, b: RangedObject): number {
+export function sortByRange(a: { range: vscode.Range }, b: { range: vscode.Range }): number {
     return a.range.end.isAfter(b.range.end) ? 1 : -1;
 }
 
 type AnySymbol = SourceSymbol | SubSymbol;
 
+/**
+ * Finds the most likely definition of symbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely definition found is the same symbol.
+ */
 export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location | undefined> {
     const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
             'vscode.executeDefinitionProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, definitionResults);
 }
 
+/**
+ * Finds the most likely declaration of symbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely declaration found is the same symbol.
+ */
 export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Location | undefined> {
     const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
             'vscode.executeDeclarationProvider', symbol.uri, symbol.selectionRange.start);
