@@ -28,6 +28,8 @@ export default class CSymbol extends SourceSymbol {
             this.parent = new CSymbol(symbol.parent, document);
         }
 
+        this.selectionRange = parse.getRangeOfSymbolName(this);
+
         this.range = this.range.with(this.range.start, parse.getEndOfStatement(this.document, this.range.end));
     }
 

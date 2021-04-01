@@ -149,6 +149,27 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
     return document.positionAt(document.offsetAt(position) + match[0].length);
 }
 
+export function getRangeOfSymbolName(symbol: CSymbol): vscode.Range {
+    if (symbol.document.getText(symbol.selectionRange) === symbol.name) {
+        return symbol.selectionRange;
+    }
+
+    const operatorMatch = symbol.name.match(/(?<=^operator\s*)\S+/);
+    if (operatorMatch) {
+        const nameToEndText = symbol.document.getText(new vscode.Range(symbol.selectionRange.start, symbol.range.end));
+        const indexOfOperator = nameToEndText.indexOf(operatorMatch[0], 8);
+        if (indexOfOperator !== -1) {
+            const nameStartOffset = symbol.document.offsetAt(symbol.selectionRange.start);
+            const nameEndOffset = nameStartOffset + indexOfOperator + operatorMatch[0].length;
+            return symbol.document.rangeAt(nameStartOffset, nameEndOffset);
+        }
+
+    }
+
+    const nameEnd = symbol.selectionRange.start.translate(0, symbol.name.length);
+    return symbol.selectionRange.with(symbol.selectionRange.start, nameEnd);
+}
+
 export function getIndentationRegExp(symbol: CSymbol): RegExp {
     const line = symbol.document.lineAt(symbol.trueStart);
     const indentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
