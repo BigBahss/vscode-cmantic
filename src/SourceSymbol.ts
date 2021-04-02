@@ -43,11 +43,8 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
             this.signature = parent.name + '::' + this.signature;
         }
 
-        // Sort DocumentSymbol.children based on their relative position to eachother.
-        symbol.children.sort(util.sortByRange);
-
-        // Convert DocumentSymbol.children to SourceSymbols to set the children property.
         this.children = [];
+        symbol.children.sort(util.sortByRange);
         symbol.children.forEach(child => this.children.push(new SourceSymbol(child, uri, this)));
     }
 
@@ -80,7 +77,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
 
     isMemberVariable(): boolean {
         return this.parent?.isClassOrStruct() === true
-                && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
+            && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
     isVariable(): boolean {
@@ -104,7 +101,8 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return this.name === this.parent?.name || /^(?<name>[\w_][\w\d_]*)::\k<name>/.test(this.signature);
+            return (this.parent?.isClassOrStruct() && this.name === this.parent.name)
+                || this.signature.includes(this.name + '::' + this.name);
         default:
             return false;
         }
@@ -115,7 +113,8 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return this.name === '~' + this.parent?.name || /^(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
+            return (this.parent?.isClassOrStruct() && this.name === '~' + this.parent.name)
+                || /(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
         default:
             return false;
         }
