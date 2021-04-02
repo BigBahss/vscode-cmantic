@@ -138,7 +138,46 @@ export function normalize(text: string): string {
 }
 
 /**
- * DocumentSymbol ranges don't always include the final semi-colon, so this finds the end of the last semi-colon.
+ * Different language servers format DocumentSymbol.name differently. For instance, cpptools
+ * puts function signatures in DocumentSymbol.name. The name might also be scope-qualified.
+ * Returns the bare, unqualified name of the symbol.
+ */
+export function getNormalizedSymbolName(documentSymbolName: string): string {
+    // Used to trim function and template parameters from the end of the name (if present).
+    function trimDelimitedFromEndOfName(name: string, leftDelim: string, rightDelim: string): string {
+        let indexOfLeftDelim = name.indexOf(leftDelim);
+        const lastIndexOfRightDelim = name.lastIndexOf(rightDelim);
+
+        if (indexOfLeftDelim > 0 && lastIndexOfRightDelim > indexOfLeftDelim) {
+            let trimmedName = name.slice(0, indexOfLeftDelim).trimEnd();
+            if (trimmedName === 'operator' || trimmedName.endsWith('::operator')) {
+                indexOfLeftDelim = name.indexOf(leftDelim, indexOfLeftDelim);
+                if (indexOfLeftDelim > 0) {
+                    trimmedName = name.slice(0, indexOfLeftDelim).trimEnd();
+                } else {
+                    trimmedName = name;
+                }
+            }
+            name = trimmedName;
+        }
+
+        return name;
+    }
+
+    documentSymbolName = trimDelimitedFromEndOfName(documentSymbolName, '(', ')');
+
+    documentSymbolName = trimDelimitedFromEndOfName(documentSymbolName, '<', '>');
+
+    const lastIndexOfScopeResolution = documentSymbolName.lastIndexOf('::');
+    if (lastIndexOfScopeResolution !== -1 && !documentSymbolName.endsWith('::')) {
+        documentSymbolName = documentSymbolName.slice(lastIndexOfScopeResolution + 2);
+    }
+
+    return documentSymbolName;
+}
+
+/**
+ * DocumentSymbol.range doesn't always include the final semi-colon, so this finds the end of the last semi-colon.
  */
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));

@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
 import * as util from './utility';
+import * as parse from './parsing';
 
 
 /**
  * Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
- * Additionally, some properties are normalized for different language servers.
+ * Additionally, some properties are normalized since they vary for different language servers.
  */
 export default class SourceSymbol extends vscode.DocumentSymbol {
     readonly uri: vscode.Uri;
@@ -30,28 +30,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         this.signature = symbol.name;
         this.parent = parent;
 
-        // cpptools puts function signatures in name, so we want to store the actual function name in name.
-        let name = symbol.name;
-        const lastIndexOfParen = name.indexOf('(');
-        if (lastIndexOfParen > 0) {
-            name = name.slice(0, lastIndexOfParen);
-        }
-        const indexOfAngleBracket = name.indexOf('<');
-        if (name.endsWith('>') && indexOfAngleBracket > 0) {
-            name = name.slice(0, indexOfAngleBracket);
-        }
-        const lastIndexOfScopeResolution = name.lastIndexOf('::');
-        if (lastIndexOfScopeResolution !== -1 && !name.endsWith('::')) {
-            name = name.slice(lastIndexOfScopeResolution + 2);
-        }
-
-        /* This is a fail-safe in case editing the name left it empty, because vscode will throw an
-         * error on subsequent calls to the super constructor if the name is empty. */
-        if (name) {
-            this.name = name;
-        } else {
-            this.name = symbol.name;
-        }
+        this.name = parse.getNormalizedSymbolName(symbol.name);
 
         // ccls puts function signatures in the detail property.
         if (symbol.detail.includes(symbol.name + '(')) {
