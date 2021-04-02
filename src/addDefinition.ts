@@ -108,12 +108,23 @@ export async function addMultipleDefinitions(
         return;
     }
 
-    const selectedFunctions = await promptUserToSelectFunctions(undefinedFunctions);
+    const p_selectedFunctions = promptUserToSelectFunctions(undefinedFunctions);
+
+    const functionsThatRequireVisibleDefinition = undefinedFunctions.filter(declaration => {
+        return declaration.isInline()
+            || declaration.isConstexpr()
+            || declaration.isConsteval()
+            || declaration.hasUnspecializedTemplate();
+    });
+
+    const selectedFunctions = await p_selectedFunctions;
     if (!selectedFunctions || selectedFunctions.length === 0) {
         return;
     }
 
-    const targetUri = await promptUserForDefinitionLocation(sourceDoc, matchingUri);
+    const targetUri = util.arraysShareAnyElement(selectedFunctions, functionsThatRequireVisibleDefinition)
+            ? sourceDoc.uri
+            : await promptUserForDefinitionLocation(sourceDoc, matchingUri);
     if (!targetUri) {
         return;
     }
