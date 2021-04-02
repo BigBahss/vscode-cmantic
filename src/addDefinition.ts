@@ -89,7 +89,9 @@ export async function addDefinitionInCurrentFile(): Promise<boolean | undefined>
     return addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
-export async function addMultipleDefinitions(sourceDoc: SourceDocument, matchingUri?: vscode.Uri): Promise<boolean | undefined> {
+export async function addMultipleDefinitions(
+    sourceDoc: SourceDocument, matchingUri?: vscode.Uri
+): Promise<boolean | undefined> {
     const functionDeclarations: CSymbol[] = [];
 
     (await sourceDoc.allFunctions()).forEach(functionSymbol => {
@@ -116,10 +118,17 @@ export async function addMultipleDefinitions(sourceDoc: SourceDocument, matching
         return;
     }
 
+    const targetDoc = (targetUri.fsPath === sourceDoc.uri.fsPath)
+            ? sourceDoc
+            : await SourceDocument.open(targetUri);
+
+    const useSmartPlacement = selectedFunctions.length <= 5;
     const workspaceEdit = new vscode.WorkspaceEdit();
+
     const p_addedDefinitions: Promise<void>[] = [];
     selectedFunctions.forEach(functionDeclaration => {
-        p_addedDefinitions.push(addDefinitionToWorkspaceEdit(functionDeclaration, sourceDoc, targetUri, workspaceEdit));
+        p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
+                functionDeclaration, sourceDoc, targetDoc, useSmartPlacement, workspaceEdit));
     });
 
     await Promise.all(p_addedDefinitions);
@@ -197,16 +206,15 @@ export async function addDefinition(
 async function addDefinitionToWorkspaceEdit(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
-    targetUri: vscode.Uri,
+    targetDoc: SourceDocument,
+    useSmartPlacement: boolean,
     workspaceEdit: vscode.WorkspaceEdit
 ): Promise<void> {
     const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
 
-    // Find the position for the new function definition.
-    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
-            ? declarationDoc
-            : await SourceDocument.open(targetUri);
-    const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+    const targetPos = useSmartPlacement
+            ? await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc)
+            : await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     const functionSkeleton = await constructFunctionSkeleton(
             functionDeclaration, targetDoc, targetPos, p_initializers);
@@ -261,6 +269,7 @@ async function getInitializersIfFunctionIsConstructor(
     const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
         placeHolder: `Select what you would like to initialize in ${functionDeclaration.name} constructor:`,
+        ignoreFocusOut: true,
         canPickMany: true
     });
 
@@ -472,11 +481,11 @@ async function promptUserForDefinitionLocation(
 
     const locationItems: DefinitionLocationQuickPickItem[] = [
         {
-            label: vscode.workspace.asRelativePath(matchingUri),
+            label: `Add Definitions to "${vscode.workspace.asRelativePath(matchingUri)}"`,
             uri: matchingUri
         },
         {
-            label: 'Current File',
+            label: 'Add Definitions to this file',
             uri: sourceDoc.uri
         }
     ];

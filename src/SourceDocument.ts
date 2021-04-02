@@ -413,7 +413,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         let checkedFunctionCount = 0;
         for (const symbol of before) {
-            if (checkedFunctionCount > 4) {
+            if (checkedFunctionCount > 5) {
                 break;
             }
             const functionSymbol = new CSymbol(symbol, this);
@@ -453,7 +453,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         checkedFunctionCount = 0;
         for (const symbol of after) {
-            if (checkedFunctionCount > 4) {
+            if (checkedFunctionCount > 5) {
                 break;
             }
             const functionSymbol = new CSymbol(symbol, this);
