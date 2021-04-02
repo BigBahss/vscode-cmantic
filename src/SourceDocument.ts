@@ -580,7 +580,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     private static indexOfSymbol(symbol: SourceSymbol, siblings: SourceSymbol[]): number {
         const declarationSelectionRange = symbol.selectionRange;
         return siblings.findIndex(sibling => {
-            return sibling.selectionRange.isEqual(declarationSelectionRange);
+            return sibling.selectionRange.start.isEqual(declarationSelectionRange.start);
         });
     }
 }

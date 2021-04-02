@@ -133,14 +133,10 @@ export async function addMultipleDefinitions(
             ? sourceDoc
             : await SourceDocument.open(targetUri);
 
-    const workspaceEdit = new vscode.WorkspaceEdit();
-
-    const p_addedDefinitions: Promise<void>[] = [];
-    selectedFunctions.forEach(functionDeclaration => {
-        p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
-                functionDeclaration, sourceDoc, targetDoc, workspaceEdit));
-    });
-    await Promise.all(p_addedDefinitions);
+    const workspaceEdit = await generateDefinitionsWorkspaceEdit(selectedFunctions, sourceDoc, targetDoc);
+    if (!workspaceEdit) {
+        return;
+    }
 
     const success = await vscode.workspace.applyEdit(workspaceEdit);
 
@@ -193,26 +189,6 @@ export async function addDefinition(
     }
 
     return success;
-}
-
-async function addDefinitionToWorkspaceEdit(
-    functionDeclaration: CSymbol,
-    declarationDoc: SourceDocument,
-    targetDoc: SourceDocument,
-    workspaceEdit: vscode.WorkspaceEdit
-): Promise<void> {
-    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
-
-    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
-
-    const functionSkeleton = await constructFunctionSkeleton(
-            functionDeclaration, targetDoc, targetPos, p_initializers);
-
-    if (functionSkeleton === undefined) {
-        return;
-    }
-
-    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
 }
 
 type Initializer = CSymbol | SubSymbol;
@@ -394,7 +370,7 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
 
     async function findDefinitionsForNextChunkOfFunctions(i: number): Promise<void> {
         const p_declarationDefinitionLinks: Promise<DeclarationDefinitionLink>[] = [];
-        functionDeclarations.slice(i, i + 20).forEach(declaration => {
+        functionDeclarations.slice(i, i + 10).forEach(declaration => {
             p_declarationDefinitionLinks.push(makeLink(declaration));
         });
 
@@ -407,11 +383,11 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
 
     await findDefinitionsForNextChunkOfFunctions(0);
 
-    if (functionDeclarations.length <= 20) {
+    if (functionDeclarations.length <= 10) {
         return undefinedFunctions;
     }
 
-    const increment = (20 / functionDeclarations.length) * 100;
+    const increment = (10 / functionDeclarations.length) * 100;
     let userCancelledOperation = false;
 
     await vscode.window.withProgress({
@@ -419,13 +395,16 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
         title: 'Finding undefined functions',
         cancellable: true
     }, async (progress, token) => {
-        for (let i = 20; i < functionDeclarations.length; i += 20) {
+        for (let i = 10; i < functionDeclarations.length; i += 10) {
             if (token.isCancellationRequested) {
                 userCancelledOperation = true;
                 return;
             }
 
-            progress.report({ message: `${i}/${functionDeclarations.length}`, increment: increment });
+            progress.report({
+                message: `${i}/${functionDeclarations.length} functions checked`,
+                increment: increment
+            });
 
             await findDefinitionsForNextChunkOfFunctions(i);
         }
@@ -439,6 +418,80 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
     if (!userCancelledOperation) {
         return undefinedFunctions;
     }
+}
+
+async function generateDefinitionsWorkspaceEdit(
+    functionDeclarations: CSymbol[],
+    declarationDoc: SourceDocument,
+    targetDoc: SourceDocument
+): Promise<vscode.WorkspaceEdit | undefined> {
+    const workspaceEdit = new vscode.WorkspaceEdit();
+
+    async function addDefinitionsForNextChunkOfFunctions(i: number): Promise<void> {
+        const p_addedDefinitions: Promise<void>[] = [];
+        functionDeclarations.slice(i, i + 5).forEach(declaration => {
+            p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
+                    declaration, declarationDoc, targetDoc, workspaceEdit));
+        });
+        await Promise.all(p_addedDefinitions);
+    }
+
+    await addDefinitionsForNextChunkOfFunctions(0);
+
+    if (functionDeclarations.length <= 5) {
+        return;
+    }
+
+    const increment = (5 / functionDeclarations.length) * 100;
+    let userCancelledOperation = false;
+
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Generating function definitions',
+        cancellable: true
+    }, async (progress, token) => {
+        for (let i = 5; i < functionDeclarations.length; i += 5) {
+            if (token.isCancellationRequested) {
+                userCancelledOperation = true;
+                return;
+            }
+
+            progress.report({
+                message: `${i}/${functionDeclarations.length} generated`,
+                increment: increment
+            });
+
+            await addDefinitionsForNextChunkOfFunctions(i);
+        }
+
+        progress.report({
+            message: `${functionDeclarations.length}/${functionDeclarations.length}`,
+            increment: increment
+        });
+    });
+
+    if (!userCancelledOperation) {
+        return workspaceEdit;
+    }
+}
+
+async function addDefinitionToWorkspaceEdit(
+    functionDeclaration: CSymbol,
+    declarationDoc: SourceDocument,
+    targetDoc: SourceDocument,
+    workspaceEdit: vscode.WorkspaceEdit
+): Promise<void> {
+    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
+
+    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
+
+    const functionSkeleton = await constructFunctionSkeleton(
+            functionDeclaration, targetDoc, targetPos, p_initializers);
+    if (functionSkeleton === undefined) {
+        return;
+    }
+
+    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
 }
 
 async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
