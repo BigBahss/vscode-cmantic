@@ -240,7 +240,7 @@ async function promptUserForDefinitionLocations(
             : classDoc;
     const firstDefinitionPos = (firstDefinitionItem.location === cfg.DefinitionLocation.Inline)
             ? declarationPos
-            : await classDoc.findPositionForFunctionDefinition(declarationPos, firstTargetDoc);
+            : await classDoc.findSmartPositionForFunctionDefinition(declarationPos, firstTargetDoc);
     const firstTargetLocation = new TargetLocation(firstDefinitionPos, firstTargetDoc);
 
     const secondDefinitionItem = await p_secondDefinitionItem;
@@ -255,12 +255,12 @@ async function promptUserForDefinitionLocations(
                 ? firstTargetDoc
                 : await SourceDocument.open(matchingUri);
         const secondDefinitionPos =
-                await classDoc.findPositionForFunctionDefinition(declarationPos, secondTargetDoc);
+                await classDoc.findSmartPositionForFunctionDefinition(declarationPos, secondTargetDoc);
         secondTargetLocation = new TargetLocation(secondDefinitionPos, secondTargetDoc);
     } else {
         const secondDefinitionPos = secondDefinitionItem.location === cfg.DefinitionLocation.Inline
                 ? declarationPos
-                : await classDoc.findPositionForFunctionDefinition(declarationPos);
+                : await classDoc.findSmartPositionForFunctionDefinition(declarationPos);
         secondTargetLocation = new TargetLocation(secondDefinitionPos, classDoc);
     }
 

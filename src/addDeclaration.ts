@@ -69,7 +69,7 @@ export async function addDeclaration(
         return;
     }
 
-    const targetPos = await definitionDoc.findPositionForFunctionDeclaration(
+    const targetPos = await definitionDoc.findSmartPositionForFunctionDeclaration(
             functionDefinition, targetDoc, parentClass, access);
 
     const declaration = await functionDefinition.getDeclarationForTargetPosition(targetDoc, targetPos);

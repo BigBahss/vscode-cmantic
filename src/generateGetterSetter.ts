@@ -232,12 +232,12 @@ async function getTargetForAccessorDefinition(
             if (matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
                 const targetDoc = await SourceDocument.open(matchingUri);
                 return new TargetLocation(
-                        await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
+                        await classDoc.findSmartPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
             }
         }
         // fallthrough
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(
-                await classDoc.findPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
+                await classDoc.findSmartPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
     }
 }

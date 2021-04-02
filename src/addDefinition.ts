@@ -153,7 +153,7 @@ export async function addDefinition(
     const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
             ? declarationDoc
             : await SourceDocument.open(targetUri);
-    const targetPos = await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     const functionSkeleton = await constructFunctionSkeleton(
             functionDeclaration, targetDoc, targetPos, p_initializers);
@@ -437,7 +437,7 @@ async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Pro
     functionDeclarations.forEach(declaration => {
         functionItems.push({
             label: '$(symbol-function) ' + declaration.name,
-            description: declaration.text(),
+            description: declaration.text().replace(/\s+/g, ' '),
             declaration: declaration
         });
     });

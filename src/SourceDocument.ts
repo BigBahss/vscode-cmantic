@@ -236,7 +236,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         };
     }
 
-    async findPositionForFunctionDeclaration(
+    async findSmartPositionForFunctionDeclaration(
         definition: CSymbol, targetDoc?: SourceDocument, parentClass?: CSymbol, access?: util.AccessLevel
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
@@ -294,9 +294,9 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
     /**
      * Returns the best position to place the definition for a function declaration.
-     * If targetDoc is undefined the position will be for this SourceDocument.
+     * If targetDoc is undefined then this SourceDocument will be used.
      */
-    async findPositionForFunctionDefinition(
+    async findSmartPositionForFunctionDefinition(
         declarationOrPosition: SourceSymbol | CSymbol | ProposedPosition, targetDoc?: SourceDocument
     ): Promise<ProposedPosition> {
         if (!this.symbols) {
@@ -347,6 +347,37 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         const position = await this.findPositionRelativeToSiblings(declaration, before, after, targetDoc, true);
         if (position) {
             return position;
+        }
+
+        // If a sibling definition couldn't be found in targetDoc, look for a position in a parent namespace.
+        const namespacePos = await targetDoc.findPositionInParentNamespace(declaration);
+        if (namespacePos) {
+            return namespacePos;
+        }
+
+        // If all else fails then return a position after the last symbol in the document.
+        return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
+    }
+
+    async findPositionForFunctionDefinition(
+        declaration: CSymbol, targetDoc?: SourceDocument
+    ): Promise<ProposedPosition> {
+        if (!this.symbols) {
+            this.symbols = await this.executeSourceSymbolProvider();
+        }
+
+        if (!targetDoc) {
+            targetDoc = this;
+        }
+
+        if (!targetDoc.symbols) {
+            await targetDoc.executeSourceSymbolProvider();
+        }
+
+        if (!targetDoc.symbols || targetDoc.symbols.length === 0) {
+            return util.positionAfterLastNonEmptyLine(targetDoc);
+        } else if (declaration?.uri.fsPath !== this.uri.fsPath || (!declaration.parent && this.symbols.length === 0)) {
+            return targetDoc.positionAfterLastSymbol(targetDoc.symbols);
         }
 
         // If a sibling definition couldn't be found in targetDoc, look for a position in a parent namespace.

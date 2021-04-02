@@ -177,7 +177,7 @@ export async function moveDefinitionIntoOrOutOfClass(
                 return;
             }
 
-            const position = await definition.document.findPositionForFunctionDeclaration(
+            const position = await definition.document.findSmartPositionForFunctionDeclaration(
                     definition, parentClass.document, parentClass, access);
 
             const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position);
@@ -204,7 +204,7 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
     }
 
     const declarationDoc = await SourceDocument.open(declaration.uri);
-    return declarationDoc.findPositionForFunctionDefinition(declaration, targetDoc);
+    return declarationDoc.findSmartPositionForFunctionDefinition(declaration, targetDoc);
 }
 
 function getDeletionRange(definition: CSymbol): vscode.Range {
