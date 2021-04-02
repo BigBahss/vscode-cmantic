@@ -258,7 +258,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         }
 
         if (access !== undefined) {
-            const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass, access);
+            const memberPos = await targetDoc.findPositionForMemberFunction(definition, parentClass, access);
             if (memberPos) {
                 return memberPos;
             }
@@ -276,14 +276,14 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         }
 
         if (access === undefined) {
-            const memberPos = await this.findPositionForMemberFunction(definition, targetDoc, parentClass, access);
+            const memberPos = await targetDoc.findPositionForMemberFunction(definition, parentClass, access);
             if (memberPos) {
                 return memberPos;
             }
         }
 
         // If a sibling declaration couldn't be found in targetDoc, look for a position in a parent namespace.
-        const namespacePos = await this.findPositionInParentNamespace(definition, targetDoc);
+        const namespacePos = await targetDoc.findPositionInParentNamespace(definition);
         if (namespacePos) {
             return namespacePos;
         }
@@ -350,7 +350,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         }
 
         // If a sibling definition couldn't be found in targetDoc, look for a position in a parent namespace.
-        const namespacePos = await this.findPositionInParentNamespace(declaration, targetDoc);
+        const namespacePos = await targetDoc.findPositionInParentNamespace(declaration);
         if (namespacePos) {
             return namespacePos;
         }
@@ -463,7 +463,6 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
     private async findPositionForMemberFunction(
         symbol: CSymbol,
-        targetDoc: SourceDocument,
         parentClass?: CSymbol,
         access?: util.AccessLevel
     ): Promise<ProposedPosition | undefined> {
@@ -478,8 +477,8 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         const immediateScope = symbol.immediateScope();
         if (immediateScope) {
             const parentClassLocation = await immediateScope.findDefinition();
-            if (parentClassLocation?.uri.fsPath === targetDoc.uri.fsPath) {
-                parentClass = await targetDoc.getSymbol(parentClassLocation.range.start);
+            if (parentClassLocation?.uri.fsPath === this.uri.fsPath) {
+                parentClass = await this.getSymbol(parentClassLocation.range.start);
                 if (parentClass?.isClassOrStruct()) {
                     return parentClass.findPositionForNewMemberFunction(access);
                 }
@@ -487,13 +486,10 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         }
     }
 
-    private async findPositionInParentNamespace(
-        symbol: CSymbol,
-        targetDoc: SourceDocument
-    ): Promise<ProposedPosition | undefined> {
+    private async findPositionInParentNamespace(symbol: CSymbol): Promise<ProposedPosition | undefined> {
         for (const scope of symbol.scopes().reverse()) {
             if (scope.kind === vscode.SymbolKind.Namespace) {
-                const targetNamespace = await targetDoc.findMatchingSymbol(scope);
+                const targetNamespace = await this.findMatchingSymbol(scope);
                 if (!targetNamespace) {
                     continue;
                 }
@@ -507,7 +503,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                     });
                 }
 
-                const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], targetDoc);
+                const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], this);
                 return new ProposedPosition(lastChild.trailingCommentEnd(), {
                     relativeTo: lastChild.range,
                     after: true
