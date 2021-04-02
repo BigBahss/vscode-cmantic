@@ -175,20 +175,7 @@ export async function addDefinition(
     if (shouldReveal) {
         editor = await vscode.window.showTextDocument(targetDoc.uri);
         const revealRange = new vscode.Range(targetPos, targetPos.translate(util.lineCount(functionSkeleton)));
-        editor.revealRange(targetDoc.validateRange(revealRange), vscode.TextEditorRevealType.InCenter);
-
-        // revealRange() sometimes doesn't work for large files, this appears to be a bug in vscode.
-        // Waiting a bit and re-executing seems to work around this issue. (BigBahss/vscode-cmantic#2)
-        setTimeout(() => {
-            if (editor && revealRange) {
-                for (const visibleRange of editor.visibleRanges) {
-                    if (visibleRange.contains(revealRange)) {
-                        return;
-                    }
-                }
-                editor.revealRange(revealRange, vscode.TextEditorRevealType.InCenter);
-            }
-        }, 500);
+        util.revealRange(editor, revealRange);
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();

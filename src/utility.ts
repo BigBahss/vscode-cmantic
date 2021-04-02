@@ -92,6 +92,23 @@ export function containedInWorkspace(locationOrUri: vscode.Location | vscode.Uri
     return vscode.workspace.asRelativePath(locationOrUri) !== locationOrUri.fsPath;
 }
 
+export function revealRange(editor: vscode.TextEditor, range: vscode.Range): void {
+    editor.revealRange(editor.document.validateRange(range), vscode.TextEditorRevealType.InCenter);
+
+    // revealRange() sometimes doesn't work for large files, this appears to be a bug in vscode.
+    // Waiting a bit and re-executing seems to work around this issue. (BigBahss/vscode-cmantic#2)
+    setTimeout(() => {
+        if (editor && range) {
+            for (const visibleRange of editor.visibleRanges) {
+                if (visibleRange.contains(range)) {
+                    return;
+                }
+            }
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+        }
+    }, 500);
+}
+
 export function indentation(options?: vscode.TextEditorOptions): string {
     if (!options) {
         const editor = vscode.window.activeTextEditor;
