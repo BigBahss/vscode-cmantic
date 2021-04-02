@@ -55,15 +55,17 @@ export class EqualsOperator implements Operator {
     setOperands(operands: Operand[]): void {
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
+        const alignment = indent.includes(' ') ? '    ' : indent;
         const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
 
         this.body = '';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
-                this.body += `static_cast<const ${operand.name} &>(*this) == static_cast<const ${operand.name} &>(other)${eol}${indent}${indent}&& `;
+                const cast = `static_cast<const ${operand.name} &>`;
+                this.body += `${cast}(*this) == ${cast}(other)${eol}${indent}${alignment}&& `;
             } else {
-                this.body += `${thisPointer}${operand.name} == other.${operand.name}${eol}${indent}${indent}&& `;
+                this.body += `${thisPointer}${operand.name} == other.${operand.name}${eol}${indent}${alignment}&& `;
             }
         });
 
