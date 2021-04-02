@@ -85,15 +85,10 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isFunction(): boolean {
-        switch (this.kind) {
-        case vscode.SymbolKind.Operator:
-        case vscode.SymbolKind.Method:
-        case vscode.SymbolKind.Constructor:
-        case vscode.SymbolKind.Function:
-            return true;
-        default:
-            return false;
-        }
+        return this.kind === vscode.SymbolKind.Function
+            || this.kind === vscode.SymbolKind.Method
+            || this.kind === vscode.SymbolKind.Constructor
+            || this.kind === vscode.SymbolKind.Operator;
     }
 
     isConstructor(): boolean {
