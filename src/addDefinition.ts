@@ -130,10 +130,15 @@ export async function addMultipleDefinitions(
         p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
                 functionDeclaration, sourceDoc, targetDoc, useSmartPlacement, workspaceEdit));
     });
-
     await Promise.all(p_addedDefinitions);
 
-    return vscode.workspace.applyEdit(workspaceEdit);
+    const success = await vscode.workspace.applyEdit(workspaceEdit);
+
+    if (success && cfg.revealNewDefinition()) {
+        await revealNewFunction(workspaceEdit, targetDoc);
+    }
+
+    return success;
 }
 
 export async function addDefinition(
@@ -142,11 +147,10 @@ export async function addDefinition(
     targetUri: vscode.Uri,
     skipExistingDefinitionCheck?: boolean
 ): Promise<boolean | undefined> {
-    const shouldReveal = cfg.revealNewDefinition();
     if (!skipExistingDefinitionCheck) {
         const existingDefinition = await functionDeclaration.findDefinition();
         if (existingDefinition) {
-            if (!shouldReveal) {
+            if (!cfg.revealNewDefinition()) {
                 logger.alertInformation(failure.definitionExists);
                 return;
             }
@@ -158,7 +162,6 @@ export async function addDefinition(
 
     const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
 
-    // Find the position for the new function definition.
     const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
             ? declarationDoc
             : await SourceDocument.open(targetUri);
@@ -171,20 +174,12 @@ export async function addDefinition(
         return;
     }
 
-    let editor: vscode.TextEditor | undefined;
-    if (shouldReveal) {
-        editor = await vscode.window.showTextDocument(targetDoc.uri);
-        const revealRange = new vscode.Range(targetPos, targetPos.translate(util.lineCount(functionSkeleton)));
-        util.revealRange(editor, revealRange);
-    }
-
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
     const success = await vscode.workspace.applyEdit(workspaceEdit);
 
-    if (success && shouldReveal && editor) {
-        const cursorPosition = targetDoc.validatePosition(getPositionForCursor(targetPos, functionSkeleton));
-        editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+    if (success && cfg.revealNewDefinition()) {
+        await revealNewFunction(workspaceEdit, targetDoc);
     }
 
     return success;
@@ -255,7 +250,7 @@ async function getInitializersIfFunctionIsConstructor(
 
     const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
-        placeHolder: `Select what you would like to initialize in ${functionDeclaration.name} constructor:`,
+        placeHolder: `Select what you would like to initialize in ${functionDeclaration.name} constructor`,
         ignoreFocusOut: true,
         canPickMany: true
     });
@@ -335,7 +330,22 @@ function constructInitializerList(initializers: Initializer[], eol: string): str
     return initializerList.trimEnd().slice(0, -1);
 }
 
-function getPositionForCursor(position: ProposedPosition, functionSkeleton: string): vscode.Position {
+async function revealNewFunction(workspaceEdit: vscode.WorkspaceEdit, targetDoc: vscode.TextDocument): Promise<void> {
+    const textEdits = workspaceEdit.get(targetDoc.uri);
+    if (textEdits.length === 0) {
+        return;
+    }
+
+    const editor = await vscode.window.showTextDocument(targetDoc);
+    const firstEdit = textEdits[0];
+    const start = firstEdit.range.start;
+    util.revealRange(editor, new vscode.Range(start, start.translate(util.lineCount(firstEdit.newText))));
+
+    const cursorPosition = targetDoc.validatePosition(getPositionForCursor(start, firstEdit.newText));
+    editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
+}
+
+function getPositionForCursor(position: vscode.Position, functionSkeleton: string): vscode.Position {
     const lines = functionSkeleton.split('\n');
     for (let i = 0; i < lines.length; ++i) {
         if (lines[i].trimStart().startsWith(':')) {
@@ -344,7 +354,7 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
             if (index === -1) {
                 index = lines[i].lastIndexOf('}');
                 if (index === -1) {
-                    return new vscode.Position(0, 0);
+                    return position;
                 }
             }
             return new vscode.Position(i + position.line, index);
@@ -353,7 +363,7 @@ function getPositionForCursor(position: ProposedPosition, functionSkeleton: stri
             return new vscode.Position(i + 1 + position.line, lines[i + 1].length);
         }
     }
-    return new vscode.Position(0, 0);
+    return position;
 }
 
 /**
@@ -440,7 +450,7 @@ async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Pro
 
     const selectedItems = await vscode.window.showQuickPick<FunctionQuickPickItem>(functionItems, {
         matchOnDescription: true,
-        placeHolder: 'Select the functions to add definitions for:',
+        placeHolder: 'Select the functions to add definitions for',
         ignoreFocusOut: true,
         canPickMany: true
     });
@@ -478,7 +488,7 @@ async function promptUserForDefinitionLocation(
     ];
 
     const selectedItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(locationItems, {
-        placeHolder: 'Select where to place the definitions of these functions:',
+        placeHolder: 'Select which file to add the definitions to',
         ignoreFocusOut: true
     });
 

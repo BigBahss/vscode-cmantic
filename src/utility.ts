@@ -274,18 +274,20 @@ export function accessSpecifierRegexp(access: AccessLevel): RegExp {
     }
 }
 
-interface AccessItem extends vscode.QuickPickItem {
+interface AccessQuickPickItem extends vscode.QuickPickItem {
     access: AccessLevel;
 }
 
-export async function getMemberAccessFromUser(): Promise<AccessLevel | undefined> {
-    const accessItems: AccessItem[] = [
-        { label: 'public', access: AccessLevel.public },
-        { label: 'protected', access: AccessLevel.protected },
-        { label: 'private', access: AccessLevel.private }
-    ];
+const accessItems: AccessQuickPickItem[] = [
+    { label: 'public', access: AccessLevel.public },
+    { label: 'protected', access: AccessLevel.protected },
+    { label: 'private', access: AccessLevel.private }
+];
 
-    const accessItem = await vscode.window.showQuickPick<AccessItem>(accessItems, { placeHolder: 'Select member access level:' });
+export async function getMemberAccessFromUser(): Promise<AccessLevel | undefined> {
+    const accessItem = await vscode.window.showQuickPick<AccessQuickPickItem>(accessItems, {
+        placeHolder: 'Select member access level'
+    });
 
     return accessItem?.access;
 }
