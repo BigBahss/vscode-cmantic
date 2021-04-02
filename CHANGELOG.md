@@ -5,6 +5,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added `cmantic.generateStreamOutputOperator` command/code-action. Works very similar to `cmantic.generateEqualityOperators`.
 
+### Fixed
+- Fixed a bug when determining if a cached matching header/source file still exists. This would cause some commands to throw an error.
+
 ## [0.6.3] - March 31, 2021
 ### Added
 - Added a setting `Accessor: Bool Getter Is Prefix` to prefix getters of `bool` members with 'is' (e.g. `bool enabled` generates `bool isEnabled() const`).
