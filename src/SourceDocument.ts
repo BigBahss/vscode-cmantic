@@ -16,6 +16,7 @@ const re_preprocessorDirective = /(?<=^\s*)#.*\S(?=\s*$)/gm;
  */
 export default class SourceDocument extends SourceFile implements vscode.TextDocument {
     private readonly doc: vscode.TextDocument;
+    private readonly proposedDefinitions = new WeakMap<vscode.Position, vscode.Location>();
 
     constructor(document: vscode.TextDocument, sourceFile?: SourceFile) {
         super(document.uri);
@@ -423,7 +424,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             if (isDeclOrDef) {
                 ++checkedFunctionCount;
                 const location = findDefinition
-                        ? await functionSymbol.findDefinition()
+                        ? await this.findDefinition(functionSymbol)
                         : await functionSymbol.findDeclaration();
                 if (!location || location.uri.fsPath !== targetDoc.uri.fsPath) {
                     continue;
@@ -443,6 +444,10 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
+                    this.proposedDefinitions.set(
+                        anchorSymbol.selectionRange.start,
+                        new vscode.Location(targetDoc.uri, linkedSymbol.selectionRange)
+                    );
                     return new ProposedPosition(linkedSymbol.trailingCommentEnd(), {
                         relativeTo: linkedSymbol.range,
                         after: true
@@ -463,7 +468,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             if (isDeclOrDef) {
                 ++checkedFunctionCount;
                 const location = findDefinition
-                        ? await functionSymbol.findDefinition()
+                        ? await this.findDefinition(functionSymbol)
                         : await functionSymbol.findDeclaration();
                 if (!location || location.uri.fsPath !== targetDoc.uri.fsPath) {
                     continue;
@@ -483,6 +488,10 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 if (!(anchorSymbol.uri.fsPath === linkedSymbol.uri.fsPath
                         && anchorSymbol.parent?.range.contains(linkedSymbol.selectionRange))
                         && parentClass?.matches(linkedSymbol) !== false) {
+                    this.proposedDefinitions.set(
+                        anchorSymbol.selectionRange.start,
+                        new vscode.Location(targetDoc.uri, linkedSymbol.selectionRange)
+                    );
                     return new ProposedPosition(linkedSymbol.leadingCommentStart, {
                         relativeTo: linkedSymbol.range,
                         before: true
@@ -552,6 +561,14 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             });
         }
         return util.positionAfterLastNonEmptyLine(this);
+    }
+
+    private async findDefinition(symbol: SourceSymbol): Promise<vscode.Location | undefined> {
+        const definition = this.proposedDefinitions.get(symbol.selectionRange.start);
+        if (definition) {
+            return definition;
+        }
+        return symbol.findDefinition();
     }
 
     private static siblingFunctions(symbol: SourceSymbol, topLevelSymbols: SourceSymbol[]): SourceSymbol[] {

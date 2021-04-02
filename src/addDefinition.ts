@@ -133,13 +133,12 @@ export async function addMultipleDefinitions(
             ? sourceDoc
             : await SourceDocument.open(targetUri);
 
-    const useSmartPlacement = selectedFunctions.length <= 5;
     const workspaceEdit = new vscode.WorkspaceEdit();
 
     const p_addedDefinitions: Promise<void>[] = [];
     selectedFunctions.forEach(functionDeclaration => {
         p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
-                functionDeclaration, sourceDoc, targetDoc, useSmartPlacement, workspaceEdit));
+                functionDeclaration, sourceDoc, targetDoc, workspaceEdit));
     });
     await Promise.all(p_addedDefinitions);
 
@@ -200,14 +199,11 @@ async function addDefinitionToWorkspaceEdit(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
     targetDoc: SourceDocument,
-    useSmartPlacement: boolean,
     workspaceEdit: vscode.WorkspaceEdit
 ): Promise<void> {
     const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
 
-    const targetPos = useSmartPlacement
-            ? await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc)
-            : await declarationDoc.findPositionForFunctionDefinition(functionDeclaration, targetDoc);
+    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
     const functionSkeleton = await constructFunctionSkeleton(
             functionDeclaration, targetDoc, targetPos, p_initializers);
