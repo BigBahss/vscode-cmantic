@@ -59,10 +59,11 @@ const defaultCaseStyle = CaseStyle.camelCase;
 const defaultBracedInitialization = false;
 const defaultExplicitThisPointer = false;
 
-export const baseConfigurationKey = 'C_mantic';
+export const extensionKey = 'C_mantic';
+export const cpptoolsKey = 'C_Cpp';
 
 function configuration(scope?: vscode.ConfigurationScope): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration(baseConfigurationKey, scope);
+    return vscode.workspace.getConfiguration(extensionKey, scope);
 }
 
 export function alertLevel(scope?: vscode.ConfigurationScope): AlertLevel {
@@ -283,4 +284,8 @@ export function searchExclude(scope?: vscode.ConfigurationScope): string[] {
 
 export function searchExcludeGlobPattern(scope?: vscode.ConfigurationScope): vscode.GlobPattern {
     return `{${searchExclude(scope).join(',')}}`;
+}
+
+export function cpptoolsIntellisenseIsActive(scope?: vscode.ConfigurationScope): boolean {
+     return vscode.workspace.getConfiguration(cpptoolsKey, scope).get<string>('intelliSenseEngine') === 'Default';
 }
