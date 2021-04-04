@@ -14,7 +14,7 @@ export const failure = {
     sourceFileExists: 'A source file already exists for this header.'
 };
 
-export async function createMatchingSourceFile(): Promise<boolean | undefined> {
+export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined> {
     const currentDocument = vscode.window.activeTextEditor?.document;
     if (!currentDocument) {
         logger.alertError(failure.noActiveTextEditor);
@@ -79,7 +79,8 @@ export async function createMatchingSourceFile(): Promise<boolean | undefined> {
     const editor = await vscode.window.showTextDocument(newFileUri);
     const cursorPosition = editor.document.lineAt(0).range.end;
     editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
-    return true;
+
+    return newFileUri;
 }
 
 interface FolderItem extends vscode.QuickPickItem {

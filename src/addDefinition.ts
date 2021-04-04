@@ -6,6 +6,7 @@ import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { getMatchingHeaderSource, logger } from './extension';
 import { ProposedPosition } from './ProposedPosition';
+import { createMatchingSourceFile } from './createSourceFile';
 
 
 export const title = {
@@ -528,31 +529,42 @@ async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Pro
 async function promptUserForDefinitionLocation(
     sourceDoc: SourceDocument, matchingUri?: vscode.Uri
 ): Promise<vscode.Uri | undefined> {
-    if (!sourceDoc.isHeader() || !matchingUri) {
+    if (!sourceDoc.isHeader()) {
         return sourceDoc.uri;
     }
 
     interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
-        uri: vscode.Uri;
+        uri?: vscode.Uri;
     }
 
-    const locationItems: DefinitionLocationQuickPickItem[] = [
-        {
+    const locationItems: DefinitionLocationQuickPickItem[] = [];
+
+    if (matchingUri) {
+        locationItems.push({
             label: `Add Definitions to "${vscode.workspace.asRelativePath(matchingUri)}"`,
             uri: matchingUri
-        },
-        {
-            label: 'Add Definitions to this file',
-            uri: sourceDoc.uri
-        }
-    ];
+        });
+    } else {
+        locationItems.push({
+            label: 'Add Definitions to a new source file'
+        });
+    }
+
+    locationItems.push({
+        label: 'Add Definitions to this file',
+        uri: sourceDoc.uri
+    });
 
     const selectedItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(locationItems, {
         placeHolder: 'Select which file to add the definitions to',
         ignoreFocusOut: true
     });
 
-    if (selectedItem) {
+    if (!selectedItem) {
+        return;
+    } else if (!selectedItem.uri) {
+        return createMatchingSourceFile();
+    } else {
         return selectedItem.uri;
     }
 }
