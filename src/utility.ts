@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as cfg from './configuration';
 import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
+import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
 
@@ -222,6 +223,28 @@ export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLin
     }
 
     return locations;
+}
+
+export interface DeclarationDefinitionLink {
+    declaration: CSymbol;
+    definition?: vscode.Location;
+}
+
+export async function makeDeclDefLink(declaration: CSymbol): Promise<DeclarationDefinitionLink> {
+    return {
+        declaration: declaration,
+        definition: await declaration.findDefinition()
+    };
+}
+
+/**
+ * Indicates that the function requires a definition that is visible to translation unit that declares it.
+ */
+export function requiresVisibleDefinition(functionDeclaration: CSymbol): boolean {
+    return functionDeclaration.isInline()
+        || functionDeclaration.isConstexpr()
+        || functionDeclaration.isConsteval()
+        || functionDeclaration.hasUnspecializedTemplate();
 }
 
 /**

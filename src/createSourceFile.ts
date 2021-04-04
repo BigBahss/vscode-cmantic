@@ -5,6 +5,7 @@ import * as path from 'path';
 import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import { getMatchingHeaderSource, logger } from './extension';
+import { promptUserToSelectFunctions, generateDefinitionsWorkspaceEdit, revealNewFunction } from './addDefinition';
 
 
 export const failure = {
@@ -14,31 +15,41 @@ export const failure = {
     sourceFileExists: 'A source file already exists for this header.'
 };
 
-export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined> {
-    const currentDocument = vscode.window.activeTextEditor?.document;
-    if (!currentDocument) {
-        logger.alertError(failure.noActiveTextEditor);
-        return;
+export async function createMatchingSourceFile(
+    headerDoc?: SourceDocument, dontAddDefinitions?: boolean
+): Promise<vscode.Uri | undefined> {
+    if (!headerDoc) {
+        // Command was called from the command-palette
+        const currentDocument = vscode.window.activeTextEditor?.document;
+        if (!currentDocument) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        headerDoc = new SourceDocument(currentDocument);
+        if (!headerDoc.isHeader()) {
+            logger.alertWarning(failure.notHeaderFile);
+            return;
+        } else if (await getMatchingHeaderSource(headerDoc.uri)) {
+            logger.alertInformation(failure.sourceFileExists);
+            return;
+        }
     }
 
-    if (!vscode.workspace.workspaceFolders) {
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
         logger.alertWarning(failure.noWorkspaceFolder);
         return;
     }
+
     const workspaceFolder = (vscode.workspace.workspaceFolders.length > 1) ?
             await vscode.window.showWorkspaceFolderPick() : vscode.workspace.workspaceFolders[0];
     if (!workspaceFolder) {
         return;
     }
 
-    const headerDoc = new SourceDocument(currentDocument);
-    if (!headerDoc.isHeader()) {
-        logger.alertWarning(failure.notHeaderFile);
-        return;
-    } else if (await getMatchingHeaderSource(headerDoc.uri)) {
-        logger.alertInformation(failure.sourceFileExists);
-        return;
-    }
+    const p_undefinedFunctions = !dontAddDefinitions
+            ? findUndefinedFunctions(headerDoc)
+            : undefined;
 
     const headerFileNameBase = util.fileNameBase(headerDoc.fileName);
     const headerDirectory = path.dirname(headerDoc.fileName);
@@ -69,7 +80,7 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const newFileUri = vscode.Uri.file(newFilePath);
 
     const includeStatement = `#include "${path.basename(headerDoc.uri.fsPath)}"${headerDoc.endOfLine}`;
-    const namespacesText = (headerDoc.languageId === 'cpp') ? await getNamespaceText(headerDoc) : '';
+    const namespacesText = await getNamespaceText(headerDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.createFile(newFileUri, { ignoreIfExists: true });
@@ -80,6 +91,10 @@ export async function createMatchingSourceFile(): Promise<vscode.Uri | undefined
     const cursorPosition = editor.document.lineAt(0).range.end;
     editor.selection = new vscode.Selection(cursorPosition, cursorPosition);
 
+    if (p_undefinedFunctions) {
+        await generateDefinitions(p_undefinedFunctions, headerDoc, new SourceDocument(editor.document));
+    }
+
     return newFileUri;
 }
 
@@ -87,7 +102,9 @@ interface FolderItem extends vscode.QuickPickItem {
     uri: vscode.Uri;
 }
 
-// Returns an array of FolderItem's that contain C/C++ source files.
+/**
+ * Returns an array of FolderItem's that contain C/C++ source files (not including header files).
+ */
 async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(relativeUri);
     const directories: FolderItem[] = [];
@@ -107,8 +124,10 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
     return directories;
 }
 
-// Reads a directory containing source files and returns the extension of those files.
-// Returns undefined if more than one kind of source file extension is found.
+/**
+ * Reads a directory containing source files and returns the extension of those files.
+ * Returns undefined if more than one kind of source file extension is found.
+ */
 async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
     const sourceExtensions = cfg.sourceExtensions();
@@ -129,7 +148,7 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
     return sourceExtension;
 }
 
-async function getNamespaceText(headerDoc: SourceDocument) {
+async function getNamespaceText(headerDoc: SourceDocument): Promise<string> {
     if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
         return '';
     }
@@ -193,4 +212,62 @@ function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string 
         return eol;
     }
     return ' ';
+}
+
+async function findUndefinedFunctions(headerDoc: SourceDocument): Promise<CSymbol[]> {
+    const functionDeclarations: CSymbol[] = [];
+    (await headerDoc.allFunctions()).forEach(functionSymbol => {
+        if (functionSymbol.isFunctionDeclaration() && !util.requiresVisibleDefinition(functionSymbol)) {
+            functionDeclarations.push(functionSymbol);
+        }
+    });
+
+    const p_declarationDefinitionLinks: Promise<util.DeclarationDefinitionLink>[] = [];
+    functionDeclarations.forEach(declaration => {
+        p_declarationDefinitionLinks.push(util.makeDeclDefLink(declaration));
+    });
+
+    const undefinedFunctions: CSymbol[] = [];
+    (await Promise.all(p_declarationDefinitionLinks)).forEach(link => {
+        if (!link.definition) {
+            undefinedFunctions.push(link.declaration);
+        }
+    });
+
+    return undefinedFunctions;
+}
+
+async function generateDefinitions(
+    p_undefinedFunctions: Promise<CSymbol[]>, headerDoc: SourceDocument, sourceDoc: SourceDocument
+): Promise<void> {
+    const result = await vscode.window.showQuickPick(
+            ['Yes', 'No'],
+            { placeHolder: `Add Definitions from "${vscode.workspace.asRelativePath(headerDoc.uri)}"?` });
+    if (result !== 'Yes') {
+        return;
+    }
+
+    const undefinedFunctions: CSymbol[] = [];
+    await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Finding undefined functions'
+    }, async () => {
+        undefinedFunctions.push(...await p_undefinedFunctions);
+    });
+
+    const selectedFunctions = await promptUserToSelectFunctions(undefinedFunctions);
+    if (!selectedFunctions) {
+        return;
+    }
+
+    const workspaceEdit = await generateDefinitionsWorkspaceEdit(selectedFunctions, headerDoc, sourceDoc);
+    if (!workspaceEdit) {
+        return;
+    }
+
+    const success = await vscode.workspace.applyEdit(workspaceEdit);
+
+    if (success && cfg.revealNewDefinition()) {
+        await revealNewFunction(workspaceEdit, sourceDoc);
+    }
 }

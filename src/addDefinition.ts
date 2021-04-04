@@ -94,7 +94,6 @@ export async function addMultipleDefinitions(
     sourceDoc: SourceDocument, matchingUri?: vscode.Uri
 ): Promise<boolean | undefined> {
     const functionDeclarations: CSymbol[] = [];
-
     (await sourceDoc.allFunctions()).forEach(functionSymbol => {
         if (functionSymbol.isFunctionDeclaration()) {
             functionDeclarations.push(functionSymbol);
@@ -112,10 +111,7 @@ export async function addMultipleDefinitions(
     const p_selectedFunctions = promptUserToSelectFunctions(undefinedFunctions);
 
     const functionsThatRequireVisibleDefinition = undefinedFunctions.filter(declaration => {
-        return declaration.isInline()
-            || declaration.isConstexpr()
-            || declaration.isConsteval()
-            || declaration.hasUnspecializedTemplate();
+        return util.requiresVisibleDefinition(declaration);
     });
 
     const selectedFunctions = await p_selectedFunctions;
@@ -314,7 +310,7 @@ function constructInitializerList(initializers: Initializer[], eol: string): str
     return initializerList.trimEnd().slice(0, -1);
 }
 
-async function revealNewFunction(workspaceEdit: vscode.WorkspaceEdit, targetDoc: vscode.TextDocument): Promise<void> {
+export async function revealNewFunction(workspaceEdit: vscode.WorkspaceEdit, targetDoc: vscode.TextDocument): Promise<void> {
     const textEdits = workspaceEdit.get(targetDoc.uri);
     if (textEdits.length === 0) {
         return;
@@ -354,25 +350,13 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
  * Returns the functionDeclarations that do not have a definition.
  * Returns undefined if the user cancels the operation.
  */
- async function findAllUndefinedFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
-    interface DeclarationDefinitionLink {
-        declaration: CSymbol;
-        definition?: vscode.Location;
-    }
-
-    async function makeLink(declaration: CSymbol): Promise<DeclarationDefinitionLink> {
-        return {
-            declaration: declaration,
-            definition: await declaration.findDefinition()
-        };
-    }
-
+async function findAllUndefinedFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
     const undefinedFunctions: CSymbol[] = [];
 
     async function findDefinitionsForNextChunkOfFunctions(i: number): Promise<void> {
-        const p_declarationDefinitionLinks: Promise<DeclarationDefinitionLink>[] = [];
+        const p_declarationDefinitionLinks: Promise<util.DeclarationDefinitionLink>[] = [];
         functionDeclarations.slice(i, i + 10).forEach(declaration => {
-            p_declarationDefinitionLinks.push(makeLink(declaration));
+            p_declarationDefinitionLinks.push(util.makeDeclDefLink(declaration));
         });
 
         (await Promise.all(p_declarationDefinitionLinks)).forEach(link => {
@@ -421,7 +405,7 @@ function getPositionForCursor(position: vscode.Position, functionSkeleton: strin
     }
 }
 
-async function generateDefinitionsWorkspaceEdit(
+export async function generateDefinitionsWorkspaceEdit(
     functionDeclarations: CSymbol[],
     declarationDoc: SourceDocument,
     targetDoc: SourceDocument
@@ -495,7 +479,7 @@ async function addDefinitionToWorkspaceEdit(
     workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
 }
 
-async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
+export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
     interface FunctionQuickPickItem extends vscode.QuickPickItem {
         declaration: CSymbol;
     }
@@ -563,7 +547,7 @@ async function promptUserForDefinitionLocation(
     if (!selectedItem) {
         return;
     } else if (!selectedItem.uri) {
-        return createMatchingSourceFile();
+        return createMatchingSourceFile(sourceDoc, true);
     } else {
         return selectedItem.uri;
     }
