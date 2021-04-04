@@ -35,11 +35,11 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
                 const unbalancedIndex: number = +unbalancedIndexMatch[2];
                 if (unbalancedIndex < text.length) {
                     // There is an unbalanced delimiter, so we mask it and try again.
-                    text = text.substring(0, unbalancedIndex) + ' ';
+                    let maskedText = text.substring(0, unbalancedIndex) + ' ';
                     if (unbalancedIndex !== text.length - 1) {
-                        text += text.substring(unbalancedIndex + 1);
+                        maskedText += text.substring(unbalancedIndex + 1);
                     }
-                    return maskBalanced(text, left, right, keepEnclosingChars);
+                    return maskBalanced(maskedText, left, right, keepEnclosingChars);
                 }
             }
 
