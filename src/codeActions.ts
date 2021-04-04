@@ -478,10 +478,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const addMultipleDefinitions = new RefactorAction(addDefinitionTitle.multiple, 'cmantic.addMultipleDefinitions');
-        addMultipleDefinitions.setArguments(sourceDoc, matchingUri);
+        const addDefinitions = new RefactorAction(addDefinitionTitle.multiple, 'cmantic.addDefinitions');
+        addDefinitions.setArguments(sourceDoc, matchingUri);
 
-        return [addMultipleDefinitions];
+        return [addDefinitions];
     }
 
     private async getSourceActions(

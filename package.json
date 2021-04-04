@@ -50,6 +50,10 @@
         "title": "C-mantic: Add Definition in this file"
       },
       {
+        "command": "cmantic.addDefinitions",
+        "title": "C-mantic: Add Definitions..."
+      },
+      {
         "command": "cmantic.addDeclaration",
         "title": "C-mantic: Add Declaration"
       },

@@ -90,9 +90,21 @@ export async function addDefinitionInCurrentFile(): Promise<boolean | undefined>
     return addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
-export async function addMultipleDefinitions(
-    sourceDoc: SourceDocument, matchingUri?: vscode.Uri
+export async function addDefinitions(
+    sourceDoc?: SourceDocument, matchingUri?: vscode.Uri
 ): Promise<boolean | undefined> {
+    if (!sourceDoc) {
+        // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        sourceDoc = new SourceDocument(editor.document);
+        matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
+    }
+
     const functionDeclarations: CSymbol[] = [];
     (await sourceDoc.allFunctions()).forEach(functionSymbol => {
         if (functionSymbol.isFunctionDeclaration()) {

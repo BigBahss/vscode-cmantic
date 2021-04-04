@@ -4,7 +4,7 @@ import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
 import {
-    addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile, addMultipleDefinitions
+    addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions
 } from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
@@ -64,7 +64,7 @@ export function activeLanguageServer(): LanguageServer {
 export const commands = {
     'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
     'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
-    'cmantic.addMultipleDefinitions': addMultipleDefinitions,
+    'cmantic.addDefinitions': addDefinitions,
     'cmantic.addDefinition': addDefinition,
     'cmantic.addDeclaration': addDeclaration,
     'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
