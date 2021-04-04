@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as util from './utility';
 import * as parse from './parsing';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 /**
@@ -30,10 +31,33 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         this.signature = symbol.name;
         this.parent = parent;
 
-        this.name = parse.getNormalizedSymbolName(symbol.name);
+        this.name = symbol.name;
+        if (activeLanguageServer() === LanguageServer.cpptools) {
+            // cpptools puts function signatures and template arguments in the name property.
+            let maskedText = parse.maskAngleBrackets(this.name);
+            if (this.isFunction()) {
+                maskedText = parse.maskParentheses(maskedText);
+                const lastIndexOfParen = maskedText.lastIndexOf('(');
+                if (lastIndexOfParen !== -1) {
+                    this.name = this.name.slice(0, lastIndexOfParen);
+                }
+            }
 
-        // ccls puts function signatures in the detail property.
-        if (symbol.detail.includes(symbol.name + '(')) {
+            if (this.name.endsWith('>')) {
+                const lastIndexOfAngleBracket = maskedText.lastIndexOf('<');
+                if (lastIndexOfAngleBracket !== -1) {
+                    this.name = this.name.slice(0, lastIndexOfAngleBracket);
+                }
+            }
+        }
+
+        const lastIndexOfScopeResolution = this.name.lastIndexOf('::');
+        if (lastIndexOfScopeResolution !== -1 && !this.name.endsWith('::')) {
+            this.name = this.name.slice(lastIndexOfScopeResolution + 2);
+        }
+
+        if (activeLanguageServer() === LanguageServer.ccls) {
+            // ccls puts function signatures in the detail property.
             this.signature = symbol.detail;
             // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
             if (symbol.kind === vscode.SymbolKind.Property) {
