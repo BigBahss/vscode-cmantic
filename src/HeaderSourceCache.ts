@@ -14,7 +14,7 @@ export default class HeaderSourceCache {
     async get(uri: vscode.Uri): Promise<vscode.Uri | undefined> {
         const cachedMatchingUri = this.cache.get(uri.toString());
         if (cachedMatchingUri) {
-            if (util.uriExists(cachedMatchingUri)) {
+            if (await util.uriExists(cachedMatchingUri)) {
                 return cachedMatchingUri;
             } else {
                 this.delete(uri, cachedMatchingUri);

@@ -91,9 +91,9 @@ export function arraysShareAnyElement<T>(array_a: T[], array_b: T[]): boolean {
     return false;
 }
 
-export function uriExists(uri: vscode.Uri): boolean {
+export async function uriExists(uri: vscode.Uri): Promise<boolean> {
     try {
-        vscode.workspace.fs.stat(uri);
+        await vscode.workspace.fs.stat(uri);
     } catch (e) {
         return false;
     }
