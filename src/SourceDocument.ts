@@ -537,7 +537,6 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 if (targetNamespace.children.length === 0) {
                     return new ProposedPosition(targetNamespace.bodyStart(), {
                         after: true,
-                        nextTo: true,
                         emptyScope: true,
                         inNamespace: true
                     });
