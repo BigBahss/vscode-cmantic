@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cfg from './configuration';
+import * as parse from './parsing';
 import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 /**
@@ -245,6 +247,23 @@ export function requiresVisibleDefinition(functionDeclaration: CSymbol): boolean
         || functionDeclaration.isConstexpr()
         || functionDeclaration.isConsteval()
         || functionDeclaration.hasUnspecializedTemplate();
+}
+
+export function formatSignature(symbol: CSymbol): string {
+    if (symbol.isVariable()) {
+        const text = symbol.document.getText(new vscode.Range(symbol.range.start, symbol.declarationEnd()));
+        return parse.removeAttributes(parse.removeComments(text)).replace(/\s+/g, ' ');
+    } else if (activeLanguageServer() === LanguageServer.cpptools) {
+        // cpptools does a good job of providing formatted signatures for DocumentSymbols.
+        return symbol.signature;
+    }
+
+    if (symbol.isFunction()) {
+        const text = symbol.document.getText(new vscode.Range(symbol.selectionRange.end, symbol.declarationEnd()));
+        return symbol.templatedName(true) + parse.removeAttributes(parse.removeComments(text)).replace(/\s+/g, ' ');
+    }
+
+    return symbol.templatedName(true);
 }
 
 /**

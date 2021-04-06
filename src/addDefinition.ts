@@ -90,6 +90,50 @@ export async function addDefinitionInCurrentFile(): Promise<boolean | undefined>
     return addDefinition(symbol, sourceDoc, sourceDoc.uri);
 }
 
+export async function addDefinition(
+    functionDeclaration: CSymbol,
+    declarationDoc: SourceDocument,
+    targetUri: vscode.Uri,
+    skipExistingDefinitionCheck?: boolean
+): Promise<boolean | undefined> {
+    if (!skipExistingDefinitionCheck) {
+        const existingDefinition = await functionDeclaration.findDefinition();
+        if (existingDefinition) {
+            if (!cfg.revealNewDefinition()) {
+                logger.alertInformation(failure.definitionExists);
+                return;
+            }
+            const editor = await vscode.window.showTextDocument(existingDefinition.uri);
+            editor.revealRange(existingDefinition.range, vscode.TextEditorRevealType.InCenter);
+            return;
+        }
+    }
+
+    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
+
+    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
+            ? declarationDoc
+            : await SourceDocument.open(targetUri);
+    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
+
+    const functionSkeleton = await constructFunctionSkeleton(
+            functionDeclaration, targetDoc, targetPos, p_initializers);
+
+    if (functionSkeleton === undefined) {
+        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
+    const success = await vscode.workspace.applyEdit(workspaceEdit);
+
+    if (success && cfg.revealNewDefinition()) {
+        await revealNewFunction(workspaceEdit, targetDoc);
+    }
+
+    return success;
+}
+
 export async function addDefinitions(
     sourceDoc?: SourceDocument, matchingUri?: vscode.Uri
 ): Promise<boolean | undefined> {
@@ -156,50 +200,6 @@ export async function addDefinitions(
     return success;
 }
 
-export async function addDefinition(
-    functionDeclaration: CSymbol,
-    declarationDoc: SourceDocument,
-    targetUri: vscode.Uri,
-    skipExistingDefinitionCheck?: boolean
-): Promise<boolean | undefined> {
-    if (!skipExistingDefinitionCheck) {
-        const existingDefinition = await functionDeclaration.findDefinition();
-        if (existingDefinition) {
-            if (!cfg.revealNewDefinition()) {
-                logger.alertInformation(failure.definitionExists);
-                return;
-            }
-            const editor = await vscode.window.showTextDocument(existingDefinition.uri);
-            editor.revealRange(existingDefinition.range, vscode.TextEditorRevealType.InCenter);
-            return;
-        }
-    }
-
-    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
-
-    const targetDoc = (targetUri.fsPath === declarationDoc.uri.fsPath)
-            ? declarationDoc
-            : await SourceDocument.open(targetUri);
-    const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
-
-    const functionSkeleton = await constructFunctionSkeleton(
-            functionDeclaration, targetDoc, targetPos, p_initializers);
-
-    if (functionSkeleton === undefined) {
-        return;
-    }
-
-    const workspaceEdit = new vscode.WorkspaceEdit();
-    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
-    const success = await vscode.workspace.applyEdit(workspaceEdit);
-
-    if (success && cfg.revealNewDefinition()) {
-        await revealNewFunction(workspaceEdit, targetDoc);
-    }
-
-    return success;
-}
-
 type Initializer = CSymbol | SubSymbol;
 
 interface InitializerQuickPickItem extends vscode.QuickPickItem {
@@ -235,14 +235,14 @@ async function getInitializersIfFunctionIsConstructor(
             initializerItem.description = 'Base class constructor';
         } else {
             initializerItem.label = '$(symbol-field) ' + initializer.name;
-            initializerItem.description = initializer.text();
+            initializerItem.description = util.formatSignature(initializer);
         }
         initializerItems.push(initializerItem);
     });
 
     const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
         matchOnDescription: true,
-        placeHolder: `Select what you would like to initialize in ${functionDeclaration.name} constructor`,
+        placeHolder: `Select initializers for "${util.formatSignature(functionDeclaration)}"`,
         ignoreFocusOut: true,
         canPickMany: true
     });
@@ -553,7 +553,7 @@ export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[
     functionDeclarations.forEach(declaration => {
         functionItems.push({
             label: '$(symbol-function) ' + declaration.name,
-            description: declaration.text().replace(/\s+/g, ' '),
+            description: util.formatSignature(declaration),
             declaration: declaration
         });
     });

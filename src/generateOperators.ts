@@ -170,7 +170,7 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
         } else {
             operandItems.push({
                 label: '$(symbol-field) ' + operand.name,
-                description: operand.text(),
+                description: util.formatSignature(operand),
                 operand: operand,
                 picked: true
             });
