@@ -1058,7 +1058,7 @@ export default class CSymbol extends SourceSymbol {
         return new ProposedPosition(this.bodyStart(), {
             after: true,
             nextTo: true,
-            emptyScope: true
+            indent: true
         });
     }
 }

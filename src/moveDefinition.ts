@@ -75,7 +75,7 @@ export async function moveDefinitionToMatchingSourceFile(
             : await getNewPosition(targetDoc, definition);
 
     const definitionText = await definition.getDefinitionForTargetPosition(targetDoc, position, declaration, true);
-    const formattedDefinition = await position.formatTextToInsert(definitionText, targetDoc);
+    const formattedDefinition = position.formatTextToInsert(definitionText, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, position, formattedDefinition);
@@ -150,7 +150,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         const position = await getNewPosition(classDoc, definition);
 
         const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration, true);
-        const formattedDefinition = await position.formatTextToInsert(definitionText, classDoc);
+        const formattedDefinition = position.formatTextToInsert(definitionText, classDoc);
 
         const workspaceEdit = new vscode.WorkspaceEdit();
         workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
@@ -185,7 +185,7 @@ export async function moveDefinitionIntoOrOutOfClass(
             if (access && !parentClass?.positionHasAccess(position, access)) {
                 formattedDefinition = util.accessSpecifierString(access) + classDoc.endOfLine + formattedDefinition;
             }
-            formattedDefinition = await position.formatTextToInsert(formattedDefinition, classDoc);
+            formattedDefinition = position.formatTextToInsert(formattedDefinition, classDoc);
 
             const workspaceEdit = new vscode.WorkspaceEdit();
             workspaceEdit.insert(classDoc.uri, position, formattedDefinition);

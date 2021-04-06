@@ -163,12 +163,6 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
     return new ProposedPosition();
 }
 
-export async function shouldIndentNamespaceBody(declarationDoc: SourceDocument): Promise<boolean | undefined> {
-    const cfgIndent = cfg.indentNamespaceBody();
-    return cfgIndent === cfg.NamespaceIndentation.Always /* eslint-disable no-return-await */
-        || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented());
-}
-
 export function sortByRange(a: { range: vscode.Range }, b: { range: vscode.Range }): number {
     return a.range.end.isAfter(b.range.end) ? 1 : -1;
 }

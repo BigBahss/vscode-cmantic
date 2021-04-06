@@ -8,8 +8,7 @@ export interface PositionOptions {
     before?: boolean;
     after?: boolean;
     nextTo?: boolean;       // Signals to not put a blank line between.
-    emptyScope?: boolean;   // Signals that the position is in an empty scope and may need to be indented.
-    inNamespace?: boolean;  // Used with emptyScope, since namespace indentation is controlled by user settings.
+    indent?: boolean;       // Signals that text should be indented relative to the positions line.
 }
 
 export class ProposedPosition extends Position {
@@ -29,7 +28,7 @@ export class ProposedPosition extends Position {
         }
     }
 
-    formatTextToInsert(insertText: string, sourceDoc: SourceDocument): Promise<string> {
+    formatTextToInsert(insertText: string, sourceDoc: SourceDocument): string {
         return formatTextToInsert(insertText, this, sourceDoc);
     }
 }
@@ -43,16 +42,15 @@ export class TargetLocation {
         this.sourceDoc = sourceDoc;
     }
 
-    formatTextToInsert(insertText: string): Promise<string> {
+    formatTextToInsert(insertText: string): string {
         return formatTextToInsert(insertText, this.position, this.sourceDoc);
     }
 }
 
-async function formatTextToInsert(
+function formatTextToInsert(
     insertText: string, position: ProposedPosition, sourceDoc: SourceDocument
-): Promise<string> {
-    if (position.options.emptyScope && (!position.options.inNamespace
-            || (position.options.inNamespace && await util.shouldIndentNamespaceBody(sourceDoc)))) {
+): string {
+    if (position.options.indent) {
         insertText = insertText.replace(/^/gm, util.indentation());
     }
 

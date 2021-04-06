@@ -98,22 +98,6 @@ export default class SourceFile {
         return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
     }
 
-    async isNamespaceBodyIndented(): Promise<boolean> {
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
-        }
-
-        for (const symbol of this.symbols) {
-            if (symbol.isNamespace()) {
-                for (const child of symbol.children) {
-                    return child.range.start.character > symbol.range.start.character;
-                }
-            }
-        }
-
-        return false;
-    }
-
     protected static findMatchingSymbol(
         target: SourceSymbol | CSymbol, symbols: SourceSymbol[], document?: SourceDocument
     ): SourceSymbol | CSymbol | undefined {

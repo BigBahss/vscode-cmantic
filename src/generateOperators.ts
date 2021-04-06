@@ -70,7 +70,7 @@ export async function generateEqualityOperators(
         relativeTo: equalPosition.options.relativeTo,
         after: true,
         nextTo: true,
-        emptyScope: equalPosition.options.emptyScope
+        indent: equalPosition.options.indent
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -288,7 +288,7 @@ async function addNewOperatorToWorkspaceEdit(
             formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedInlineDefinition;
         }
-        formattedInlineDefinition = await declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
+        formattedInlineDefinition = declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
@@ -298,10 +298,10 @@ async function addNewOperatorToWorkspaceEdit(
             formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedDeclaration;
         }
-        formattedDeclaration = await declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
+        formattedDeclaration = declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
 
         const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = await target.position.formatTextToInsert(definition, target.sourceDoc);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);

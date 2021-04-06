@@ -77,7 +77,7 @@ export async function addDeclaration(
     if (access && !parentClass?.positionHasAccess(targetPos, access)) {
         formattedDeclaration = util.accessSpecifierString(access) + targetDoc.endOfLine + formattedDeclaration;
     }
-    formattedDeclaration = await targetPos.formatTextToInsert(formattedDeclaration, targetDoc);
+    formattedDeclaration = targetPos.formatTextToInsert(formattedDeclaration, targetDoc);
 
     const workspaceEdit = new vscode.WorkspaceEdit();
     workspaceEdit.insert(targetDoc.uri, targetPos, formattedDeclaration);
