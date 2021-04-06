@@ -74,16 +74,14 @@ export default class SourceFile {
     }
 
     async findDefintions(position: vscode.Position): Promise<vscode.Location[]> {
-        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+        const definitionResults = await vscode.commands.executeCommand<util.LocationType[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
-
         return util.makeLocationArray(definitionResults);
     }
 
     async findDeclarations(position: vscode.Position): Promise<vscode.Location[]> {
-        const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+        const declarationResults = await vscode.commands.executeCommand<util.LocationType[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
-
         return util.makeLocationArray(declarationResults);
     }
 
@@ -91,7 +89,6 @@ export default class SourceFile {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-
         return SourceFile.findMatchingSymbol(target, this.symbols);
     }
 

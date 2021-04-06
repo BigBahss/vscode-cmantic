@@ -173,14 +173,16 @@ export function sortByRange(a: { range: vscode.Range }, b: { range: vscode.Range
     return a.range.end.isAfter(b.range.end) ? 1 : -1;
 }
 
-type AnySymbol = SourceSymbol | SubSymbol;
+export type AnySymbol = SourceSymbol | CSymbol | SubSymbol;
+
+export type LocationType = vscode.Location | vscode.LocationLink;
 
 /**
  * Finds the most likely definition of symbol and only returns a result with the same base file name.
  * Returns undefined if the most likely definition found is the same symbol.
  */
 export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location | undefined> {
-    const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+    const definitionResults = await vscode.commands.executeCommand<LocationType[]>(
             'vscode.executeDefinitionProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, definitionResults);
 }
@@ -190,16 +192,16 @@ export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location
  * Returns undefined if the most likely declaration found is the same symbol.
  */
 export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Location | undefined> {
-    const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+    const declarationResults = await vscode.commands.executeCommand<LocationType[]>(
             'vscode.executeDeclarationProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, declarationResults);
 }
 
 function findMostLikelyResult(
-    symbol: AnySymbol, results?: vscode.Location[] | vscode.LocationLink[]
+    symbol: AnySymbol, locationResults?: LocationType[]
 ): vscode.Location | undefined {
     const thisFileNameBase = fileNameBase(symbol.uri.fsPath);
-    for (const location of makeLocationArray(results)) {
+    for (const location of makeLocationArray(locationResults)) {
         if (!containedInWorkspace(location)) {
             continue;
         }
@@ -211,13 +213,13 @@ function findMostLikelyResult(
     }
 }
 
-export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
-    if (!input) {
+export function makeLocationArray(locationResults?: LocationType[]): vscode.Location[] {
+    if (!locationResults) {
         return [];
     }
 
     const locations: vscode.Location[] = [];
-    for (const element of input) {
+    for (const element of locationResults) {
         const location = (element instanceof vscode.Location)
                 ? element
                 : new vscode.Location(element.targetUri, element.targetRange);
