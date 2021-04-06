@@ -16,12 +16,6 @@ export enum CurlyBraceFormat {
     NewLine
 }
 
-export enum NamespaceIndentation {
-    Auto,
-    Always,
-    Never
-}
-
 export enum HeaderGuardStyle {
     Define,
     PragmaOnce,
@@ -45,7 +39,6 @@ const defaultHeaderExtensions = ['h', 'hpp', 'hh', 'hxx'];
 const defaultSourceExtensions = ['c', 'cpp', 'cc', 'cxx'];
 const defaultFunctionCurlyBraceFormat = CurlyBraceFormat.NewLine;
 const defaultNamespaceCurlyBraceFormat = CurlyBraceFormat.Auto;
-const defaultNamespaceIndentation = NamespaceIndentation.Auto;
 const defaultGenerateNamespaces = true;
 const defaultHeaderGuardStyle = HeaderGuardStyle.Define;
 const defaultHeaderGuardDefineFormat = '${FILE_NAME}_${EXT}';
@@ -113,20 +106,6 @@ export function namespaceCurlyBraceFormat(scope?: vscode.ConfigurationScope): Cu
         return CurlyBraceFormat.NewLine;
     default:
         return defaultNamespaceCurlyBraceFormat;
-    }
-}
-
-export function indentNamespaceBody(scope?: vscode.ConfigurationScope): NamespaceIndentation {
-    const indent = configuration(scope).get<string>('cpp.indentation.namespace');
-    switch (indent) {
-    case 'Auto':
-        return NamespaceIndentation.Auto;
-    case 'Always':
-        return NamespaceIndentation.Always;
-    case 'Never':
-        return NamespaceIndentation.Never;
-    default:
-        return defaultNamespaceIndentation;
     }
 }
 
