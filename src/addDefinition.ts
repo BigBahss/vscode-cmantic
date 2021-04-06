@@ -417,29 +417,47 @@ async function findAllUndefinedFunctions(functionDeclarations: CSymbol[]): Promi
     }
 }
 
+type WorkspaceEditArguments = [vscode.Uri, vscode.Position, string];
+
+interface WorkspaceEditArgumentsEntry {
+    declaration: CSymbol;
+    args: WorkspaceEditArguments;
+}
+
 export async function generateDefinitionsWorkspaceEdit(
     functionDeclarations: CSymbol[],
     declarationDoc: SourceDocument,
     targetDoc: SourceDocument
 ): Promise<vscode.WorkspaceEdit | undefined> {
-    const workspaceEdit = new vscode.WorkspaceEdit();
+    /* Since generating constructors requires additional user input, we must generate them
+     * separately, one at a time. In order to insert them all in the same order that their
+     * declarations appear in the file, we map the declarations to the WorkspaceEditArguments
+     * and insert them all into the WorkspaceEdit at the end. */
+    const constructors: CSymbol[] = [];
+    const nonConstructors: CSymbol[] = [];
+    functionDeclarations.forEach(declaration => {
+        if (declaration.isConstructor()) {
+            constructors.push(declaration);
+        } else {
+            nonConstructors.push(declaration);
+        }
+    });
 
-    async function addDefinitionsForNextChunkOfFunctions(i: number): Promise<void> {
-        const p_addedDefinitions: Promise<void>[] = [];
-        functionDeclarations.slice(i, i + 5).forEach(declaration => {
-            p_addedDefinitions.push(addDefinitionToWorkspaceEdit(
-                    declaration, declarationDoc, targetDoc, workspaceEdit));
+    const allArgs = new WeakMap<CSymbol, WorkspaceEditArguments>();
+
+    async function generateNextChunkOfNonConstructors(i: number): Promise<void> {
+        const p_argsEntries: Promise<WorkspaceEditArgumentsEntry | undefined>[] = [];
+        nonConstructors.slice(i, i + 5).forEach(declaration => {
+            p_argsEntries.push(getWorkspaceEditArgumentsEntry(declaration, declarationDoc, targetDoc));
         });
-        await Promise.all(p_addedDefinitions);
+
+        (await Promise.all(p_argsEntries)).forEach(entry => {
+            if (entry) {
+                allArgs.set(entry.declaration, entry.args);
+            }
+        });
     }
 
-    await addDefinitionsForNextChunkOfFunctions(0);
-
-    if (functionDeclarations.length <= 5) {
-        return;
-    }
-
-    const increment = (5 / functionDeclarations.length) * 100;
     let userCancelledOperation = false;
 
     await vscode.window.withProgress({
@@ -447,37 +465,69 @@ export async function generateDefinitionsWorkspaceEdit(
         title: 'Generating function definitions',
         cancellable: true
     }, async (progress, token) => {
-        for (let i = 5; i < functionDeclarations.length; i += 5) {
+        progress.report({ message: `${0}/${functionDeclarations.length} generated`, increment: 0 });
+        const increment = (1 / functionDeclarations.length) * 100;
+
+        let constructorsAdded = 0;
+        let nonConstructorsAdded = 0;
+
+        const p_generatedConstructors = async function (): Promise<void> {
+            for (const declaration of constructors) {
+                if (token.isCancellationRequested) {
+                    userCancelledOperation = true;
+                    return;
+                }
+
+                const entry = await getWorkspaceEditArgumentsEntry(declaration, declarationDoc, targetDoc);
+                if (entry) {
+                    allArgs.set(entry.declaration, entry.args);
+                }
+
+                progress.report({
+                    message: `${++constructorsAdded + nonConstructorsAdded}/${functionDeclarations.length} generated`,
+                    increment: increment
+                });
+            }
+        } ();
+
+        for (let i = 0; i < nonConstructors.length; i += 5) {
             if (token.isCancellationRequested) {
                 userCancelledOperation = true;
                 return;
             }
 
-            progress.report({
-                message: `${i}/${functionDeclarations.length} generated`,
-                increment: increment
-            });
+            await generateNextChunkOfNonConstructors(i);
+            nonConstructorsAdded = Math.min(i + 5, nonConstructors.length);
 
-            await addDefinitionsForNextChunkOfFunctions(i);
+            progress.report({
+                message: `${constructorsAdded + nonConstructorsAdded}/${functionDeclarations.length} generated`,
+                increment: increment * (nonConstructorsAdded - i)
+            });
         }
 
-        progress.report({
-            message: `${functionDeclarations.length}/${functionDeclarations.length}`,
-            increment: increment
-        });
+        await p_generatedConstructors;
     });
 
-    if (!userCancelledOperation) {
-        return workspaceEdit;
+    if (userCancelledOperation) {
+        return;
     }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    functionDeclarations.forEach(declaration => {
+        const args = allArgs.get(declaration);
+        if (args) {
+            workspaceEdit.insert(...args);
+        }
+    });
+
+    return workspaceEdit;
 }
 
-async function addDefinitionToWorkspaceEdit(
+async function getWorkspaceEditArgumentsEntry(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
-    targetDoc: SourceDocument,
-    workspaceEdit: vscode.WorkspaceEdit
-): Promise<void> {
+    targetDoc: SourceDocument
+): Promise<WorkspaceEditArgumentsEntry | undefined> {
     const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
 
     const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
@@ -488,7 +538,10 @@ async function addDefinitionToWorkspaceEdit(
         return;
     }
 
-    workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
+    return {
+        declaration: functionDeclaration,
+        args: [targetDoc.uri, targetPos, functionSkeleton]
+    };
 }
 
 export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
