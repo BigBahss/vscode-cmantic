@@ -107,7 +107,7 @@ export default class SourceFile {
         }
 
         for (const symbol of this.symbols) {
-            if (symbol.kind === vscode.SymbolKind.Namespace) {
+            if (symbol.isNamespace()) {
                 for (const child of symbol.children) {
                     return child.range.start.character > symbol.range.start.character;
                 }

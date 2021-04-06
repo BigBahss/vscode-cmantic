@@ -139,8 +139,20 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         }
     }
 
+    isClass(): boolean {
+        return this.kind === vscode.SymbolKind.Class;
+    }
+
+    isStruct(): boolean {
+        return this.kind === vscode.SymbolKind.Struct;
+    }
+
     isClassOrStruct(): boolean {
         return this.kind === vscode.SymbolKind.Class || this.kind === vscode.SymbolKind.Struct;
+    }
+
+    isNamespace(): boolean {
+        return this.kind === vscode.SymbolKind.Namespace;
     }
 
     /**

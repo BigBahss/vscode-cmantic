@@ -170,9 +170,9 @@ export default class CSymbol extends SourceSymbol {
         const ranges: vscode.Range[] = [];
         let start: vscode.Position | undefined;
 
-        if (access === util.AccessLevel.private && this.kind === vscode.SymbolKind.Class) {
+        if (access === util.AccessLevel.private && this.isClass()) {
             start = this.bodyStart();
-        } else if (access === util.AccessLevel.public && this.kind === vscode.SymbolKind.Struct) {
+        } else if (access === util.AccessLevel.public && this.isStruct()) {
             start = this.bodyStart();
         }
 
@@ -344,7 +344,7 @@ export default class CSymbol extends SourceSymbol {
 
     async scopeString(target: SourceDocument, position: vscode.Position, namespacesOnly?: boolean): Promise<string> {
         let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
+        const scopes = (this.isClassOrStruct() || this.isNamespace())
                 ? [...this.scopes(), this]
                 : this.scopes();
 
@@ -433,7 +433,7 @@ export default class CSymbol extends SourceSymbol {
     childNamespaces(): CSymbol[] {
         const namespaces: CSymbol[] = [];
         this.children.forEach(child => {
-            if (child.kind === vscode.SymbolKind.Namespace) {
+            if (child.isNamespace()) {
                 namespaces.push(new CSymbol(child, this.document));
             }
         });
@@ -656,7 +656,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     isNestedNamespace(): boolean {
-        return this.kind === vscode.SymbolKind.Namespace && !/\bnamespace\b/.test(this.parsableLeadingText);
+        return this.isNamespace() && !/\bnamespace\b/.test(this.parsableLeadingText);
     }
 
     isTypedef(): boolean {

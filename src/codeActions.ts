@@ -261,7 +261,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             const parentClass = await definition.getParentClass();
             if (parentClass) {
                 const scopeName = parentClass.templatedName(true);
-                if (parentClass.kind === vscode.SymbolKind.Class) {
+                if (parentClass.isClass()) {
                     addDeclaration.setTitle(`Add Declaration in class "${scopeName}"`);
                 } else {
                     addDeclaration.setTitle(`Add Declaration in struct "${scopeName}"`);
@@ -305,7 +305,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         let declarationDoc: SourceDocument | undefined;
 
         if (definition.parent?.isClassOrStruct()) {
-            if (definition.parent.kind === vscode.SymbolKind.Class) {
+            if (definition.parent.isClass()) {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfClass);
             } else {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfStruct);
@@ -323,11 +323,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
                 moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
 
-                if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
+                if (declaration?.parent?.isClass()) {
                     const scopeName = declaration.parent.templatedName(true);
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoClass} "${scopeName}"`);
-                } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
+                } else if (declaration?.parent?.isStruct()) {
                     const scopeName = declaration.parent.templatedName(true);
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
@@ -337,7 +337,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     if (parentClass) {
                         declarationDoc = parentClass.document;
                         const scopeName = parentClass.templatedName(true);
-                        if (parentClass.kind === vscode.SymbolKind.Class) {
+                        if (parentClass.isClass()) {
                             moveDefinitionIntoOrOutOfClass.setTitle(
                                     `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                         } else {
@@ -359,7 +359,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 if (parentClass) {
                     declarationDoc = parentClass.document;
                     const scopeName = parentClass.templatedName(true);
-                    if (parentClass.kind === vscode.SymbolKind.Class) {
+                    if (parentClass.isClass()) {
                         moveDefinitionIntoOrOutOfClass.setTitle(
                                 `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                     } else {

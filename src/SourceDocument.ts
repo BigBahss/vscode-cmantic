@@ -101,7 +101,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         const namespaces: CSymbol[] = [];
         this.symbols.forEach(symbol => {
-            if (symbol.kind === vscode.SymbolKind.Namespace) {
+            if (symbol.isNamespace()) {
                 namespaces.push(new CSymbol(symbol, this));
             }
         });
@@ -528,7 +528,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
     private async findPositionInParentNamespace(symbol: CSymbol): Promise<ProposedPosition | undefined> {
         for (const scope of symbol.scopes().reverse()) {
-            if (scope.kind === vscode.SymbolKind.Namespace) {
+            if (scope.isNamespace()) {
                 const targetNamespace = await this.findMatchingSymbol(scope);
                 if (!targetNamespace) {
                     continue;
