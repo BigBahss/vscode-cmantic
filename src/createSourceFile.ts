@@ -109,6 +109,7 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
     const fileSystemItems = await vscode.workspace.fs.readDirectory(relativeUri);
     const directories: FolderItem[] = [];
     let foundSourceFile = false;
+
     for (const fileSystemItem of fileSystemItems) {
         if (fileSystemItem[1] === vscode.FileType.Directory) {
             directories.push(...await findSourceFolders(vscode.Uri.joinPath(relativeUri, fileSystemItem[0])));
@@ -121,6 +122,7 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
             });
         }
     }
+
     return directories;
 }
 
@@ -174,7 +176,7 @@ function generateNamespaces(namespaces: CSymbol[], eol: string): string {
                 namespaceText += eol + eol;
             }
 
-            if (namespace.isNestedNamespace()) {
+            if (namespace.isQualifiedNamespace()) {
                 namespaceText += '::' + (namespace.isInline() ? 'inline ' : '') + namespace.name;
             } else {
                 namespaceText += (namespace.isInline() ? 'inline ' : '') + 'namespace ' + namespace.name;

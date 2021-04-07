@@ -359,8 +359,13 @@ export default class CSymbol extends SourceSymbol {
                 if (!targetScope) {
                     targetScope = scope;
                 }
-                const nameRange = new vscode.Range(targetScope.scopeStringStart(), targetScope.selectionRange.end);
-                scopeString += targetScope.document.getText(nameRange) + targetScope.templateParameters() + '::';
+
+                if (targetScope.isNamespace()) {
+                    scopeString += targetScope.name + '::';
+                } else {
+                    const nameRange = new vscode.Range(targetScope.scopeStringStart(), targetScope.selectionRange.end);
+                    scopeString += targetScope.document.getText(nameRange) + targetScope.templateParameters() + '::';
+                }
             }
         }
 
@@ -580,12 +585,12 @@ export default class CSymbol extends SourceSymbol {
 
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !/}\s*(\s*;)*$/.test(this.parsableText)
-                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
+            && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isFunctionDefinition(): boolean {
         return this.isFunction() && /}\s*(\s*;)*$/.test(this.parsableText)
-                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
+            && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isVirtual(): boolean {
@@ -655,8 +660,22 @@ export default class CSymbol extends SourceSymbol {
         return this.isUnspecializedTemplate();
     }
 
-    isNestedNamespace(): boolean {
-        return this.isNamespace() && !/\bnamespace\b/.test(this.parsableLeadingText);
+    /**
+     * ```cpp
+     * namespace isUnqualified::isQualified { namespace isNeither {} }
+     * ```
+     */
+    isQualifiedNamespace(): boolean {
+        return this.isNamespace() && /::\s*(inline\s*)?$/.test(this.parsableFullLeadingText);
+    }
+
+    /**
+     * ```cpp
+     * namespace isUnqualified::isQualified { namespace isNeither {} }
+     * ```
+     */
+    isUnqualifiedNamespace(): boolean {
+        return this.isNamespace() && /^\s*::\s*[\w_][\w\d_]*/.test(this.parsableTrailingText);
     }
 
     isTypedef(): boolean {
@@ -665,7 +684,7 @@ export default class CSymbol extends SourceSymbol {
 
     isTypeAlias(): boolean {
         return this.mightBeTypedefOrTypeAlias()
-                && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
+            && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
     }
 
     async isPrimitive(): Promise<boolean> {
@@ -880,7 +899,7 @@ export default class CSymbol extends SourceSymbol {
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = parse.maskComments(this.document.getText(before), false);
 
-        if (this.isNestedNamespace()) {
+        if (this.isNamespace()) {
             const namespaceStartOffset = maskedText.search(
                     /\b(inline\s*)?namespace\s*[\w_][\w\d_]*(\s*::\s*(inline\s*)?[\w_][\w\d_]*)*(\s*::\s*)?$/);
             if (namespaceStartOffset === -1) {
@@ -964,6 +983,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     scopeStringStart(): vscode.Position {
+        // FIXME: This function does not work with C++20's 'namespace foo::inline bar {}' syntax.
         const trimmedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText.trimEnd(), false);
         if (!trimmedLeadingText.endsWith('::')) {
             return this.selectionRange.start;

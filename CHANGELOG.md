@@ -9,7 +9,8 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Removed the setting `C_mantic.cpp.indentation.namespace`. Namespace indentation will always be auto-detected now.
 
 ### Fixed
-- Fixed a bug when determining if a cached matching header/source file still exists. This would cause some commands to throw an error.
+- Fixed a bug when determining if a cached matching header/source file still exists. This would cause some commands to throw an error if the file has been removed.
+- Fixed a bug where name qualification of generated code would contain duplicate namespace names.
 
 ## [0.6.3] - March 31, 2021
 ### Added
