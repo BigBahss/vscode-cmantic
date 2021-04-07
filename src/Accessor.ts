@@ -54,7 +54,7 @@ export class Getter implements Accessor {
 
         this.parameter = '';
         let memberPrefix = '';
-        if (cfg.useExplicitThisPointer() && !this.isStatic) {
+        if (cfg.useExplicitThisPointer(memberVariable.uri) && !this.isStatic) {
             memberPrefix = 'this->';
         } else if (this.isStatic && memberVariable.parent) {
             memberPrefix = memberVariable.parent.name + '::';
@@ -101,7 +101,7 @@ export class Setter implements Accessor {
         const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '')
                 .replace('[[', '').replace(']]', '').replace(/\s+/g, ' ').trimStart();
 
-        if (!await memberVariable.isPrimitive() && !memberVariable.isPointer()) {
+        if (!await memberVariable.isPrimitive(cfg.resolveTypes(memberVariable.uri)) && !memberVariable.isPointer()) {
             setter.parameter = (memberVariable.isReference()
                 ? 'const ' + type
                 : 'const ' + type + '&'
@@ -123,7 +123,7 @@ export class Setter implements Accessor {
         if (baseName !== memberVariable.name) {
             this.parameterName = baseName;
         } else {
-            baseName = cfg.formatToCaseStyle(baseName);
+            baseName = cfg.formatToCaseStyle(baseName, memberVariable.uri);
             if (baseName !== memberVariable.name) {
                 this.parameterName = baseName;
             } else {
@@ -132,7 +132,7 @@ export class Setter implements Accessor {
         }
         this.parameter = '';
         let memberPrefix = '';
-        if (cfg.useExplicitThisPointer() && !this.isStatic) {
+        if (cfg.useExplicitThisPointer(memberVariable.uri) && !this.isStatic) {
             memberPrefix = 'this->';
         } else if (this.isStatic && memberVariable.parent) {
             memberPrefix = memberVariable.parent.name + '::';

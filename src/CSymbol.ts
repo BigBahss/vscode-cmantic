@@ -204,12 +204,12 @@ export default class CSymbol extends SourceSymbol {
             return '';
         }
 
-        const formattedBaseName = cfg.formatToCaseStyle(this.baseName());
+        const formattedBaseName = cfg.formatToCaseStyle(this.baseName(), this.uri);
 
         if (cfg.boolGetterIsPrefix(this.uri)) {
             const maskedLeadingText = parse.maskParentheses(parse.maskAngleBrackets(this.parsableLeadingText));
             if (/\bbool\b/.test(maskedLeadingText) && !/^[iI]s[_A-Z]/.test(formattedBaseName)) {
-                return cfg.formatToCaseStyle('is_' + formattedBaseName);
+                return cfg.formatToCaseStyle('is_' + formattedBaseName, this.uri);
             }
         }
 
@@ -217,7 +217,7 @@ export default class CSymbol extends SourceSymbol {
             return formattedBaseName;
         }
 
-        return cfg.formatToCaseStyle('get_' + formattedBaseName);
+        return cfg.formatToCaseStyle('get_' + formattedBaseName, this.uri);
     }
 
     setterName(): string {
@@ -225,7 +225,7 @@ export default class CSymbol extends SourceSymbol {
             return '';
         }
 
-        return cfg.formatToCaseStyle('set_' + this.baseName());
+        return cfg.formatToCaseStyle('set_' + this.baseName(), this.uri);
     }
 
     findGetterFor(memberVariable: CSymbol): SourceSymbol | undefined {
@@ -691,12 +691,12 @@ export default class CSymbol extends SourceSymbol {
             && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
     }
 
-    async isPrimitive(): Promise<boolean> {
+    async isPrimitive(resolveTypes: boolean): Promise<boolean> {
         if (this.isVariable()) {
             const leadingText = this.parsableLeadingText;
             if (parse.matchesPrimitiveType(leadingText)) {
                 return true;
-            } else if (!cfg.resolveTypes()) {
+            } else if (!resolveTypes) {
                 return false;
             }
 
@@ -710,7 +710,7 @@ export default class CSymbol extends SourceSymbol {
                 return true;
             } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
-            } else if (!cfg.resolveTypes()) {
+            } else if (!resolveTypes) {
                 return false;
             }
 
@@ -724,7 +724,7 @@ export default class CSymbol extends SourceSymbol {
                 return true;
             } else if (/\b(struct|class|(<(>(?=>)|[^>])*>))\b/.test(this.parsableText)) {
                 return false;
-            } else if (!cfg.resolveTypes()) {
+            } else if (!resolveTypes) {
                 return false;
             }
 
@@ -755,7 +755,7 @@ export default class CSymbol extends SourceSymbol {
             } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
                 const typeDoc = await typeFile.openDocument();
                 const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                return typeCSymbol.isPrimitive();
+                return typeCSymbol.isPrimitive(true);
             }
         }
 
@@ -773,7 +773,7 @@ export default class CSymbol extends SourceSymbol {
         const scopeString = await declarationSymbol?.scopeString(targetDoc, position);
 
         let comment = '';
-        if (cfg.alwaysMoveComments()) {
+        if (cfg.alwaysMoveComments(this.uri)) {
             comment = this.document.getText(new vscode.Range(this.leadingCommentStart, this.trueStart));
             comment = comment.replace(parse.getIndentationRegExp(this), '');
         }
@@ -784,7 +784,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     async getDeclarationForTargetPosition(targetDoc: SourceDocument, position: vscode.Position): Promise<string> {
-        return await this.formatDeclaration(targetDoc, position) + ';';
+        return (await this.formatDeclaration(targetDoc, position)) + ';';
     }
 
     /**

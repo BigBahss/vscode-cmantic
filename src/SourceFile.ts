@@ -95,7 +95,7 @@ export default class SourceFile {
     isHeader(): boolean { return SourceFile.isHeader(this.uri); }
 
     static isHeader(uri: vscode.Uri): boolean {
-        return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
+        return cfg.headerExtensions(uri).includes(util.fileExtension(uri.fsPath));
     }
 
     protected static findMatchingSymbol(

@@ -56,7 +56,7 @@ export class EqualsOperator implements Operator {
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '    ' : indent;
-        const thisPointer = cfg.useExplicitThisPointer() ? 'this->' : '';
+        const thisPointer = cfg.useExplicitThisPointer(this.parent.uri) ? 'this->' : '';
 
         this.body = '';
 
@@ -87,7 +87,7 @@ export class NotEqualsOperator implements Operator {
         this.name = 'operator!=';
         this.returnType = 'bool ';
         this.parameters = `const ${parent.templatedName()} &other`;
-        if (cfg.useExplicitThisPointer()) {
+        if (cfg.useExplicitThisPointer(parent.uri)) {
             this.body = 'return !(*this == other);';
         } else {
             this.body = 'return !operator==(other);';

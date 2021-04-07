@@ -132,7 +132,8 @@ async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
     const p_cached: Promise<void>[] = [];
     event.files.forEach(uri => {
         const ext = util.fileExtension(uri.fsPath);
-        if (uri.scheme === 'file' && (cfg.sourceExtensions().includes(ext) || cfg.headerExtensions().includes(ext))) {
+        if (uri.scheme === 'file'
+                && (cfg.sourceExtensions(uri).includes(ext) || cfg.headerExtensions(uri).includes(ext))) {
             p_cached.push(headerSourceCache.add(uri));
         }
     });

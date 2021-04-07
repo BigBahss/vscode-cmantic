@@ -194,7 +194,7 @@ async function addNewAccessorToWorkspaceEdit(
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
-        const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
+        const curlySeparator = (cfg.functionCurlyBraceFormat('cpp', target.sourceDoc) === cfg.CurlyBraceFormat.NewLine)
                 ? target.sourceDoc.endOfLine
                 : ' ';
 
@@ -220,8 +220,8 @@ async function getTargetForAccessorDefinition(
     classDoc: SourceDocument
 ): Promise<TargetLocation> {
     const accessorDefinitionLocation = (accessor instanceof Getter)
-            ? cfg.getterDefinitionLocation()
-            : cfg.setterDefinitionLocation();
+            ? cfg.getterDefinitionLocation(classDoc)
+            : cfg.setterDefinitionLocation(classDoc);
 
     switch (accessorDefinitionLocation) {
     case cfg.DefinitionLocation.Inline:

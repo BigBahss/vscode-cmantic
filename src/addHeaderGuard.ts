@@ -31,7 +31,7 @@ export async function addHeaderGuard(): Promise<void> {
 
     let header = '';
     let footer = '';
-    const headerGuardKind = cfg.headerGuardStyle();
+    const headerGuardKind = cfg.headerGuardStyle(headerDoc);
 
     if (headerGuardKind === cfg.HeaderGuardStyle.PragmaOnce || headerGuardKind === cfg.HeaderGuardStyle.Both) {
         header = '#pragma once' + eol;

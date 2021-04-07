@@ -139,27 +139,38 @@
               "Error"
             ],
             "default": "Information",
-            "description": "Controls verbosity of alerts that are shown (notifications). These alerts exist to indicate when you might be misusing a command, or if a command couldn't be executed for various reasons, etc. All alerts are logged to the Output Panel, regardless of alert level. The order of levels from least verbose to most verbose is: Error < Warning < Information."
+            "description": "Controls verbosity of alerts that are shown (notifications). These alerts exist to indicate when you might be misusing a command, or if a command couldn't be executed for various reasons, etc. All alerts are logged to the Output Panel, regardless of alert level. The order of levels from least verbose to most verbose is: Error < Warning < Information.",
+            "scope": "window"
           },
           "C_mantic.codeActions.enableAddDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
+            "description": "Controls whether the 'Add Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu.",
+            "scope": "window"
           },
           "C_mantic.codeActions.enableAddDeclaration": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Add Declaration' code action is suggested (light-bulb menu). The code action will still be available from the 'Refactor...' menu."
+            "description": "Controls whether the 'Add Declaration' code action is suggested (light-bulb menu). The code action will still be available from the 'Refactor...' menu.",
+            "scope": "window"
           },
           "C_mantic.codeActions.enableMoveDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Move Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
+            "description": "Controls whether the 'Move Definition' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu.",
+            "scope": "window"
           },
           "C_mantic.codeActions.enableGenerateGetterSetter": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether the 'Generate Getter/Setter' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu."
+            "description": "Controls whether the 'Generate Getter/Setter' code actions are suggested (light-bulb menu). The code actions will still be available from the 'Refactor...' menu.",
+            "scope": "window"
+          },
+          "C_mantic.contextMenu.switchHeaderSource": {
+            "type": "boolean",
+            "default": true,
+            "description": "Show 'Switch Header/Source in Workspace' in the editor context menu.",
+            "scope": "window"
           },
           "C_mantic.extensions.headerFiles": {
             "type": "array",
@@ -172,7 +183,8 @@
               "hh",
               "hxx"
             ],
-            "description": "File extensions to associate with header files."
+            "description": "File extensions to associate with header files.",
+            "scope": "resource"
           },
           "C_mantic.extensions.sourceFiles": {
             "type": "array",
@@ -185,7 +197,8 @@
               "cc",
               "cxx"
             ],
-            "description": "File extensions to associate with source files."
+            "description": "File extensions to associate with source files.",
+            "scope": "resource"
           },
           "C_mantic.c.curlyBraceFormat.function": {
             "type": "string",
@@ -194,7 +207,8 @@
               "Same line"
             ],
             "default": "New line",
-            "description": "Controls how to format the opening curly brace when adding a new function definition in C."
+            "description": "Controls how to format the opening curly brace when adding a new function definition in C.",
+            "scope": "resource"
           },
           "C_mantic.cpp.curlyBraceFormat.function": {
             "type": "string",
@@ -204,7 +218,8 @@
               "Same line"
             ],
             "default": "New line for constructors and destructors",
-            "description": "Controls how to format the opening curly brace when adding a new function definition in C++."
+            "description": "Controls how to format the opening curly brace when adding a new function definition in C++.",
+            "scope": "resource"
           },
           "C_mantic.cpp.curlyBraceFormat.namespace": {
             "type": "string",
@@ -214,17 +229,20 @@
               "Same line"
             ],
             "default": "Auto",
-            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++. 'Auto' will detect namespace curly brace format from the header file."
+            "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++. 'Auto' will detect namespace curly brace format from the header file.",
+            "scope": "resource"
           },
           "C_mantic.cpp.generateNamespaces": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces."
+            "description": "Controls whether namespace blocks are generated when invoking 'Create Matching Source File' on a header containing namespaces.",
+            "scope": "resource"
           },
           "C_mantic.cpp.accessor.boolGetterIsPrefix": {
             "type": "boolean",
             "default": false,
-            "description": "Generate bool getters with an 'is' prefix. For example, a data member 'bool enabled' will generate a getter named 'isEnabled'."
+            "description": "Generate bool getters with an 'is' prefix. For example, a data member 'bool enabled' will generate a getter named 'isEnabled'.",
+            "scope": "resource"
           },
           "C_mantic.cpp.accessor.getterDefinitionLocation": {
             "type": "string",
@@ -234,7 +252,8 @@
               "Generate definition in matching source file"
             ],
             "default": "Generate definition inline",
-            "description": "Controls where the definitions of new getter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+            "description": "Controls where the definitions of new getter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
+            "scope": "resource"
           },
           "C_mantic.cpp.accessor.setterDefinitionLocation": {
             "type": "string",
@@ -244,27 +263,26 @@
               "Generate definition in matching source file"
             ],
             "default": "Generate definition inline",
-            "description": "Controls where the definitions of new setter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'."
+            "description": "Controls where the definitions of new setter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
+            "scope": "resource"
           },
           "C_mantic.cpp.resolveTypes": {
             "type": "boolean",
             "default": false,
-            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may impact the performance of the generating setters."
+            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may impact the performance of the generating setters.",
+            "scope": "resource"
           },
           "C_mantic.cpp.bracedInitialization": {
             "type": "boolean",
             "default": false,
-            "description": "Controls whether member initializer lists for constructors will use curly braces instead of parentheses."
+            "description": "Controls whether member initializer lists for constructors will use curly braces instead of parentheses.",
+            "scope": "resource"
           },
           "C_mantic.cpp.useExplicitThisPointer": {
             "type": "boolean",
             "default": false,
-            "description": "Controls whether generated member functions will explicitly prefix members with 'this->'."
-          },
-          "C_mantic.contextMenu.switchHeaderSource": {
-            "type": "boolean",
-            "default": true,
-            "description": "Show 'Switch Header/Source in Workspace' in the editor context menu."
+            "description": "Controls whether generated member functions will explicitly prefix members with 'this->'.",
+            "scope": "resource"
           },
           "C_mantic.headerGuard.style": {
             "type": "string",
@@ -274,22 +292,26 @@
               "Add both"
             ],
             "default": "Add #define",
-            "description": "Controls what kind of header guard is added with the 'Add Header Guard' command."
+            "description": "Controls what kind of header guard is added with the 'Add Header Guard' command.",
+            "scope": "resource"
           },
           "C_mantic.headerGuard.defineFormat": {
             "type": "string",
             "default": "${FILE_NAME}_${EXT}",
-            "description": "Controls how new header guard defines are generated. There are many variables you can use to generate them:\n${FILE_NAME} : The name of the file without the file extension.\n${EXT} : The file extension.\n${DIR} : The name of the directory the file exists in.\n${PROJECT_NAME} : The name of the workspace.\n${PROJECT_REL_PATH} : The path to the file, relative to the workspace, not including the file name.\nAll characters are made upper-case and all symbols are replaced with underscores."
+            "description": "Controls how new header guard defines are generated. There are many variables you can use to generate them:\n${FILE_NAME} : The name of the file without the file extension.\n${EXT} : The file extension.\n${DIR} : The name of the directory the file exists in.\n${PROJECT_NAME} : The name of the workspace.\n${PROJECT_REL_PATH} : The path to the file, relative to the workspace, not including the file name.\nAll characters are made upper-case and all symbols are replaced with underscores.",
+            "scope": "resource"
           },
           "C_mantic.revealNewDefinition": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether 'Add Definition' reveals the new definition in the editor."
+            "description": "Controls whether 'Add Definition' reveals the new definition in the editor.",
+            "scope": "resource"
           },
           "C_mantic.alwaysMoveComments": {
             "type": "boolean",
             "default": true,
-            "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place. If false, leading comments will be left behind with the new declaration."
+            "description": "Controls whether 'Move Definition' will move leading comments even if a declaration is being left behind in its place. If false, leading comments will be left behind with the new declaration.",
+            "scope": "resource"
           },
           "C_mantic.caseStyle": {
             "type": "string",
@@ -299,7 +321,8 @@
               "PascalCase"
             ],
             "default": "camelCase",
-            "description": "Controls what style of names are generated for getters and setters."
+            "description": "Controls what style of names are generated for getters and setters.",
+            "scope": "resource"
           }
         }
       }

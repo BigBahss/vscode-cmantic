@@ -275,11 +275,11 @@ async function addNewOperatorToWorkspaceEdit(
     workspaceEdit: vscode.WorkspaceEdit,
     skipAccessSpecifierCheck?: boolean
 ): Promise<void> {
-    const curlySeparator = (cfg.functionCurlyBraceFormat('cpp') === cfg.CurlyBraceFormat.NewLine)
-            ? target.sourceDoc.endOfLine
-            : ' ';
-
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
+        const curlySeparator = (cfg.functionCurlyBraceFormat('cpp', classDoc) === cfg.CurlyBraceFormat.NewLine)
+                ? target.sourceDoc.endOfLine
+                : ' ';
+
         let formattedInlineDefinition = (newOperator.body.includes('\n'))
                 ? await newOperator.definition(classDoc, declarationPos, curlySeparator)
                 : newOperator.declaration + ' { ' + newOperator.body + ' }';
@@ -292,6 +292,10 @@ async function addNewOperatorToWorkspaceEdit(
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
+        const curlySeparator = (cfg.functionCurlyBraceFormat('cpp', target.sourceDoc) === cfg.CurlyBraceFormat.NewLine)
+                ? target.sourceDoc.endOfLine
+                : ' ';
+
         let formattedDeclaration = newOperator.declaration + ';';
         if (!skipAccessSpecifierCheck
                 && !newOperator.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {

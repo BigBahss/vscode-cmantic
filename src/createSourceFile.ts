@@ -70,7 +70,7 @@ export async function createMatchingSourceFile(
     let extension = await getSourceFileExtension(folder.uri);
     if (!extension) {
         extension = await vscode.window.showQuickPick(
-                cfg.sourceExtensions(), { placeHolder: 'Select an extension for the new source file' });
+                cfg.sourceExtensions(folder.uri), { placeHolder: 'Select an extension for the new source file' });
         if (!extension) {
             return;
         }
@@ -107,6 +107,7 @@ interface FolderItem extends vscode.QuickPickItem {
  */
 async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(relativeUri);
+    const sourceExtensions = cfg.sourceExtensions(relativeUri);
     const directories: FolderItem[] = [];
     let foundSourceFile = false;
 
@@ -114,7 +115,7 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
         if (fileSystemItem[1] === vscode.FileType.Directory) {
             directories.push(...await findSourceFolders(vscode.Uri.joinPath(relativeUri, fileSystemItem[0])));
         } else if (!foundSourceFile && fileSystemItem[1] === vscode.FileType.File
-                && cfg.sourceExtensions().includes(util.fileExtension(fileSystemItem[0]))) {
+                && sourceExtensions.includes(util.fileExtension(fileSystemItem[0]))) {
             foundSourceFile = true;
             directories.push({
                 label: `$(folder) ${vscode.workspace.asRelativePath(relativeUri, true)}`,
@@ -132,7 +133,7 @@ async function findSourceFolders(relativeUri: vscode.Uri): Promise<FolderItem[]>
  */
 async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefined> {
     const fileSystemItems = await vscode.workspace.fs.readDirectory(uri);
-    const sourceExtensions = cfg.sourceExtensions();
+    const sourceExtensions = cfg.sourceExtensions(uri);
     let sourceExtension: string | undefined;
 
     for (const fileSystemItem of fileSystemItems) {
@@ -151,7 +152,7 @@ async function getSourceFileExtension(uri: vscode.Uri): Promise<string | undefin
 }
 
 async function getNamespaceText(headerDoc: SourceDocument): Promise<string> {
-    if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces()) {
+    if (headerDoc.languageId !== 'cpp' || !cfg.shouldGenerateNamespaces(headerDoc)) {
         return '';
     }
 
@@ -204,7 +205,11 @@ function generateNamespaces(namespaces: CSymbol[], eol: string): string {
 }
 
 function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string {
-    const curlyFormat = cfg.namespaceCurlyBraceFormat();
+    if (namespaces.length === 0) {
+        return '';
+    }
+
+    const curlyFormat = cfg.namespaceCurlyBraceFormat(namespaces[0].uri);
     if (curlyFormat === cfg.CurlyBraceFormat.Auto && namespaces.length > 0) {
         if (/^(\s*::\s*[\w_][\w\d_]*)*[ \t]*{/.test(namespaces[0].parsableTrailingText)) {
             return ' ';
@@ -269,7 +274,7 @@ async function generateDefinitions(
 
     const success = await vscode.workspace.applyEdit(workspaceEdit);
 
-    if (success && cfg.revealNewDefinition()) {
+    if (success && cfg.revealNewDefinition(headerDoc)) {
         await revealNewFunction(workspaceEdit, sourceDoc);
     }
 }

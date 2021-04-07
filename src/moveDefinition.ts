@@ -81,7 +81,7 @@ export async function moveDefinitionToMatchingSourceFile(
     workspaceEdit.insert(targetDoc.uri, position, formattedDefinition);
     if (!declaration && SourceFile.isHeader(definition.uri)) {
         const newDeclaration = definition.newFunctionDeclaration();
-        const replaceRange = cfg.alwaysMoveComments()
+        const replaceRange = cfg.alwaysMoveComments(definition.uri)
                 ? definition.rangeWithLeadingComment()
                 : definition.fullRange();
         workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);
@@ -155,7 +155,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         const workspaceEdit = new vscode.WorkspaceEdit();
         workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
         const newDeclaration = definition.newFunctionDeclaration();
-        const replaceRange = cfg.alwaysMoveComments()
+        const replaceRange = cfg.alwaysMoveComments(definition.uri)
                 ? definition.rangeWithLeadingComment()
                 : definition.fullRange();
         workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);

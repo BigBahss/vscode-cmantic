@@ -99,7 +99,7 @@ export async function addDefinition(
     if (!skipExistingDefinitionCheck) {
         const existingDefinition = await functionDeclaration.findDefinition();
         if (existingDefinition) {
-            if (!cfg.revealNewDefinition()) {
+            if (!cfg.revealNewDefinition(declarationDoc)) {
                 logger.alertInformation(failure.definitionExists);
                 return;
             }
@@ -127,7 +127,7 @@ export async function addDefinition(
     workspaceEdit.insert(targetDoc.uri, targetPos, functionSkeleton);
     const success = await vscode.workspace.applyEdit(workspaceEdit);
 
-    if (success && cfg.revealNewDefinition()) {
+    if (success && cfg.revealNewDefinition(declarationDoc)) {
         await revealNewFunction(workspaceEdit, targetDoc);
     }
 
@@ -193,7 +193,7 @@ export async function addDefinitions(
 
     const success = await vscode.workspace.applyEdit(workspaceEdit);
 
-    if (success && cfg.revealNewDefinition()) {
+    if (success && cfg.revealNewDefinition(sourceDoc)) {
         await revealNewFunction(workspaceEdit, targetDoc);
     }
 
@@ -278,7 +278,7 @@ async function constructFunctionSkeleton(
     position: ProposedPosition,
     p_initializers: Promise<Initializer[] | undefined>
 ): Promise<string | undefined> {
-    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId);
+    const curlyBraceFormat = cfg.functionCurlyBraceFormat(targetDoc.languageId, targetDoc);
     const eol = targetDoc.endOfLine;
     const indentation = util.indentation();
 
@@ -314,7 +314,7 @@ function constructInitializerList(initializers: Initializer[], eol: string): str
     }
 
     const indentation = util.indentation();
-    const initializerBody = cfg.bracedInitialization() ? '{},' : '(),';
+    const initializerBody = cfg.bracedInitialization(initializers[0].uri) ? '{},' : '(),';
 
     let initializerList = eol + indentation + ': ';
     initializers.forEach(initializer => initializerList += initializer.name + initializerBody + eol + indentation + '  ');
