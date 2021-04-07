@@ -527,25 +527,28 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     }
 
     private async findPositionInParentNamespace(symbol: CSymbol): Promise<ProposedPosition | undefined> {
+        let previousChild = symbol;
         for (const scope of symbol.scopes().reverse()) {
             if (scope.isNamespace()) {
                 const targetNamespace = await this.findMatchingSymbol(scope);
-                if (!targetNamespace) {
-                    continue;
-                }
+                if (targetNamespace) {
+                    if (targetNamespace.children.length === 0) {
+                        return new ProposedPosition(targetNamespace.bodyStart(), {
+                            after: true,
+                            indent: previousChild.trueStart.character > scope.trueStart.character
+                        });
+                    }
 
-                if (targetNamespace.children.length === 0) {
-                    return new ProposedPosition(targetNamespace.bodyStart(), {
-                        after: true,
-                        indent: scope.children[0].range.start.character > scope.range.start.character
+                    const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], this);
+                    return new ProposedPosition(lastChild.trailingCommentEnd(), {
+                        relativeTo: lastChild.range,
+                        after: true
                     });
                 }
+            }
 
-                const lastChild = new CSymbol(targetNamespace.children[targetNamespace.children.length - 1], this);
-                return new ProposedPosition(lastChild.trailingCommentEnd(), {
-                    relativeTo: lastChild.range,
-                    after: true
-                });
+            if (!scope.isQualifiedNamespace()) {
+                previousChild = scope;
             }
         }
     }

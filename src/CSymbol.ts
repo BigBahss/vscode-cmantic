@@ -333,11 +333,15 @@ export default class CSymbol extends SourceSymbol {
         const allScopes: string[] = [];
 
         this.scopes().forEach(scope => {
-            allScopes.push(...scope.namedScopes);
+            if (!scope.isNamespace()) {
+                allScopes.push(...scope.namedScopes);
+            }
             allScopes.push(scope.templatedName(true));
         });
 
-        allScopes.push(...this.namedScopes);
+        if (!this.isNamespace()) {
+            allScopes.push(...this.namedScopes);
+        }
 
         return allScopes;
     }
