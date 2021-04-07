@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as cfg from './configuration';
+import * as parse from './parsing';
 import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
+import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 /**
@@ -54,16 +57,6 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
                     (b_segments.length - commonLeadingDirectories - commonTrailingDirectories));
 }
 
-export function arraysIntersect<T>(array_a: T[], array_b: T[]): boolean {
-    const minLength = Math.min(array_a.length, array_b.length);
-    for (let i = 0; i < minLength; ++i) {
-        if (array_a[i] !== array_b[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {
     if (array_a.length !== array_b.length) {
         return false;
@@ -74,6 +67,30 @@ export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {
         }
     }
     return true;
+}
+
+/**
+ * Returns true if the arrays are equal, or if either array is a sub-array of
+ * the other, starting from the beginning of the arrays.
+ * For example, [1, 2, 3] and [1, 2] intersect while [1, 2, 3] and [2, 3] do not.
+ */
+export function arraysIntersect<T>(array_a: T[], array_b: T[]): boolean {
+    const minLength = Math.min(array_a.length, array_b.length);
+    for (let i = 0; i < minLength; ++i) {
+        if (array_a[i] !== array_b[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+export function arraysShareAnyElement<T>(array_a: T[], array_b: T[]): boolean {
+    for (const element of array_a) {
+        if (array_b.includes(element)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 export async function uriExists(uri: vscode.Uri): Promise<boolean> {
@@ -90,6 +107,23 @@ export function containedInWorkspace(locationOrUri: vscode.Location | vscode.Uri
         return vscode.workspace.asRelativePath(locationOrUri.uri) !== locationOrUri.uri.fsPath;
     }
     return vscode.workspace.asRelativePath(locationOrUri) !== locationOrUri.fsPath;
+}
+
+export function revealRange(editor: vscode.TextEditor, range: vscode.Range): void {
+    editor.revealRange(editor.document.validateRange(range), vscode.TextEditorRevealType.InCenter);
+
+    // revealRange() sometimes doesn't work for large files, this appears to be a bug in vscode.
+    // Waiting a bit and re-executing seems to work around this issue. (BigBahss/vscode-cmantic#2)
+    setTimeout(() => {
+        if (editor && range) {
+            for (const visibleRange of editor.visibleRanges) {
+                if (visibleRange.contains(range)) {
+                    return;
+                }
+            }
+            editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+        }
+    }, 500);
 }
 
 export function indentation(options?: vscode.TextEditorOptions): string {
@@ -129,39 +163,39 @@ export function positionAfterLastNonEmptyLine(document: vscode.TextDocument): Pr
     return new ProposedPosition();
 }
 
-export async function shouldIndentNamespaceBody(declarationDoc: SourceDocument): Promise<boolean | undefined> {
-    const cfgIndent = cfg.indentNamespaceBody();
-    return cfgIndent === cfg.NamespaceIndentation.Always /* eslint-disable no-return-await */
-        || (cfgIndent === cfg.NamespaceIndentation.Auto && await declarationDoc.isNamespaceBodyIndented());
-}
-
-interface RangedObject {
-    range: vscode.Range;
-}
-
-export function sortByRange(a: RangedObject, b: RangedObject): number {
+export function sortByRange(a: { range: vscode.Range }, b: { range: vscode.Range }): number {
     return a.range.end.isAfter(b.range.end) ? 1 : -1;
 }
 
-type AnySymbol = SourceSymbol | SubSymbol;
+export type AnySymbol = SourceSymbol | CSymbol | SubSymbol;
 
+export type LocationType = vscode.Location | vscode.LocationLink;
+
+/**
+ * Finds the most likely definition of symbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely definition found is the same symbol.
+ */
 export async function findDefinition(symbol: AnySymbol): Promise<vscode.Location | undefined> {
-    const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+    const definitionResults = await vscode.commands.executeCommand<LocationType[]>(
             'vscode.executeDefinitionProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, definitionResults);
 }
 
+/**
+ * Finds the most likely declaration of symbol and only returns a result with the same base file name.
+ * Returns undefined if the most likely declaration found is the same symbol.
+ */
 export async function findDeclaration(symbol: AnySymbol): Promise<vscode.Location | undefined> {
-    const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+    const declarationResults = await vscode.commands.executeCommand<LocationType[]>(
             'vscode.executeDeclarationProvider', symbol.uri, symbol.selectionRange.start);
     return findMostLikelyResult(symbol, declarationResults);
 }
 
 function findMostLikelyResult(
-    symbol: AnySymbol, results?: vscode.Location[] | vscode.LocationLink[]
+    symbol: AnySymbol, locationResults?: LocationType[]
 ): vscode.Location | undefined {
     const thisFileNameBase = fileNameBase(symbol.uri.fsPath);
-    for (const location of makeLocationArray(results)) {
+    for (const location of makeLocationArray(locationResults)) {
         if (!containedInWorkspace(location)) {
             continue;
         }
@@ -173,13 +207,13 @@ function findMostLikelyResult(
     }
 }
 
-export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLink[]): vscode.Location[] {
-    if (!input) {
+export function makeLocationArray(locationResults?: LocationType[]): vscode.Location[] {
+    if (!locationResults) {
         return [];
     }
 
     const locations: vscode.Location[] = [];
-    for (const element of input) {
+    for (const element of locationResults) {
         const location = (element instanceof vscode.Location)
                 ? element
                 : new vscode.Location(element.targetUri, element.targetRange);
@@ -187,6 +221,45 @@ export function makeLocationArray(input?: vscode.Location[] | vscode.LocationLin
     }
 
     return locations;
+}
+
+export interface DeclarationDefinitionLink {
+    declaration: CSymbol;
+    definition?: vscode.Location;
+}
+
+export async function makeDeclDefLink(declaration: CSymbol): Promise<DeclarationDefinitionLink> {
+    return {
+        declaration: declaration,
+        definition: await declaration.findDefinition()
+    };
+}
+
+/**
+ * Indicates that the function requires a definition that is visible to translation unit that declares it.
+ */
+export function requiresVisibleDefinition(functionDeclaration: CSymbol): boolean {
+    return functionDeclaration.isInline()
+        || functionDeclaration.isConstexpr()
+        || functionDeclaration.isConsteval()
+        || functionDeclaration.hasUnspecializedTemplate();
+}
+
+export function formatSignature(symbol: CSymbol): string {
+    if (symbol.isVariable()) {
+        const text = symbol.document.getText(new vscode.Range(symbol.range.start, symbol.declarationEnd()));
+        return parse.removeAttributes(parse.removeComments(text)).replace(/\s+/g, ' ');
+    } else if (activeLanguageServer() === LanguageServer.cpptools) {
+        // cpptools does a good job of providing formatted signatures for DocumentSymbols.
+        return symbol.signature;
+    }
+
+    if (symbol.isFunction()) {
+        const text = symbol.document.getText(new vscode.Range(symbol.selectionRange.end, symbol.declarationEnd()));
+        return symbol.templatedName(true) + parse.removeAttributes(parse.removeComments(text)).replace(/\s+/g, ' ');
+    }
+
+    return symbol.templatedName(true);
 }
 
 /**
@@ -253,18 +326,20 @@ export function accessSpecifierRegexp(access: AccessLevel): RegExp {
     }
 }
 
-interface AccessItem extends vscode.QuickPickItem {
+interface AccessQuickPickItem extends vscode.QuickPickItem {
     access: AccessLevel;
 }
 
-export async function getMemberAccessFromUser(): Promise<AccessLevel | undefined> {
-    const accessItems: AccessItem[] = [
-        { label: 'public', access: AccessLevel.public },
-        { label: 'protected', access: AccessLevel.protected },
-        { label: 'private', access: AccessLevel.private }
-    ];
+const accessItems: AccessQuickPickItem[] = [
+    { label: 'public', access: AccessLevel.public },
+    { label: 'protected', access: AccessLevel.protected },
+    { label: 'private', access: AccessLevel.private }
+];
 
-    const accessItem = await vscode.window.showQuickPick<AccessItem>(accessItems, { placeHolder: 'Select member access level:' });
+export async function getMemberAccessFromUser(): Promise<AccessLevel | undefined> {
+    const accessItem = await vscode.window.showQuickPick<AccessQuickPickItem>(accessItems, {
+        placeHolder: 'Select member access level'
+    });
 
     return accessItem?.access;
 }

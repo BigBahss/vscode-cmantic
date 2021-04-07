@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
 import * as util from './utility';
+import * as parse from './parsing';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 /**
  * Extends DocumentSymbol by adding a parent property and making sure that children are sorted by range.
- * Additionally, some properties are normalized for different language servers.
+ * Additionally, some properties are normalized since they vary for different language servers.
  */
 export default class SourceSymbol extends vscode.DocumentSymbol {
     readonly uri: vscode.Uri;
@@ -30,31 +31,33 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         this.signature = symbol.name;
         this.parent = parent;
 
-        // cpptools puts function signatures in name, so we want to store the actual function name in name.
-        let name = symbol.name;
-        const lastIndexOfParen = name.indexOf('(');
-        if (lastIndexOfParen > 0) {
-            name = name.slice(0, lastIndexOfParen);
-        }
-        const indexOfAngleBracket = name.indexOf('<');
-        if (name.endsWith('>') && indexOfAngleBracket > 0) {
-            name = name.slice(0, indexOfAngleBracket);
-        }
-        const lastIndexOfScopeResolution = name.lastIndexOf('::');
-        if (lastIndexOfScopeResolution !== -1 && !name.endsWith('::')) {
-            name = name.slice(lastIndexOfScopeResolution + 2);
+        this.name = symbol.name;
+        if (activeLanguageServer() === LanguageServer.cpptools) {
+            // cpptools puts function signatures and template arguments in the name property.
+            let maskedText = parse.maskAngleBrackets(this.name);
+            if (this.isFunction()) {
+                maskedText = parse.maskParentheses(maskedText);
+                const lastIndexOfParen = maskedText.lastIndexOf('(');
+                if (lastIndexOfParen !== -1) {
+                    this.name = this.name.slice(0, lastIndexOfParen);
+                }
+            }
+
+            if (this.name.endsWith('>')) {
+                const lastIndexOfAngleBracket = maskedText.lastIndexOf('<');
+                if (lastIndexOfAngleBracket !== -1) {
+                    this.name = this.name.slice(0, lastIndexOfAngleBracket);
+                }
+            }
         }
 
-        /* This is a fail-safe in case editing the name left it empty, because vscode will throw an
-         * error on subsequent calls to the super constructor if the name is empty. */
-        if (name) {
-            this.name = name;
-        } else {
-            this.name = symbol.name;
+        const lastIndexOfScopeResolution = this.name.lastIndexOf('::');
+        if (lastIndexOfScopeResolution !== -1 && !this.name.endsWith('::')) {
+            this.name = this.name.slice(lastIndexOfScopeResolution + 2);
         }
 
-        // ccls puts function signatures in the detail property.
-        if (symbol.detail.includes(symbol.name + '(')) {
+        if (activeLanguageServer() === LanguageServer.ccls) {
+            // ccls puts function signatures in the detail property.
             this.signature = symbol.detail;
             // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
             if (symbol.kind === vscode.SymbolKind.Property) {
@@ -64,26 +67,15 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
             this.signature = parent.name + '::' + this.signature;
         }
 
-        // Sort docSymbol.children based on their relative position to eachother.
-        symbol.children.sort(util.sortByRange);
-
-        // Convert docSymbol.children to SourceSymbols to set the children property.
         this.children = [];
+        symbol.children.sort(util.sortByRange);
         symbol.children.forEach(child => this.children.push(new SourceSymbol(child, uri, this)));
     }
 
-    /**
-     * Finds the most likely definition of this SourceSymbol and only returns a result with the same base file name.
-     * Returns undefined if the most likely definition is this SourceSymbol.
-     */
     async findDefinition(): Promise<vscode.Location | undefined> {
         return util.findDefinition(this);
     }
 
-    /**
-     * Finds the most likely declaration of this SourceSymbol and only returns a result with the same base file name.
-     * Returns undefined if the most likely declaration is this SourceSymbol.
-     */
     async findDeclaration(): Promise<vscode.Location | undefined> {
         return util.findDeclaration(this);
     }
@@ -109,7 +101,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
 
     isMemberVariable(): boolean {
         return this.parent?.isClassOrStruct() === true
-                && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
+            && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
     isVariable(): boolean {
@@ -117,15 +109,10 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isFunction(): boolean {
-        switch (this.kind) {
-        case vscode.SymbolKind.Operator:
-        case vscode.SymbolKind.Method:
-        case vscode.SymbolKind.Constructor:
-        case vscode.SymbolKind.Function:
-            return true;
-        default:
-            return false;
-        }
+        return this.kind === vscode.SymbolKind.Function
+            || this.kind === vscode.SymbolKind.Method
+            || this.kind === vscode.SymbolKind.Constructor
+            || this.kind === vscode.SymbolKind.Operator;
     }
 
     isConstructor(): boolean {
@@ -133,7 +120,8 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return this.name === this.parent?.name || /^(?<name>[\w_][\w\d_]*)::\k<name>/.test(this.signature);
+            return (this.parent?.isClassOrStruct() && this.name === this.parent.name)
+                || this.signature.includes(this.name + '::' + this.name);
         default:
             return false;
         }
@@ -144,14 +132,27 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return this.name === '~' + this.parent?.name || /^(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
+            return (this.parent?.isClassOrStruct() && this.name === '~' + this.parent.name)
+                || /(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
         default:
             return false;
         }
     }
 
+    isClass(): boolean {
+        return this.kind === vscode.SymbolKind.Class;
+    }
+
+    isStruct(): boolean {
+        return this.kind === vscode.SymbolKind.Struct;
+    }
+
     isClassOrStruct(): boolean {
         return this.kind === vscode.SymbolKind.Class || this.kind === vscode.SymbolKind.Struct;
+    }
+
+    isNamespace(): boolean {
+        return this.kind === vscode.SymbolKind.Namespace;
     }
 
     /**

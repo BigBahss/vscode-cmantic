@@ -3,7 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
-import { addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile } from './addDefinition';
+import {
+    addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions
+} from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
@@ -19,6 +21,9 @@ import { CodeActionProvider } from './codeActions';
 
 
 export const extensionId = 'tdennis4496.cmantic';
+export const cpptoolsId = 'ms-vscode.cpptools';
+export const clangdId = 'llvm-vs-code-extensions.vscode-clangd';
+export const cclsId = 'ccls-project.ccls';
 
 export const logger = new Logger('C-mantic');
 
@@ -31,6 +36,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     await cacheOpenDocuments();
     registerCodeActionProvider(context);
     registerEventListeners();
+    pollExtensionsToSetLanguageServer();
     logActivation(context);
 }
 
@@ -42,9 +48,23 @@ export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return headerSourceCache.get(uri);
 }
 
+export enum LanguageServer {
+    unknown,
+    cpptools,
+    clangd,
+    ccls
+}
+
+let languageServer = LanguageServer.unknown;
+
+export function activeLanguageServer(): LanguageServer {
+    return languageServer;
+}
+
 export const commands = {
     'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
     'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
+    'cmantic.addDefinitions': addDefinitions,
     'cmantic.addDefinition': addDefinition,
     'cmantic.addDeclaration': addDeclaration,
     'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
@@ -94,6 +114,7 @@ function registerEventListeners(): void {
     disposables.push(vscode.workspace.onDidOpenTextDocument(onDidOpenTextDocument));
     disposables.push(vscode.workspace.onDidCreateFiles(onDidCreateFiles));
     disposables.push(vscode.workspace.onDidChangeConfiguration(onDidChangeConfiguration));
+    disposables.push(vscode.extensions.onDidChange(setActiveLanguageServer));
 }
 
 function logActivation(context: vscode.ExtensionContext): void {
@@ -119,11 +140,37 @@ async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
 }
 
 function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
-    if (event.affectsConfiguration(cfg.baseConfigurationKey)) {
+    if (event.affectsConfiguration(cfg.extensionKey)) {
         codeActionProvider.addDefinitionEnabled = cfg.enableAddDefinition();
         codeActionProvider.addDeclarationEnabled = cfg.enableAddDeclaration();
         codeActionProvider.moveDefinitionEnabled = cfg.enableMoveDefinition();
         codeActionProvider.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+    }
+
+    if (event.affectsConfiguration(cfg.cpptoolsKey)) {
+        setActiveLanguageServer();
+    }
+}
+
+function pollExtensionsToSetLanguageServer(): void {
+    let i = 0;
+    const timer = setInterval(() => {
+        setActiveLanguageServer();
+        if (languageServer !== LanguageServer.unknown || ++i > 15) {
+            clearInterval(timer);
+        }
+    }, 1000);
+}
+
+function setActiveLanguageServer(): void {
+    if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
+        languageServer = LanguageServer.cpptools;
+    } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
+        languageServer = LanguageServer.clangd;
+    } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
+        languageServer = LanguageServer.ccls;
+    } else {
+        languageServer = LanguageServer.unknown;
     }
 }
 

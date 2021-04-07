@@ -43,59 +43,78 @@
     "commands": [
       {
         "command": "cmantic.addDefinitionInSourceFile",
-        "title": "C-mantic: Add Definition in matching source file"
+        "title": "Add Definition in matching source file",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.addDefinitionInCurrentFile",
-        "title": "C-mantic: Add Definition in this file"
+        "title": "Add Definition in this file",
+        "category": "C-mantic"
+      },
+      {
+        "command": "cmantic.addDefinitions",
+        "title": "Add Definitions...",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.addDeclaration",
-        "title": "C-mantic: Add Declaration"
+        "title": "Add Declaration",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.moveDefinitionToMatchingSourceFile",
-        "title": "C-mantic: Move Definition to matching source file"
+        "title": "Move Definition to matching source file",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.moveDefinitionIntoOrOutOfClass",
-        "title": "C-mantic: Move Definition into/out-of class body"
+        "title": "Move Definition into/out-of class body",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.generateGetterSetter",
-        "title": "C-mantic: Generate Getter and Setter Member Functions"
+        "title": "Generate Getter and Setter Member Functions",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.generateGetter",
-        "title": "C-mantic: Generate Getter Member Function"
+        "title": "Generate Getter Member Function",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.generateSetter",
-        "title": "C-mantic: Generate Setter Member Function"
+        "title": "Generate Setter Member Function",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.generateEqualityOperators",
-        "title": "C-mantic: Generate Equality Operators"
+        "title": "Generate Equality Operators",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.generateStreamOutputOperator",
-        "title": "C-mantic: Generate Stream Output Operator"
+        "title": "Generate Stream Output Operator",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.createMatchingSourceFile",
-        "title": "C-mantic: Create Matching Source File"
+        "title": "Create Matching Source File",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.addHeaderGuard",
-        "title": "C-mantic: Add Header Guard"
+        "title": "Add Header Guard",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.addInclude",
-        "title": "C-mantic: Add Include"
+        "title": "Add Include",
+        "category": "C-mantic"
       },
       {
         "command": "cmantic.switchHeaderSourceInWorkspace",
-        "title": "Switch Header/Source in Workspace"
+        "title": "Switch Header/Source in Workspace",
+        "category": "C-mantic"
       }
     ],
     "menus": {
@@ -196,16 +215,6 @@
             ],
             "default": "Auto",
             "description": "Controls how to format the opening curly brace when generating namespaces from a header in C++. 'Auto' will detect namespace curly brace format from the header file."
-          },
-          "C_mantic.cpp.indentation.namespace": {
-            "type": "string",
-            "enum": [
-              "Auto",
-              "Always",
-              "Never"
-            ],
-            "default": "Auto",
-            "description": "Controls whether to indent the body when generating namespaces from a header in C++. 'Auto' will detect namespace indentation from the header file."
           },
           "C_mantic.cpp.generateNamespaces": {
             "type": "boolean",

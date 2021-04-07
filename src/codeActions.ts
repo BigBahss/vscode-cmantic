@@ -111,7 +111,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
         if (!symbol) {
-            return [];
+            return this.getFileRefactorings(context, sourceDoc, matchingUri);
         }
 
         const refactorActions = await Promise.all([
@@ -119,7 +119,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc),
-            this.getClassRefactorings(context, symbol, sourceDoc)
+            this.getClassRefactorings(context, symbol, sourceDoc),
+            this.getFileRefactorings(context, sourceDoc, matchingUri)
         ]);
 
         return refactorActions.flat();
@@ -188,8 +189,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const addDefinitionInCurrentFile = new RefactorAction(
                 addDefinitionTitle.currentFile, 'cmantic.addDefinition');
 
-        addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri);
-        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri);
+        addDefinitionInMatchingSourceFile.setArguments(declaration, sourceDoc, matchingUri, true);
+        addDefinitionInCurrentFile.setArguments(declaration, sourceDoc, sourceDoc.uri, true);
 
         if (declaration.isConstructor()) {
             addDefinitionInCurrentFile.setTitle(addDefinitionTitle.constructorCurrentFile);
@@ -260,7 +261,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             const parentClass = await definition.getParentClass();
             if (parentClass) {
                 const scopeName = parentClass.templatedName(true);
-                if (parentClass.kind === vscode.SymbolKind.Class) {
+                if (parentClass.isClass()) {
                     addDeclaration.setTitle(`Add Declaration in class "${scopeName}"`);
                 } else {
                     addDeclaration.setTitle(`Add Declaration in struct "${scopeName}"`);
@@ -304,7 +305,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         let declarationDoc: SourceDocument | undefined;
 
         if (definition.parent?.isClassOrStruct()) {
-            if (definition.parent.kind === vscode.SymbolKind.Class) {
+            if (definition.parent.isClass()) {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfClass);
             } else {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfStruct);
@@ -322,11 +323,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 declaration = await declarationDoc.getSymbol(declarationLocation.range.start);
                 moveDefinitionIntoOrOutOfClass.setArguments(definition, declarationDoc, declaration);
 
-                if (declaration?.parent?.kind === vscode.SymbolKind.Class) {
+                if (declaration?.parent?.isClass()) {
                     const scopeName = declaration.parent.templatedName(true);
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoClass} "${scopeName}"`);
-                } else if (declaration?.parent?.kind === vscode.SymbolKind.Struct) {
+                } else if (declaration?.parent?.isStruct()) {
                     const scopeName = declaration.parent.templatedName(true);
                     moveDefinitionIntoOrOutOfClass.setTitle(
                             `${moveDefinitionTitle.intoStruct} "${scopeName}"`);
@@ -336,7 +337,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     if (parentClass) {
                         declarationDoc = parentClass.document;
                         const scopeName = parentClass.templatedName(true);
-                        if (parentClass.kind === vscode.SymbolKind.Class) {
+                        if (parentClass.isClass()) {
                             moveDefinitionIntoOrOutOfClass.setTitle(
                                     `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                         } else {
@@ -358,7 +359,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                 if (parentClass) {
                     declarationDoc = parentClass.document;
                     const scopeName = parentClass.templatedName(true);
-                    if (parentClass.kind === vscode.SymbolKind.Class) {
+                    if (parentClass.isClass()) {
                         moveDefinitionIntoOrOutOfClass.setTitle(
                                 `${moveDefinitionTitle.intoClass} "${scopeName}"`);
                     } else {
@@ -468,6 +469,21 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         return [generateEqualityOperators, generateStreamOutputOperator];
     }
 
+    private async getFileRefactorings(
+        context: vscode.CodeActionContext,
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
+    ): Promise<RefactorAction[]> {
+        if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+            return [];
+        }
+
+        const addDefinitions = new RefactorAction(addDefinitionTitle.multiple, 'cmantic.addDefinitions');
+        addDefinitions.setArguments(sourceDoc, matchingUri);
+
+        return [addDefinitions];
+    }
+
     private async getSourceActions(
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
@@ -476,6 +492,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const addInclude = new SourceAction('Add Include', 'cmantic.addInclude');
         const createMatchingSourceFile = new SourceAction(
                 'Create Matching Source File', 'cmantic.createMatchingSourceFile');
+
+        createMatchingSourceFile.setArguments(sourceDoc);
 
         if (!sourceDoc.isHeader()) {
             addHeaderGuard.disable(addHeaderGuardFailure.notHeaderFile);

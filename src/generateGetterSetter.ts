@@ -109,7 +109,7 @@ export async function generateGetterSetterFor(
         relativeTo: getterPosition.options.relativeTo,
         after: true,
         nextTo: true,
-        emptyScope: getterPosition.options.emptyScope
+        indent: getterPosition.options.indent
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -190,7 +190,7 @@ async function addNewAccessorToWorkspaceEdit(
             formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedInlineDefinition;
         }
-        formattedInlineDefinition = await declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
+        formattedInlineDefinition = declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
@@ -204,10 +204,10 @@ async function addNewAccessorToWorkspaceEdit(
             formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedDeclaration;
         }
-        formattedDeclaration = await declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
+        formattedDeclaration = declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
 
         const definition = await newAccessor.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = await target.formatTextToInsert(definition);
+        const formattedDefinition = target.formatTextToInsert(definition);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);
@@ -232,12 +232,12 @@ async function getTargetForAccessorDefinition(
             if (matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
                 const targetDoc = await SourceDocument.open(matchingUri);
                 return new TargetLocation(
-                        await classDoc.findPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
+                        await classDoc.findSmartPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
             }
         }
         // fallthrough
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(
-                await classDoc.findPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
+                await classDoc.findSmartPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
     }
 }

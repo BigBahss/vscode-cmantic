@@ -28,6 +28,8 @@ export default class CSymbol extends SourceSymbol {
             this.parent = new CSymbol(symbol.parent, document);
         }
 
+        this.selectionRange = parse.getRangeOfSymbolName(this);
+
         this.range = this.range.with(this.range.start, parse.getEndOfStatement(this.document, this.range.end));
     }
 
@@ -168,9 +170,9 @@ export default class CSymbol extends SourceSymbol {
         const ranges: vscode.Range[] = [];
         let start: vscode.Position | undefined;
 
-        if (access === util.AccessLevel.private && this.kind === vscode.SymbolKind.Class) {
+        if (access === util.AccessLevel.private && this.isClass()) {
             start = this.bodyStart();
-        } else if (access === util.AccessLevel.public && this.kind === vscode.SymbolKind.Struct) {
+        } else if (access === util.AccessLevel.public && this.isStruct()) {
             start = this.bodyStart();
         }
 
@@ -331,18 +333,22 @@ export default class CSymbol extends SourceSymbol {
         const allScopes: string[] = [];
 
         this.scopes().forEach(scope => {
-            allScopes.push(...scope.namedScopes);
+            if (!scope.isNamespace()) {
+                allScopes.push(...scope.namedScopes);
+            }
             allScopes.push(scope.templatedName(true));
         });
 
-        allScopes.push(...this.namedScopes);
+        if (!this.isNamespace()) {
+            allScopes.push(...this.namedScopes);
+        }
 
         return allScopes;
     }
 
     async scopeString(target: SourceDocument, position: vscode.Position, namespacesOnly?: boolean): Promise<string> {
         let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.kind === vscode.SymbolKind.Namespace)
+        const scopes = (this.isClassOrStruct() || this.isNamespace())
                 ? [...this.scopes(), this]
                 : this.scopes();
 
@@ -357,8 +363,13 @@ export default class CSymbol extends SourceSymbol {
                 if (!targetScope) {
                     targetScope = scope;
                 }
-                const nameRange = new vscode.Range(targetScope.scopeStringStart(), targetScope.selectionRange.end);
-                scopeString += targetScope.document.getText(nameRange) + targetScope.templateParameters() + '::';
+
+                if (targetScope.isNamespace()) {
+                    scopeString += targetScope.name + '::';
+                } else {
+                    const nameRange = new vscode.Range(targetScope.scopeStringStart(), targetScope.selectionRange.end);
+                    scopeString += targetScope.document.getText(nameRange) + targetScope.templateParameters() + '::';
+                }
             }
         }
 
@@ -431,7 +442,7 @@ export default class CSymbol extends SourceSymbol {
     childNamespaces(): CSymbol[] {
         const namespaces: CSymbol[] = [];
         this.children.forEach(child => {
-            if (child.kind === vscode.SymbolKind.Namespace) {
+            if (child.isNamespace()) {
                 namespaces.push(new CSymbol(child, this.document));
             }
         });
@@ -578,12 +589,12 @@ export default class CSymbol extends SourceSymbol {
 
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !/}\s*(\s*;)*$/.test(this.parsableText)
-                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
+            && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isFunctionDefinition(): boolean {
         return this.isFunction() && /}\s*(\s*;)*$/.test(this.parsableText)
-                && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
+            && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
     }
 
     isVirtual(): boolean {
@@ -653,8 +664,22 @@ export default class CSymbol extends SourceSymbol {
         return this.isUnspecializedTemplate();
     }
 
-    isNestedNamespace(): boolean {
-        return this.kind === vscode.SymbolKind.Namespace && !/\bnamespace\b/.test(this.parsableLeadingText);
+    /**
+     * ```cpp
+     * namespace isUnqualified::isQualified { namespace isNeither {} }
+     * ```
+     */
+    isQualifiedNamespace(): boolean {
+        return this.isNamespace() && /::\s*(inline\s*)?$/.test(this.parsableFullLeadingText);
+    }
+
+    /**
+     * ```cpp
+     * namespace isUnqualified::isQualified { namespace isNeither {} }
+     * ```
+     */
+    isUnqualifiedNamespace(): boolean {
+        return this.isNamespace() && /^\s*::\s*[\w_][\w\d_]*/.test(this.parsableTrailingText);
     }
 
     isTypedef(): boolean {
@@ -663,7 +688,7 @@ export default class CSymbol extends SourceSymbol {
 
     isTypeAlias(): boolean {
         return this.mightBeTypedefOrTypeAlias()
-                && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
+            && /\busing\b/.test(this.parsableText) && this.parsableText.includes('=');
     }
 
     async isPrimitive(): Promise<boolean> {
@@ -878,7 +903,7 @@ export default class CSymbol extends SourceSymbol {
         const before = new vscode.Range(new vscode.Position(0, 0), this.range.start);
         let maskedText = parse.maskComments(this.document.getText(before), false);
 
-        if (this.isNestedNamespace()) {
+        if (this.isNamespace()) {
             const namespaceStartOffset = maskedText.search(
                     /\b(inline\s*)?namespace\s*[\w_][\w\d_]*(\s*::\s*(inline\s*)?[\w_][\w\d_]*)*(\s*::\s*)?$/);
             if (namespaceStartOffset === -1) {
@@ -962,6 +987,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     scopeStringStart(): vscode.Position {
+        // FIXME: This function does not work with C++20's 'namespace foo::inline bar {}' syntax.
         const trimmedLeadingText = parse.maskAngleBrackets(this.parsableLeadingText.trimEnd(), false);
         if (!trimmedLeadingText.endsWith('::')) {
             return this.selectionRange.start;
@@ -1056,7 +1082,7 @@ export default class CSymbol extends SourceSymbol {
         return new ProposedPosition(this.bodyStart(), {
             after: true,
             nextTo: true,
-            emptyScope: true
+            indent: true
         });
     }
 }

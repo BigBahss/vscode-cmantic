@@ -35,11 +35,11 @@ function maskBalanced(text: string, left: string, right: string, keepEnclosingCh
                 const unbalancedIndex: number = +unbalancedIndexMatch[2];
                 if (unbalancedIndex < text.length) {
                     // There is an unbalanced delimiter, so we mask it and try again.
-                    text = text.substring(0, unbalancedIndex) + ' ';
+                    let maskedText = text.substring(0, unbalancedIndex) + ' ';
                     if (unbalancedIndex !== text.length - 1) {
-                        text += text.substring(unbalancedIndex + 1);
+                        maskedText += text.substring(unbalancedIndex + 1);
                     }
-                    return maskBalanced(text, left, right, keepEnclosingChars);
+                    return maskBalanced(maskedText, left, right, keepEnclosingChars);
                 }
             }
 
@@ -138,15 +138,36 @@ export function normalize(text: string): string {
 }
 
 /**
- * DocumentSymbol ranges don't always include the final semi-colon, so this finds the end of the last semi-colon.
+ * DocumentSymbol.range doesn't always include the final semi-colon, so this finds the end of the last semi-colon.
  */
 export function getEndOfStatement(document: vscode.TextDocument, position: vscode.Position): vscode.Position {
     const text = document.getText(new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end));
     const match = text.match(/^(\s*;)*/);
-    if (!match || match.length === 0) {
+    if (!match || match.length === 0 || !match[0]) {
         return position;
     }
     return document.positionAt(document.offsetAt(position) + match[0].length);
+}
+
+export function getRangeOfSymbolName(symbol: CSymbol): vscode.Range {
+    if (symbol.document.getText(symbol.selectionRange) === symbol.name) {
+        return symbol.selectionRange;
+    }
+
+    const operatorMatch = symbol.name.match(/(?<=^operator\s*)\S+/);
+    if (operatorMatch) {
+        const nameToEndText = symbol.document.getText(new vscode.Range(symbol.selectionRange.start, symbol.range.end));
+        const indexOfOperator = nameToEndText.indexOf(operatorMatch[0], 8);
+        if (indexOfOperator !== -1) {
+            const nameStartOffset = symbol.document.offsetAt(symbol.selectionRange.start);
+            const nameEndOffset = nameStartOffset + indexOfOperator + operatorMatch[0].length;
+            return symbol.document.rangeAt(nameStartOffset, nameEndOffset);
+        }
+
+    }
+
+    const nameEnd = symbol.selectionRange.start.translate(0, symbol.name.length);
+    return symbol.selectionRange.with(symbol.selectionRange.start, nameEnd);
 }
 
 export function getIndentationRegExp(symbol: CSymbol): RegExp {

@@ -70,7 +70,7 @@ export async function generateEqualityOperators(
         relativeTo: equalPosition.options.relativeTo,
         after: true,
         nextTo: true,
-        emptyScope: equalPosition.options.emptyScope
+        indent: equalPosition.options.indent
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
@@ -170,7 +170,7 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
         } else {
             operandItems.push({
                 label: '$(symbol-field) ' + operand.name,
-                description: operand.text(),
+                description: util.formatSignature(operand),
                 operand: operand,
                 picked: true
             });
@@ -240,7 +240,7 @@ async function promptUserForDefinitionLocations(
             : classDoc;
     const firstDefinitionPos = (firstDefinitionItem.location === cfg.DefinitionLocation.Inline)
             ? declarationPos
-            : await classDoc.findPositionForFunctionDefinition(declarationPos, firstTargetDoc);
+            : await classDoc.findSmartPositionForFunctionDefinition(declarationPos, firstTargetDoc);
     const firstTargetLocation = new TargetLocation(firstDefinitionPos, firstTargetDoc);
 
     const secondDefinitionItem = await p_secondDefinitionItem;
@@ -255,12 +255,12 @@ async function promptUserForDefinitionLocations(
                 ? firstTargetDoc
                 : await SourceDocument.open(matchingUri);
         const secondDefinitionPos =
-                await classDoc.findPositionForFunctionDefinition(declarationPos, secondTargetDoc);
+                await classDoc.findSmartPositionForFunctionDefinition(declarationPos, secondTargetDoc);
         secondTargetLocation = new TargetLocation(secondDefinitionPos, secondTargetDoc);
     } else {
         const secondDefinitionPos = secondDefinitionItem.location === cfg.DefinitionLocation.Inline
                 ? declarationPos
-                : await classDoc.findPositionForFunctionDefinition(declarationPos);
+                : await classDoc.findSmartPositionForFunctionDefinition(declarationPos);
         secondTargetLocation = new TargetLocation(secondDefinitionPos, classDoc);
     }
 
@@ -288,7 +288,7 @@ async function addNewOperatorToWorkspaceEdit(
             formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedInlineDefinition;
         }
-        formattedInlineDefinition = await declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
+        formattedInlineDefinition = declarationPos.formatTextToInsert(formattedInlineDefinition, classDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedInlineDefinition);
     } else {
@@ -298,10 +298,10 @@ async function addNewOperatorToWorkspaceEdit(
             formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedDeclaration;
         }
-        formattedDeclaration = await declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
+        formattedDeclaration = declarationPos.formatTextToInsert(formattedDeclaration, classDoc);
 
         const definition = await newOperator.definition(target.sourceDoc, target.position, curlySeparator);
-        const formattedDefinition = await target.position.formatTextToInsert(definition, target.sourceDoc);
+        const formattedDefinition = target.position.formatTextToInsert(definition, target.sourceDoc);
 
         workspaceEdit.insert(classDoc.uri, declarationPos, formattedDeclaration);
         workspaceEdit.insert(target.sourceDoc.uri, target.position, formattedDefinition);

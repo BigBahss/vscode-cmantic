@@ -42,7 +42,7 @@ export default class SourceFile {
         documentSymbols.sort(util.sortByRange);
 
         this.symbols = [];
-        documentSymbols.forEach(newSymbol => this.symbols?.push(new SourceSymbol(newSymbol, this.uri)));
+        documentSymbols.forEach(symbol => this.symbols?.push(new SourceSymbol(symbol, this.uri)));
 
         return this.symbols;
     }
@@ -74,16 +74,14 @@ export default class SourceFile {
     }
 
     async findDefintions(position: vscode.Position): Promise<vscode.Location[]> {
-        const definitionResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+        const definitionResults = await vscode.commands.executeCommand<util.LocationType[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
-
         return util.makeLocationArray(definitionResults);
     }
 
     async findDeclarations(position: vscode.Position): Promise<vscode.Location[]> {
-        const declarationResults = await vscode.commands.executeCommand<vscode.Location[] | vscode.LocationLink[]>(
+        const declarationResults = await vscode.commands.executeCommand<util.LocationType[]>(
                 'vscode.executeDeclarationProvider', this.uri, position);
-
         return util.makeLocationArray(declarationResults);
     }
 
@@ -91,7 +89,6 @@ export default class SourceFile {
         if (!this.symbols) {
             this.symbols = await this.executeSourceSymbolProvider();
         }
-
         return SourceFile.findMatchingSymbol(target, this.symbols);
     }
 
@@ -99,22 +96,6 @@ export default class SourceFile {
 
     static isHeader(uri: vscode.Uri): boolean {
         return cfg.headerExtensions().includes(util.fileExtension(uri.fsPath));
-    }
-
-    async isNamespaceBodyIndented(): Promise<boolean> {
-        if (!this.symbols) {
-            this.symbols = await this.executeSourceSymbolProvider();
-        }
-
-        for (const symbol of this.symbols) {
-            if (symbol.kind === vscode.SymbolKind.Namespace) {
-                for (const child of symbol.children) {
-                    return child.range.start.character > symbol.range.start.character;
-                }
-            }
-        }
-
-        return false;
     }
 
     protected static findMatchingSymbol(
