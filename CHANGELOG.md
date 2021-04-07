@@ -4,6 +4,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [Unreleased]
 ### Added
 - Added `cmantic.generateStreamOutputOperator` command/code-action. Works very similar to `cmantic.generateEqualityOperators`.
+- Added `cmantic.addDefinitions` command/code-action, accessible through the `Refactor...` menu.
 
 ### Changed
 - Removed the setting `C_mantic.cpp.indentation.namespace`. Namespace indentation will always be auto-detected now.
