@@ -73,7 +73,7 @@ export default class SourceFile {
         return sourceFile.getSymbol(location.range.start);
     }
 
-    async findDefintions(position: vscode.Position): Promise<vscode.Location[]> {
+    async findDefinitions(position: vscode.Position): Promise<vscode.Location[]> {
         const definitionResults = await vscode.commands.executeCommand<util.LocationType[]>(
                 'vscode.executeDefinitionProvider', this.uri, position);
         return util.makeLocationArray(definitionResults);

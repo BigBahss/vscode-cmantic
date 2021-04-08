@@ -744,7 +744,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     private async resolveThisType(offset: number): Promise<boolean> {
-        const locations = await this.document.findDefintions(this.document.positionAt(offset));
+        const locations = await this.document.findDefinitions(this.document.positionAt(offset));
 
         if (locations.length > 0) {
             const typeFile = new SourceFile(locations[0].uri);
