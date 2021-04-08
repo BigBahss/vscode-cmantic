@@ -1,7 +1,5 @@
 # TODO
 
-Coming in v0.7.0: `Generate Stream Output Operator` and generate multiple definitions at a time.
-
 ## Ideas/Plans for features and improvements
 
 ### Higher priority

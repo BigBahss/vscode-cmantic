@@ -2,7 +2,7 @@
   "name": "cmantic",
   "displayName": "C-mantic",
   "description": "C/C++ refactorings: Generate Definitions, Getters, Setters, and much more.",
-  "version": "0.6.3",
+  "version": "0.7.0",
   "icon": "images/cmantic.png",
   "publisher": "tdennis4496",
   "author": {
@@ -252,7 +252,7 @@
               "Generate definition in matching source file"
             ],
             "default": "Generate definition inline",
-            "description": "Controls where the definitions of new getter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
+            "description": "Controls where the definitions of new getters are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
             "scope": "resource"
           },
           "C_mantic.cpp.accessor.setterDefinitionLocation": {
@@ -263,13 +263,13 @@
               "Generate definition in matching source file"
             ],
             "default": "Generate definition inline",
-            "description": "Controls where the definitions of new setter member functions are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
+            "description": "Controls where the definitions of new setters are placed. If set to 'Generate definition in matching source file' and a matching source file cannot be found, then it will fallback to 'Generate definition below class body'.",
             "scope": "resource"
           },
           "C_mantic.cpp.resolveTypes": {
             "type": "boolean",
             "default": false,
-            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may impact the performance of the generating setters.",
+            "description": "Controls whether generating setters will attempt to resolve typedefs, type-aliases, and enums in order to determine if the parameter should be pass-by-value instead of pass-by-const-reference. Disabled by default because this may impact performance when generating setters.",
             "scope": "resource"
           },
           "C_mantic.cpp.bracedInitialization": {
