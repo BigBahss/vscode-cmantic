@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed a bug when parsing the first preprocessor statement in a file.
+
 ## [0.7.0] - April 8, 2021
 ### Added
 - Added `cmantic.generateStreamOutputOperator` command/code-action. Works very similar to `cmantic.generateEqualityOperators`. (#23)

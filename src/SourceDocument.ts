@@ -118,7 +118,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         const maskedText = parse.maskNonSourceText(this.getText());
 
         for (const match of maskedText.matchAll(re_preprocessorDirective)) {
-            if (match.index) {
+            if (match.index !== undefined) {
                 const range = this.rangeAt(match.index, match.index + match[0].length);
                 this._preprocessorDirectives.push(new SubSymbol(this, range));
             }
