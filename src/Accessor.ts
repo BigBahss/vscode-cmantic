@@ -101,7 +101,7 @@ export class Setter implements Accessor {
         const type = memberVariable.parsableLeadingText.replace(/\b(static|mutable)\s*/g, '')
                 .replace('[[', '').replace(']]', '').replace(/\s+/g, ' ').trimStart();
 
-        if (!await memberVariable.isPrimitive(cfg.resolveTypes(memberVariable.uri)) && !memberVariable.isPointer()) {
+        if (!memberVariable.isPointer() && !(await memberVariable.isPrimitive(cfg.resolveTypes(memberVariable.uri)))) {
             setter.parameter = (memberVariable.isReference()
                 ? 'const ' + type
                 : 'const ' + type + '&'
