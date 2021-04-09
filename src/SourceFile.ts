@@ -39,9 +39,8 @@ export default class SourceFile {
             return [];
         }
 
-        documentSymbols.sort(util.sortByRange);
-
         this.symbols = [];
+        documentSymbols.sort(util.sortByRange);
         documentSymbols.forEach(symbol => this.symbols?.push(new SourceSymbol(symbol, this.uri)));
 
         return this.symbols;

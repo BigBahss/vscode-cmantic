@@ -11,12 +11,23 @@ import SubSymbol from './SubSymbol';
 
 const re_preprocessorDirective = /(?<=^\s*)#.*\S(?=\s*$)/gm;
 
+interface PreprocessorConditional {
+    start: SubSymbol;
+    end: SubSymbol;
+}
+
 /**
  * Represents a C/C++ source file that has access to the contents of the file.
  */
 export default class SourceDocument extends SourceFile implements vscode.TextDocument {
     private readonly doc: vscode.TextDocument;
     private readonly proposedDefinitions = new WeakMap<vscode.Position, vscode.Location>();
+
+    // Don't use these, use their getters instead.
+    private _preprocessorDirectives?: SubSymbol[];
+    private _conditionals?: PreprocessorConditional[];
+    private _includedFiles?: string[];
+    private _headerGuard?: SubSymbol[];
 
     constructor(document: vscode.TextDocument, sourceFile?: SourceFile) {
         super(document.uri);
@@ -126,7 +137,42 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         return this._preprocessorDirectives;
     }
-    private _preprocessorDirectives?: SubSymbol[];
+
+    private get conditionals(): PreprocessorConditional[] {
+        if (this._conditionals) {
+            return this._conditionals;
+        }
+
+        this._conditionals = [];
+        const openConditionals: SubSymbol[] = [];
+
+        for (const directive of this.preprocessorDirectives) {
+            const keywordMatch = directive.text().match(/(?<=^#\s*)[\w_][\w\d_]*\b/);
+            if (keywordMatch) {
+                switch (keywordMatch[0]) {
+                case 'if':
+                case 'ifdef':
+                case 'ifndef':
+                    openConditionals.push(directive);
+                    break;
+                case 'elif':
+                case 'else':
+                    if (openConditionals.length > 0) {
+                        this._conditionals.push({ start: openConditionals.pop()!, end: directive });
+                    }
+                    openConditionals.push(directive);
+                    break;
+                case 'endif':
+                    if (openConditionals.length > 0) {
+                        this._conditionals.push({ start: openConditionals.pop()!, end: directive });
+                    }
+                    break;
+                }
+            }
+        }
+
+        return this._conditionals.reverse();
+    }
 
     get includedFiles(): string[] {
         if (this._includedFiles) {
@@ -144,37 +190,52 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
 
         return this._includedFiles;
     }
-    private _includedFiles?: string[];
 
-    hasHeaderGuard(): boolean {
-        return this.positionAfterHeaderGuard() !== undefined;
-    }
+    get headerGuard(): SubSymbol[] {
+        if (this._headerGuard) {
+            return this._headerGuard;
+        }
 
-    positionAfterHeaderGuard(): vscode.Position | undefined {
-        let line: number | undefined;
+        this._headerGuard = [];
+        if (!this.isHeader()) {
+            return this._headerGuard;
+        }
 
         for (let i = 0; i < this.preprocessorDirectives.length; ++i) {
             if (/^#\s*pragma\s+once\b/.test(this.preprocessorDirectives[i].text())) {
-                line = this.preprocessorDirectives[i].range.start.line;
-                continue;
+                this._headerGuard.push(this.preprocessorDirectives[i]);
             }
 
-            const match = this.preprocessorDirectives[i].text().match(/(?<=^#\s*ifndef\s+)[\w_][\w\d_]*/);
-            if (match && ++i < this.preprocessorDirectives.length) {
+            const match = this.preprocessorDirectives[i].text().match(/(?<=^#\s*ifndef\s+)[\w_][\w\d_]*\b/);
+            if (match && i + 1 < this.preprocessorDirectives.length) {
                 const re_headerGuardDefine = new RegExp(`^#\\s*define\\s+${match[0]}\\b`);
-                if (re_headerGuardDefine.test(this.preprocessorDirectives[i].text())) {
-                    line = this.preprocessorDirectives[i].range.start.line;
+                if (re_headerGuardDefine.test(this.preprocessorDirectives[i + 1].text())) {
+                    this._headerGuard.push(this.preprocessorDirectives[i]);
+                    this._headerGuard.push(this.preprocessorDirectives[i + 1]);
+                    // The header guard conditional should be the last in the array, so we walk backwards.
+                    for (let i = this.conditionals.length - 1; i >= 0; --i) {
+                        if (this.conditionals[i].start === this.preprocessorDirectives[i]) {
+                            this._headerGuard.push(this.conditionals[i].end);
+                            break;
+                        }
+                    }
                     break;
                 }
             }
-
-            if (line !== undefined) {
-                break;
-            }
         }
 
-        if (line !== undefined) {
-            return new vscode.Position(line + 1, 0);
+        return this._headerGuard;
+    }
+
+    hasHeaderGuard(): boolean {
+        return this.headerGuard.length > 0;
+    }
+
+    positionAfterHeaderGuard(): vscode.Position | undefined {
+        for (let i = this.headerGuard.length - 1; i >= 0; --i) {
+            if (!/^#\s*endif/.test(this.headerGuard[i].text())) {
+                return new vscode.Position(this.headerGuard[i].range.start.line, 0);
+            }
         }
     }
 

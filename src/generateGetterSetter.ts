@@ -69,7 +69,7 @@ async function getCurrentSymbolAndCall(
         return;
     }
 
-    await callback(symbol, sourceDoc);
+    return callback(symbol, sourceDoc);
 }
 
 export async function generateGetterSetterFor(
