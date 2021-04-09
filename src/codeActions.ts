@@ -159,7 +159,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         context: vscode.CodeActionContext,
         symbol: CSymbol
     ): boolean {
-        return symbol.isMemberVariable()
+        return symbol.document.languageId === 'cpp' && symbol.isMemberVariable()
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
                 || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
     }
@@ -168,8 +168,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         context: vscode.CodeActionContext,
         symbol: CSymbol
     ): boolean {
-        return (symbol.isClassOrStruct() || symbol.parent?.isClassOrStruct() === true)
-            && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
+        return symbol.document.languageId === 'cpp'
+            && (symbol.isClassOrStruct() || symbol.parent?.isClassOrStruct() === true)
+                && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
     }
 
     private async getAddDefinitionRefactorings(
@@ -292,6 +293,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
+        // FIXME: This function is an absolute mess.
         if (!this.shouldProvideMoveDefinition(rangeOrSelection, context, definition)) {
             return [];
         }
@@ -377,10 +379,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         }
 
-        if (sourceDoc.languageId !== 'cpp') {
-            moveDefinitionIntoOrOutOfClass.disable(moveDefinitionFailure.notCpp);
-        }
-
         if (definition.isInline() && (!declaration || declaration.isInline())) {
             moveDefinitionToMatchingSourceFile.disable(moveDefinitionFailure.isInline);
         } else if (definition.isConstexpr()) {
@@ -402,7 +400,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
         moveDefinitionToMatchingSourceFile.setArguments(definition, matchingUri, declaration);
 
-        return [moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass];
+        if (sourceDoc.languageId === 'cpp') {
+            return [moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass];
+        } else {
+            return [moveDefinitionToMatchingSourceFile];
+        }
     }
 
     private async getGetterSetterRefactorings(
@@ -424,26 +426,20 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         generateGetter.setArguments(memberVariable, sourceDoc);
         generateSetter.setArguments(memberVariable, sourceDoc);
 
-        if (sourceDoc.languageId !== 'cpp') {
-            generateGetterSetter.disable(getterSetterFailure.notCpp);
-            generateGetter.disable(getterSetterFailure.notCpp);
-            generateSetter.disable(getterSetterFailure.notCpp);
-        } else {
-            const getter = memberVariable.parent?.findGetterFor(memberVariable);
-            const setter = memberVariable.parent?.findSetterFor(memberVariable);
+        const getter = memberVariable.parent?.findGetterFor(memberVariable);
+        const setter = memberVariable.parent?.findSetterFor(memberVariable);
 
-            if (getter) {
-                generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
-                generateGetter.disable(getterSetterFailure.getterExists);
-            }
+        if (getter) {
+            generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
+            generateGetter.disable(getterSetterFailure.getterExists);
+        }
 
-            if (setter) {
-                generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
-                generateSetter.disable(getterSetterFailure.setterExists);
-            } else if (memberVariable.isConst()) {
-                generateGetterSetter.disable(getterSetterFailure.isConst);
-                generateSetter.disable(getterSetterFailure.isConst);
-            }
+        if (setter) {
+            generateGetterSetter.disable(getterSetterFailure.getterOrSetterExists);
+            generateSetter.disable(getterSetterFailure.setterExists);
+        } else if (memberVariable.isConst()) {
+            generateGetterSetter.disable(getterSetterFailure.isConst);
+            generateSetter.disable(getterSetterFailure.isConst);
         }
 
         return [generateGetterSetter, generateGetter, generateSetter];
