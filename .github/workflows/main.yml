@@ -1,7 +1,8 @@
 name: Test C-mantic
 
 # Controls when the action will run.
-on: push
+on:
+  push:
 
   # Allows you to run this workflow manually from the Actions tab.
   workflow_dispatch:
@@ -24,9 +25,9 @@ jobs:
       run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
     - name: Setup Node v${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
 
     - name: npm install
       run: npm install
