@@ -3,6 +3,7 @@ import * as cfg from './configuration';
 import SourceDocument from './SourceDocument';
 import SubSymbol from './SubSymbol';
 import { logger } from './extension';
+import { ProposedPosition } from './ProposedPosition';
 
 
 export const failure = {
@@ -11,15 +12,15 @@ export const failure = {
 };
 
 export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolean | undefined> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        logger.alertError(failure.noActiveTextEditor);
+        return;
+    }
+
     if (!headerDoc) {
         // Command was called from the command-palette
-        const activeEditor = vscode.window.activeTextEditor;
-        if (!activeEditor) {
-            logger.alertError(failure.noActiveTextEditor);
-            return;
-        }
-
-        headerDoc = new SourceDocument(activeEditor.document);
+        headerDoc = new SourceDocument(editor.document);
         if (!headerDoc.isHeader()) {
             logger.alertWarning(failure.notHeaderFile);
             return;
@@ -34,9 +35,31 @@ export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolea
         }
     }
 
+    const headerPosition = headerDoc.positionAfterHeaderComment();
+    const footerPosition = headerDoc.lineAt(headerDoc.lineCount - 1).range.end;
+    const headerGuard = generateHeaderGuard(headerDoc, headerPosition, footerPosition);
+
+    workspaceEdit.insert(headerDoc.uri, headerPosition, headerGuard.header);
+    workspaceEdit.insert(headerDoc.uri, footerPosition, headerGuard.footer);
+
+    const prevSelection = editor.selection;
+    const success = await vscode.workspace.applyEdit(workspaceEdit);
+    adjustEditorSelection(editor, prevSelection, headerPosition, headerGuard.header);
+
+    return success;
+}
+
+interface HeaderGuard {
+    header: string;
+    footer: string;
+}
+
+function generateHeaderGuard(
+    headerDoc: SourceDocument, headerPosition: ProposedPosition, footerPosition: vscode.Position
+): HeaderGuard {
+    const eol = headerDoc.endOfLine;
     let header = '';
     let footer = '';
-    const eol = headerDoc.endOfLine;
 
     const headerGuardKind = cfg.headerGuardStyle(headerDoc);
 
@@ -50,27 +73,42 @@ export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolea
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
-    const headerGuardPosition = headerDoc.positionAfterHeaderComment();
-    const footerPosition = headerDoc.lineAt(headerDoc.lineCount - 1).range.end;
-
-    if (headerGuardPosition.options.after) {
+    if (headerPosition.options.after) {
         header = eol + eol + header;
-    } else if (headerGuardPosition.options.before) {
+    } else if (headerPosition.options.before) {
         header += eol;
     }
 
-    if (headerDoc.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
+    if (headerDoc.getText(new vscode.Range(headerPosition, footerPosition)).trim().length === 0) {
         header += eol;
     }
 
-    if (footerPosition.line === headerGuardPosition.line) {
+    if (footerPosition.line === headerPosition.line || !headerDoc.lineAt(footerPosition).isEmptyOrWhitespace) {
         footer = eol + footer;
     }
 
-    workspaceEdit.insert(headerDoc.uri, headerGuardPosition, header);
-    workspaceEdit.insert(headerDoc.uri, footerPosition, footer);
+    return { header: header, footer: footer };
+}
 
-    return vscode.workspace.applyEdit(workspaceEdit);
+function adjustEditorSelection(
+    editor: vscode.TextEditor, prevSelection: vscode.Selection, headerPosition: ProposedPosition, header: string
+): void {
+    if (editor.selection.end.line !== editor.document.lineCount - 1) {
+        return;
+    }
+
+    if (headerPosition.options.after) {
+        editor.selection = prevSelection;
+    } else {
+        const cursorEndPos = prevSelection.end.translate(header.split('\n').length - 1);
+        if (editor.selection.isEmpty) {
+            editor.selection = new vscode.Selection(cursorEndPos, cursorEndPos);
+        } else if (editor.selection.isReversed) {
+            editor.selection = new vscode.Selection(cursorEndPos, editor.selection.start);
+        } else {
+            editor.selection = new vscode.Selection(editor.selection.start, cursorEndPos);
+        }
+    }
 }
 
 function getDeletionRange(directive: SubSymbol): vscode.Range {
