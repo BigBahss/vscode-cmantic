@@ -499,7 +499,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         if (sourceDoc.hasHeaderGuard()) {
-            addHeaderGuard.disable(addHeaderGuardFailure.headerGuardExists);
+            addHeaderGuard.setTitle('Amend Header Guard');
         }
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];

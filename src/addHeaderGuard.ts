@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
 import SourceDocument from './SourceDocument';
+import SubSymbol from './SubSymbol';
 import { logger } from './extension';
 
 
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     notHeaderFile: 'This file is not a header file.',
-    headerGuardExists: 'A header guard already exists.'
 };
 
-export async function addHeaderGuard(): Promise<void> {
+export async function addHeaderGuard(): Promise<boolean | undefined> {
     const activeEditor = vscode.window.activeTextEditor;
     if (!activeEditor) {
         logger.alertError(failure.noActiveTextEditor);
@@ -21,9 +21,13 @@ export async function addHeaderGuard(): Promise<void> {
     if (!headerDoc.isHeader()) {
         logger.alertWarning(failure.notHeaderFile);
         return;
-    } else if (headerDoc.hasHeaderGuard()) {
-        logger.alertInformation(failure.headerGuardExists);
-        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    if (headerDoc.hasHeaderGuard()) {
+        headerDoc.headerGuard.forEach(directive => {
+            workspaceEdit.delete(headerDoc.uri, getDeletionRange(directive));
+        });
     }
 
     const headerGuardPosition = headerDoc.positionAfterHeaderComment();
@@ -50,21 +54,32 @@ export async function addHeaderGuard(): Promise<void> {
     } else if (headerGuardPosition.options.before) {
         header += eol;
     }
+
     if (headerDoc.getText(new vscode.Range(headerGuardPosition, footerPosition)).trim().length === 0) {
         header += eol;
     }
+
     if (footerPosition.line === headerGuardPosition.line) {
         footer = eol + footer;
     }
 
-    await Promise.all([
-        activeEditor.insertSnippet(
-                new vscode.SnippetString(footer),
-                footerPosition,
-                { undoStopBefore: true, undoStopAfter: false }),
-        activeEditor.insertSnippet(
-                new vscode.SnippetString(header),
-                headerGuardPosition,
-                { undoStopBefore: false, undoStopAfter: true })
-    ]);
+    workspaceEdit.insert(headerDoc.uri, headerGuardPosition, header);
+    workspaceEdit.insert(headerDoc.uri, footerPosition, footer);
+
+    return vscode.workspace.applyEdit(workspaceEdit);
+}
+
+function getDeletionRange(directive: SubSymbol): vscode.Range {
+    let deletionRange = directive.document.lineAt(directive.range.start).rangeIncludingLineBreak;
+    if (directive.range.start.line > 0
+            && directive.document.lineAt(directive.range.start.line - 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(
+                directive.document.lineAt(directive.range.start.line - 1).rangeIncludingLineBreak);
+    }
+    if (directive.range.end.line < directive.document.lineCount - 1
+            && directive.document.lineAt(directive.range.end.line + 1).isEmptyOrWhitespace) {
+        deletionRange = deletionRange.union(
+                directive.document.lineAt(directive.range.end.line + 1).rangeIncludingLineBreak);
+    }
+    return deletionRange;
 }
