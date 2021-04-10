@@ -7,7 +7,7 @@ import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
 import { CodeActionProvider } from '../../src/codeActions';
-import { commands } from '../../src/extension';
+import { commands, cpptoolsId } from '../../src/extension';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
 
@@ -21,22 +21,22 @@ function getClass(symbols: SourceSymbol[]): SourceSymbol {
 }
 
 suite('Extension Test Suite', function () {
-    this.timeout(60000);
-    vscode.window.showInformationMessage('Start all tests.');
+    this.timeout(30000);
 
-    const rootPath = path.resolve(__dirname, '../../../');
+    const rootPath = path.resolve(__dirname, '..', '..', '..');
 
     const packageJsonPath = path.join(rootPath, 'package.json');
     const packageJson = fs.readFileSync(packageJsonPath, { encoding: 'utf8', flag: 'r' });
 
-	const testFilePath = rootPath + '/test/workspace/include/derived.h';
+	const testFilePath = path.join(rootPath, 'test', 'workspace', 'include', 'derived.h');
     const testFileUri = vscode.Uri.file(testFilePath);
 
     const codeActionProvider = new CodeActionProvider();
 
     suiteSetup(async () => {
-        const cpptools = vscode.extensions.getExtension('ms-vscode.cpptools');
-        if (cpptools && !cpptools.isActive) {
+        const cpptools = vscode.extensions.getExtension(cpptoolsId);
+        assert(cpptools);
+        if (!cpptools.isActive) {
             await cpptools.activate();
         }
         await vscode.commands.executeCommand('vscode.open', testFileUri);
@@ -46,11 +46,13 @@ suite('Extension Test Suite', function () {
         const editor = vscode.window.activeTextEditor;
         assert(editor);
 
-        await wait(4000);
-
         const sourceDoc = new SourceDocument(editor.document);
-        await sourceDoc.executeSourceSymbolProvider();
-        assert(sourceDoc.symbols);
+
+        // Wait until the language server is initialized (the test will timeout after 30s).
+        do {
+            await wait(1000);
+            await sourceDoc.executeSourceSymbolProvider();
+        } while (!sourceDoc.symbols);
 
         const testClass = getClass(sourceDoc.symbols);
         assert(testClass.children.length > 0);

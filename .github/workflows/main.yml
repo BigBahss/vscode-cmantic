@@ -1,20 +1,23 @@
 name: Test C-mantic
 
-# Controls when the action will run.
 on:
   push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
   # Allows you to run this workflow manually from the Actions tab.
   workflow_dispatch:
 
 jobs:
   build:
+    name: "Test (${{ matrix.os }}, vscode-${{ matrix.code-version }})"
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [10]
-    runs-on: ${{ matrix.os }}
+        code-version: [stable, insiders]
 
     steps:
     - name: Checkout
@@ -24,10 +27,10 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
 
-    - name: Setup Node v${{ matrix.node-version }}
+    - name: Setup Node
       uses: actions/setup-node@v1
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 10
 
     - name: npm install
       run: npm install
@@ -38,3 +41,4 @@ jobs:
         CI: true
         ELECTRON_NO_ATTACH_CONSOLE: 1
         DISPLAY: ":99.0"
+        CODE_VERSION: ${{ matrix.code-version }}
