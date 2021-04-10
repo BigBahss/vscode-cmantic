@@ -191,7 +191,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return this._includedFiles;
     }
 
-    get headerGuard(): SubSymbol[] {
+    get headerGuardDirectives(): SubSymbol[] {
         if (this._headerGuard) {
             return this._headerGuard;
         }
@@ -228,13 +228,13 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     }
 
     hasHeaderGuard(): boolean {
-        return this.headerGuard.length > 0;
+        return this.headerGuardDirectives.length > 0;
     }
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
-        for (let i = this.headerGuard.length - 1; i >= 0; --i) {
-            if (!/^#\s*endif/.test(this.headerGuard[i].text())) {
-                return new vscode.Position(this.headerGuard[i].range.start.line, 0);
+        for (let i = this.headerGuardDirectives.length - 1; i >= 0; --i) {
+            if (!/^#\s*endif/.test(this.headerGuardDirectives[i].text())) {
+                return new vscode.Position(this.headerGuardDirectives[i].range.start.line, 0);
             }
         }
     }

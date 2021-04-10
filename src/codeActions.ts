@@ -489,6 +489,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const createMatchingSourceFile = new SourceAction(
                 'Create Matching Source File', 'cmantic.createMatchingSourceFile');
 
+        addHeaderGuard.setArguments(sourceDoc);
         createMatchingSourceFile.setArguments(sourceDoc);
 
         if (!sourceDoc.isHeader()) {

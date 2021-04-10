@@ -10,31 +10,34 @@ export const failure = {
     notHeaderFile: 'This file is not a header file.',
 };
 
-export async function addHeaderGuard(): Promise<boolean | undefined> {
-    const activeEditor = vscode.window.activeTextEditor;
-    if (!activeEditor) {
-        logger.alertError(failure.noActiveTextEditor);
-        return;
-    }
+export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolean | undefined> {
+    if (!headerDoc) {
+        // Command was called from the command-palette
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
 
-    const headerDoc = new SourceDocument(activeEditor.document);
-    if (!headerDoc.isHeader()) {
-        logger.alertWarning(failure.notHeaderFile);
-        return;
+        headerDoc = new SourceDocument(activeEditor.document);
+        if (!headerDoc.isHeader()) {
+            logger.alertWarning(failure.notHeaderFile);
+            return;
+        }
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    if (headerDoc.hasHeaderGuard()) {
-        headerDoc.headerGuard.forEach(directive => {
-            workspaceEdit.delete(headerDoc.uri, getDeletionRange(directive));
-        });
-    }
 
-    const headerGuardPosition = headerDoc.positionAfterHeaderComment();
-    const eol = headerDoc.endOfLine;
+    if (headerDoc.hasHeaderGuard()) {
+        for (const directive of headerDoc.headerGuardDirectives) {
+            workspaceEdit.delete(headerDoc.uri, getDeletionRange(directive));
+        }
+    }
 
     let header = '';
     let footer = '';
+    const eol = headerDoc.endOfLine;
+
     const headerGuardKind = cfg.headerGuardStyle(headerDoc);
 
     if (headerGuardKind === cfg.HeaderGuardStyle.PragmaOnce || headerGuardKind === cfg.HeaderGuardStyle.Both) {
@@ -47,6 +50,7 @@ export async function addHeaderGuard(): Promise<boolean | undefined> {
         footer = eol + '#endif // ' + headerGuardDefine + eol;
     }
 
+    const headerGuardPosition = headerDoc.positionAfterHeaderComment();
     const footerPosition = headerDoc.lineAt(headerDoc.lineCount - 1).range.end;
 
     if (headerGuardPosition.options.after) {
