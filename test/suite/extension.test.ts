@@ -21,7 +21,7 @@ function getClass(symbols: SourceSymbol[]): SourceSymbol {
 }
 
 suite('Extension Test Suite', function () {
-    this.timeout(30000);
+    this.timeout(60000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
 
@@ -48,9 +48,9 @@ suite('Extension Test Suite', function () {
 
         const sourceDoc = new SourceDocument(editor.document);
 
-        // Wait until the language server is initialized (the test will timeout after 30s).
+        // Wait until the language server is initialized (the test will timeout after 60s).
         do {
-            await wait(1000);
+            await wait(1500);
             await sourceDoc.executeSourceSymbolProvider();
         } while (!sourceDoc.symbols);
 
