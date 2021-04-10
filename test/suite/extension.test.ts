@@ -1,12 +1,13 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as parse from '../../src/parsing';
 import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
 import { CodeActionProvider } from '../../src/codeActions';
-import { extensionId, commands } from '../../src/extension';
+import { commands } from '../../src/extension';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
 
@@ -24,6 +25,10 @@ suite('Extension Test Suite', function () {
     vscode.window.showInformationMessage('Start all tests.');
 
     const rootPath = path.resolve(__dirname, '../../../');
+
+    const packageJsonPath = path.join(rootPath, 'package.json');
+    const packageJson = fs.readFileSync(packageJsonPath, { encoding: 'utf8', flag: 'r' });
+
 	const testFilePath = rootPath + '/test/workspace/include/derived.h';
     const testFileUri = vscode.Uri.file(testFilePath);
 
@@ -96,7 +101,7 @@ suite('Extension Test Suite', function () {
     interface ContributedCommand { command: string; title: string }
 
     test('Test Registered Commands', () => {
-        const contributedCommands = vscode.extensions.getExtension(extensionId)?.packageJSON.contributes.commands;
+        const contributedCommands = JSON.parse(packageJson).contributes.commands;
         assert(contributedCommands instanceof Array);
 
         contributedCommands.forEach((contributedCommand: ContributedCommand) => {
