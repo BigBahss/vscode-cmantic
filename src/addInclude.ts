@@ -3,7 +3,7 @@ import SourceDocument from './SourceDocument';
 import { logger } from './extension';
 
 
-export async function addInclude(): Promise<boolean | undefined> {
+export async function addInclude(sourceDoc: SourceDocument): Promise<boolean | undefined> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         logger.alertError('No active text editor detected.');
@@ -12,9 +12,13 @@ export async function addInclude(): Promise<boolean | undefined> {
 
     const p_userInput = vscode.window.showInputBox({ value: '#include ', valueSelection: [9, 9] });
 
-    const currentPos = getCurrentPositionFromEditor(editor);
-    const sourceDoc = new SourceDocument(editor.document);
-    const newIncludePosition = sourceDoc.findPositionForNewInclude(currentPos);
+    if (!sourceDoc) {
+        // Command was called from the command-palette
+        sourceDoc = new SourceDocument(editor.document);
+    }
+
+    const currentPosition = getCurrentPositionFromEditor(editor);
+    const newIncludePosition = sourceDoc.findPositionForNewInclude(currentPosition);
 
     const userInput = await p_userInput;
     if (userInput !== undefined) {
