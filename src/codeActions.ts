@@ -9,7 +9,7 @@ import { failure as addDeclarationFailure, title as addDeclarationTitle } from '
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
-import { failure as addHeaderGuardFailure } from './addHeaderGuard';
+import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './addHeaderGuard';
 import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
@@ -93,7 +93,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
         const [refactorings, sourceActions] = await Promise.all([
             this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
-            this.getSourceActions(sourceDoc, matchingUri)
+            this.getSourceActions(rangeOrSelection, sourceDoc, matchingUri)
         ]);
 
         if (token?.isCancellationRequested) {
@@ -481,6 +481,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getSourceActions(
+        rangeOrSelection: vscode.Range | vscode.Selection,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<SourceAction[]> {
@@ -499,8 +500,11 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             createMatchingSourceFile.disable(createSourceFileFailure.sourceFileExists);
         }
 
-        if (sourceDoc.hasHeaderGuard()) {
+        if (sourceDoc.hasHeaderGuard) {
             addHeaderGuard.setTitle('Amend Header Guard');
+            if (headerGuardMatchesConfiguredStyle(sourceDoc)) {
+                addHeaderGuard.disable(addHeaderGuardFailure.headerGuardMatches);
+            }
         }
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];

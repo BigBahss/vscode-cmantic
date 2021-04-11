@@ -9,6 +9,7 @@ import { ProposedPosition } from './ProposedPosition';
 export const failure = {
     noActiveTextEditor: 'No active text editor detected.',
     notHeaderFile: 'This file is not a header file.',
+    headerGuardMatches: 'Existing header guard already matches the configured style.'
 };
 
 export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolean | undefined> {
@@ -29,7 +30,11 @@ export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolea
 
     const workspaceEdit = new vscode.WorkspaceEdit();
 
-    if (headerDoc.hasHeaderGuard()) {
+    if (headerDoc.hasHeaderGuard) {
+        if (headerGuardMatchesConfiguredStyle(headerDoc)) {
+            logger.alertInformation(failure.headerGuardMatches);
+            return;
+        }
         for (const directive of headerDoc.headerGuardDirectives) {
             workspaceEdit.delete(headerDoc.uri, getDeletionRange(directive));
         }
@@ -47,6 +52,23 @@ export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolea
     adjustEditorSelection(editor, prevSelection, headerPosition, headerGuard.header);
 
     return success;
+}
+
+export function headerGuardMatchesConfiguredStyle(headerDoc: SourceDocument): boolean {
+    const headerGuardKind = cfg.headerGuardStyle(headerDoc);
+
+    if ((headerGuardKind === cfg.HeaderGuardStyle.PragmaOnce || headerGuardKind === cfg.HeaderGuardStyle.Both) && !headerDoc.hasPragmaOnce) {
+        return false;
+    }
+
+    if (headerGuardKind === cfg.HeaderGuardStyle.Define || headerGuardKind === cfg.HeaderGuardStyle.Both) {
+        const headerGuardDefine = cfg.headerGuardDefine(headerDoc.uri);
+        if (headerGuardDefine !== headerDoc.headerGuardDefine) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 interface HeaderGuard {
