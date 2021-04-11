@@ -284,6 +284,12 @@
             "description": "Controls whether generated member functions will explicitly prefix members with 'this->'.",
             "scope": "resource"
           },
+          "C_mantic.cpp.friendComparisonOperators": {
+            "type": "boolean",
+            "default": false,
+            "description": "Generate comparison operators (such as 'operator==') as friend functions instead of member functions.",
+            "scope": "resource"
+          },
           "C_mantic.headerGuard.style": {
             "type": "string",
             "enum": [

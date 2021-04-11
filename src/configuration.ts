@@ -51,6 +51,7 @@ const defaultEnableCodeAction = true;
 const defaultCaseStyle = CaseStyle.camelCase;
 const defaultBracedInitialization = false;
 const defaultExplicitThisPointer = false;
+const defaultFriendComparisonOperators = false;
 
 export const extensionKey = 'C_mantic';
 export const cpptoolsKey = 'C_Cpp';
@@ -237,6 +238,10 @@ export function bracedInitialization(scope: vscode.ConfigurationScope): boolean 
 
 export function useExplicitThisPointer(scope: vscode.ConfigurationScope): boolean {
     return configuration(scope).get<boolean>('cpp.useExplicitThisPointer', defaultExplicitThisPointer);
+}
+
+export function friendComparisonOperators(scope: vscode.ConfigurationScope): boolean {
+    return configuration(scope).get<boolean>('cpp.friendComparisonOperators', defaultFriendComparisonOperators);
 }
 
 export function filesExclude(scope: vscode.ConfigurationScope): string[] {

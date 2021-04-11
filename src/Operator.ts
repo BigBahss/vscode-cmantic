@@ -8,64 +8,86 @@ import SubSymbol from './SubSymbol';
 
 export type Operand = CSymbol | SubSymbol;
 
-export interface Operator {
+export abstract class Operator {
     readonly parent: CSymbol;
-    name: string;
-    returnType: string;
-    parameters: string;
-    body: string;
-    declaration: string;
-    definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string>;
-}
-
-export class EqualsOperator implements Operator {
-    readonly parent: CSymbol;
-    name: string;
-    returnType: string;
-    parameters: string;
+    abstract isFriend: boolean;
+    abstract name: string;
+    abstract returnType: string;
+    abstract parameters: string;
     body: string;
 
-    constructor(parent: CSymbol, operands?: Operand[]) {
+    constructor(parent: CSymbol) {
         this.parent = parent;
-        this.name = 'operator==';
-        this.returnType = 'bool ';
-        this.parameters = `const ${parent.templatedName()} &other`;
         this.body = '';
-        if (operands) {
-            this.setOperands(operands);
-        }
     }
 
     get declaration(): string {
-        return `${this.returnType + this.name}(${this.parameters}) const`;
+        return (this.isFriend ? 'friend ' : '') + this.returnType + this.name
+                + '(' + this.parameters + ')' + (this.isFriend ? '' : ' const');
     }
 
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
+        const friendSpecifier =
+            this.isFriend && (util.containsExclusive(this.parent.range, position)
+            && this.parent.document.fileName === target.fileName)
+                ? 'friend '
+                : '';
         const inlineSpecifier =
             (!util.containsExclusive(this.parent.range, position)
             && this.parent.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
-        return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameters + ') const'
-                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+        return this.parent.combinedTemplateStatements(true, eol, !this.isFriend) + friendSpecifier
+                + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position, this.isFriend)
+                + this.name + '('+ this.parameters + ')' + (this.isFriend ? '' : ' const') + curlySeparator + '{'
+                + eol + util.indentation() + this.body + eol + '}';
+    }
+}
+
+export class EqualsOperator extends Operator {
+    isFriend: boolean;
+    name: string;
+    returnType: string;
+    parameters: string;
+
+    constructor(parent: CSymbol, operands?: Operand[]) {
+        super(parent);
+        this.isFriend = cfg.friendComparisonOperators(parent.uri);
+        this.name = 'operator==';
+        this.returnType = 'bool ';
+        const type = `const ${parent.templatedName()} &`;
+        this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+        if (operands) {
+            this.setOperands(operands);
+        }
     }
 
     setOperands(operands: Operand[]): void {
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '    ' : indent;
-        const thisPointer = cfg.useExplicitThisPointer(this.parent.uri) ? 'this->' : '';
+        const lhs = cfg.useExplicitThisPointer(this.parent.uri) && !this.isFriend
+                ? 'this->'
+                : this.isFriend
+                    ? 'lhs.'
+                    : '';
+        const rhs = this.isFriend
+                ? 'rhs.'
+                : 'other.';
 
         this.body = '';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
                 const cast = `static_cast<const ${operand.name} &>`;
-                this.body += `${cast}(*this) == ${cast}(other)${eol}${indent}${alignment}&& `;
+                if (this.isFriend) {
+                    this.body += `${cast}(lhs) == ${cast}(rhs)${eol + indent + alignment}&& `;
+                } else {
+                    this.body += `${cast}(*this) == ${cast}(other)${eol + indent + alignment}&& `;
+                }
             } else {
-                this.body += `${thisPointer}${operand.name} == other.${operand.name}${eol}${indent}${alignment}&& `;
+                this.body += `${lhs + operand.name} == ${rhs + operand.name + eol + indent + alignment}&& `;
             }
         });
 
@@ -75,102 +97,66 @@ export class EqualsOperator implements Operator {
     }
 }
 
-export class NotEqualsOperator implements Operator {
-    readonly parent: CSymbol;
+export class NotEqualsOperator extends Operator {
+    isFriend: boolean;
     name: string;
     returnType: string;
     parameters: string;
-    body: string;
 
     constructor(parent: CSymbol) {
-        this.parent = parent;
+        super(parent);
+        this.isFriend = cfg.friendComparisonOperators(parent.uri);
         this.name = 'operator!=';
         this.returnType = 'bool ';
-        this.parameters = `const ${parent.templatedName()} &other`;
-        if (cfg.useExplicitThisPointer(parent.uri)) {
+        const type = `const ${parent.templatedName()} &`;
+        this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+        if (cfg.useExplicitThisPointer(parent.uri) && !this.isFriend) {
             this.body = 'return !(*this == other);';
+        } else if (this.isFriend) {
+            this.body = 'return !(lhs == rhs);';
         } else {
             this.body = 'return !operator==(other);';
         }
     }
-
-    get declaration(): string {
-        return `${this.returnType + this.name}(${this.parameters}) const`;
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
-        const eol = target.endOfLine;
-        const inlineSpecifier =
-            (!util.containsExclusive(this.parent.range, position)
-            && this.parent.document.fileName === target.fileName)
-                ? 'inline '
-                : '';
-        return this.parent.combinedTemplateStatements(true, eol, true) + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position) + this.name + '(' + this.parameters + ') const'
-                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
-    }
 }
 
 
-export class StreamOutputOperator implements Operator {
-    readonly parent: CSymbol;
+export class StreamOutputOperator extends Operator {
+    isFriend: boolean;
     name: string;
     returnType: string;
     parameters: string;
-    body: string;
 
     constructor(parent: CSymbol, operands?: Operand[]) {
-        this.parent = parent;
+        super(parent);
+        this.isFriend = true;
         this.name = 'operator<<';
         this.returnType = 'std::ostream &';
         this.parameters = `std::ostream &os, const ${parent.templatedName()} &rhs`;
-        this.body = '';
         if (operands) {
             this.setOperands(operands);
         }
     }
 
-    get declaration(): string {
-        return `friend ${this.returnType + this.name}(${this.parameters})`;
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
-        const eol = target.endOfLine;
-        const friendSpecifier =
-            (util.containsExclusive(this.parent.range, position)
-            && this.parent.document.fileName === target.fileName)
-                ? 'friend '
-                : '';
-        const inlineSpecifier =
-            (!util.containsExclusive(this.parent.range, position)
-            && this.parent.document.fileName === target.fileName)
-                ? 'inline '
-                : '';
-        return this.parent.combinedTemplateStatements(true, eol) + friendSpecifier + inlineSpecifier + this.returnType
-                + await this.parent.scopeString(target, position, true) + this.name + '(' + this.parameters + ')'
-                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
-    }
-
     setOperands(operands: Operand[]): void {
-        this.body = '';
-
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '   ' : indent;
 
+        this.body = '';
         let spacer = '';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
-                this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol}${indent}${alignment}`;
+                this.body += `<< static_cast<const ${operand.name} &>(rhs)${eol + indent + alignment}`;
             } else {
-                this.body += `<< "${spacer}${operand.name}: " << rhs.${operand.name}${eol}${indent}${alignment}`;
+                this.body += `<< "${spacer + operand.name}: " << rhs.${operand.name + eol + indent + alignment}`;
             }
             spacer = ' ';
         });
 
         if (this.body.length > 0) {
-            this.body = `os ${this.body.trimEnd()};${eol}${indent}return os;`;
+            this.body = `os ${this.body.trimEnd()};${eol + indent}return os;`;
         }
     }
 }
