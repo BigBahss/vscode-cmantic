@@ -55,17 +55,16 @@ export async function addHeaderGuard(headerDoc?: SourceDocument): Promise<boolea
 }
 
 export function headerGuardMatchesConfiguredStyle(headerDoc: SourceDocument): boolean {
-    const headerGuardKind = cfg.headerGuardStyle(headerDoc);
+    const headerGuardStyle = cfg.headerGuardStyle(headerDoc);
 
-    if ((headerGuardKind === cfg.HeaderGuardStyle.PragmaOnce || headerGuardKind === cfg.HeaderGuardStyle.Both) && !headerDoc.hasPragmaOnce) {
+    if ((headerGuardStyle === cfg.HeaderGuardStyle.PragmaOnce || headerGuardStyle === cfg.HeaderGuardStyle.Both)
+            && !headerDoc.hasPragmaOnce) {
         return false;
     }
 
-    if (headerGuardKind === cfg.HeaderGuardStyle.Define || headerGuardKind === cfg.HeaderGuardStyle.Both) {
-        const headerGuardDefine = cfg.headerGuardDefine(headerDoc.uri);
-        if (headerGuardDefine !== headerDoc.headerGuardDefine) {
-            return false;
-        }
+    if (headerGuardStyle === cfg.HeaderGuardStyle.Define || headerGuardStyle === cfg.HeaderGuardStyle.Both
+            && cfg.headerGuardDefine(headerDoc.uri) !== headerDoc.headerGuardDefine) {
+        return false;
     }
 
     return true;
@@ -83,13 +82,13 @@ function generateHeaderGuard(
     let header = '';
     let footer = '';
 
-    const headerGuardKind = cfg.headerGuardStyle(headerDoc);
+    const headerGuardStyle = cfg.headerGuardStyle(headerDoc);
 
-    if (headerGuardKind === cfg.HeaderGuardStyle.PragmaOnce || headerGuardKind === cfg.HeaderGuardStyle.Both) {
+    if (headerGuardStyle === cfg.HeaderGuardStyle.PragmaOnce || headerGuardStyle === cfg.HeaderGuardStyle.Both) {
         header = '#pragma once' + eol;
     }
 
-    if (headerGuardKind === cfg.HeaderGuardStyle.Define || headerGuardKind === cfg.HeaderGuardStyle.Both) {
+    if (headerGuardStyle === cfg.HeaderGuardStyle.Define || headerGuardStyle === cfg.HeaderGuardStyle.Both) {
         const headerGuardDefine = cfg.headerGuardDefine(headerDoc.uri);
         header += '#ifndef ' + headerGuardDefine + eol + '#define ' + headerGuardDefine + eol;
         footer = eol + '#endif // ' + headerGuardDefine + eol;
