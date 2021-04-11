@@ -213,9 +213,9 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                     this._headerGuard.push(this.preprocessorDirectives[i]);
                     this._headerGuard.push(this.preprocessorDirectives[i + 1]);
                     // The header guard conditional should be the last in the array, so we walk backwards.
-                    for (let i = this.conditionals.length - 1; i >= 0; --i) {
-                        if (this.conditionals[i].start === this.preprocessorDirectives[i]) {
-                            this._headerGuard.push(this.conditionals[i].end);
+                    for (let j = this.conditionals.length - 1; j >= 0; --j) {
+                        if (this.conditionals[j].start === this.preprocessorDirectives[i]) {
+                            this._headerGuard.push(this.conditionals[j].end);
                             break;
                         }
                     }
