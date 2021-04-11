@@ -417,10 +417,13 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
+        const titleSnippet = ` for "${memberVariable.name}"`;
         const generateGetterSetter = new RefactorAction(
-                getterSetterTitle.getterSetter, 'cmantic.generateGetterSetterFor');
-        const generateGetter = new RefactorAction(getterSetterTitle.getter, 'cmantic.generateGetterFor');
-        const generateSetter = new RefactorAction(getterSetterTitle.setter, 'cmantic.generateSetterFor');
+                getterSetterTitle.getterSetter + titleSnippet, 'cmantic.generateGetterSetterFor');
+        const generateGetter = new RefactorAction(
+                getterSetterTitle.getter + titleSnippet, 'cmantic.generateGetterFor');
+        const generateSetter = new RefactorAction(
+                getterSetterTitle.setter + titleSnippet, 'cmantic.generateSetterFor');
 
         generateGetterSetter.setArguments(memberVariable, sourceDoc);
         generateGetter.setArguments(memberVariable, sourceDoc);

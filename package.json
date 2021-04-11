@@ -73,17 +73,17 @@
       },
       {
         "command": "cmantic.generateGetterSetter",
-        "title": "Generate Getter and Setter Member Functions",
+        "title": "Generate Getter and Setter",
         "category": "C-mantic"
       },
       {
         "command": "cmantic.generateGetter",
-        "title": "Generate Getter Member Function",
+        "title": "Generate Getter",
         "category": "C-mantic"
       },
       {
         "command": "cmantic.generateSetter",
-        "title": "Generate Setter Member Function",
+        "title": "Generate Setter",
         "category": "C-mantic"
       },
       {

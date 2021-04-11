@@ -9,9 +9,9 @@ import { getMatchingHeaderSource, logger } from './extension';
 
 
 export const title = {
-    getterSetter: 'Generate Getter and Setter Member Functions',
-    getter: 'Generate Getter Member Function',
-    setter: 'Generate Setter Member Function'
+    getterSetter: 'Generate Getter and Setter',
+    getter: 'Generate Getter',
+    setter: 'Generate Setter'
 };
 
 export const failure = {
@@ -20,10 +20,10 @@ export const failure = {
     notHeaderFile: 'This file is not a header file.',
     noMemberVariable: 'No member variable detected.',
     positionNotFound: 'Could not find a position for a new public member function.',
-    getterOrSetterExists: 'There already exists a getter or setter member function.',
-    getterAndSetterExists: 'There already exists getter and setter member functions.',
-    getterExists: 'There already exists a getter member function.',
-    setterExists: 'There already exists a setter member function.',
+    getterOrSetterExists: 'There already exists a getter or setter.',
+    getterAndSetterExists: 'There already exists a getter and setter.',
+    getterExists: 'There already exists a getter.',
+    setterExists: 'There already exists a setter.',
     isConst: 'Const variables cannot be assigned after initialization.'
 };
 
@@ -83,15 +83,15 @@ export async function generateGetterSetterFor(
             logger.alertInformation(failure.isConst + ' ' + failure.getterExists);
             return;
         }
-        logger.alertInformation(failure.isConst + ' Only generating a getter member function.');
+        logger.alertInformation(failure.isConst + ' Only generating a getter.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && !setter) {
-        logger.alertInformation(failure.getterExists + ' Only generating a setter member function.');
+        logger.alertInformation(failure.getterExists + ' Only generating a setter.');
         await generateSetterFor(symbol, classDoc);
         return;
     } else if (!getter && setter) {
-        logger.alertInformation(failure.setterExists + ' Only generating a getter member function.');
+        logger.alertInformation(failure.setterExists + ' Only generating a getter.');
         await generateGetterFor(symbol, classDoc);
         return;
     } else if (getter && setter) {

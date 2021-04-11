@@ -12,7 +12,7 @@ C/C++ extension that provides generative-code commands and refactorings. Relevan
 - [Generate Constructor](#generate-constructor)
 - [Add Declaration](#add-declaration)
 - [Move Definition](#move-definition)
-- [Generate Getter and Setter Member Functions](#generate-getter-and-setter-member-functions)
+- [Generate Getters and Setters](#generate-getters-and-setters)
 - [Generate Equality Operators](#generate-equality-operators)
 - [Generate Stream Output Operator](#generate-stream-output-operator)
 - [Create Matching Source File](#create-matching-source-file)
@@ -66,13 +66,13 @@ The `Move Definition into/out-of class body` command will move a member function
 
 `Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Also, when moving a definition from a header file that does not contain a declaration for that function, or when moving from a class body, a declaration will be left behind in its place. Moving definitions will also move leading comments. If you don't want leading comments to be moved when a declaration is being left behind, disable `Always Move Comments` in the settings.
 
-### **Generate Getter and Setter Member Functions**
+### **Generate Getters and Setters**
 
 ![Generate Accessors](./images/generate_accessors.gif)
 
 Selecting a class member variable will suggest the following code-actions 💡 based on what accessor function(s) already exist for that member variable.
 
-The `Generate Getter and Setter Member Functions`, `Generate Getter Member Function`, and `Generate Setter Member Function` commands will generate accessor functions for a class member variable. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_` or `s_`, these characters will be removed to create the member function names.  The `Case Style` setting controls whether names are generated in snake_case, camelCase, or PascalCase.
+The `Generate Getter and Setter`, `Generate Getter`, and `Generate Setter` commands will generate accessor functions for a class member variable. C-mantic will look for common private member naming schemes in order to generate appropriate accessor names. If a member variable name begins and/or ends with underscore(s), or if it begins with `m_` or `s_`, these characters will be removed to create the member function names.  The `Case Style` setting controls whether names are generated in snake_case, camelCase, or PascalCase.
 
 Additionally, for non-primitive, non-pointer data types, setters will be generated with a const-reference (`const &`) parameter type. If you would like C-mantic to resolve `typedef`'s, `type-alias`'s, and `enum`'s, enable `Cpp: Resolve Types` in the settings (This is disabled by default as it may impact the performance of generating setters).
 
