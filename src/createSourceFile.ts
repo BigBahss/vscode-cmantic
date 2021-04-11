@@ -47,8 +47,9 @@ export async function createMatchingSourceFile(
         return;
     }
 
-    const p_undefinedFunctions = !dontAddDefinitions
-            ? findUndefinedFunctions(headerDoc)
+    const functionDeclarations = await findEligibleFunctionDeclarations(headerDoc);
+    const p_undefinedFunctions = !dontAddDefinitions && functionDeclarations.length > 0
+            ? findUndefinedFunctions(functionDeclarations)
             : undefined;
 
     const headerFileNameBase = util.fileNameBase(headerDoc.fileName);
@@ -221,14 +222,17 @@ function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string 
     return ' ';
 }
 
-async function findUndefinedFunctions(headerDoc: SourceDocument): Promise<CSymbol[]> {
+async function findEligibleFunctionDeclarations(headerDoc: SourceDocument): Promise<CSymbol[]> {
     const functionDeclarations: CSymbol[] = [];
     (await headerDoc.allFunctions()).forEach(functionSymbol => {
         if (functionSymbol.isFunctionDeclaration() && !util.requiresVisibleDefinition(functionSymbol)) {
             functionDeclarations.push(functionSymbol);
         }
     });
+    return functionDeclarations;
+}
 
+async function findUndefinedFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[]> {
     const p_declarationDefinitionLinks: Promise<util.DeclarationDefinitionLink>[] = [];
     functionDeclarations.forEach(declaration => {
         p_declarationDefinitionLinks.push(util.makeDeclDefLink(declaration));

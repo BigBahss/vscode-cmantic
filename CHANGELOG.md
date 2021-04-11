@@ -5,6 +5,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ### Added
 - Added a setting `Cpp: Friend Comparison Operators` to generate equality operators as friend functions rather than member functions.
 
+### Changed
+- `Create Matching Source File` will no longer ask to add definitions if there are no eligible functions.
+
 ### Fixed
 - Fixed a bug when parsing the first preprocessor statement in a file.
 - Fixed C++ specific code-actions getting provided for C files.
