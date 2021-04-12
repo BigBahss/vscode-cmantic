@@ -166,11 +166,13 @@ function getPositionForNewAccessorDeclaration(
     // If the new accessor is a getter, then we want to place it relative to the setter, and vice-versa.
     switch (type) {
     case AccessorType.Getter:
-        return symbol.parent?.findPositionForNewMemberFunction(util.AccessLevel.public, symbol.setterName(), symbol);
+        return symbol.firstNamedParent()?.findPositionForNewMemberFunction(
+                util.AccessLevel.public, symbol.setterName(), symbol);
     case AccessorType.Setter:
-        return symbol.parent?.findPositionForNewMemberFunction(util.AccessLevel.public, symbol.getterName(), symbol);
+        return symbol.firstNamedParent()?.findPositionForNewMemberFunction(
+                util.AccessLevel.public, symbol.getterName(), symbol);
     case AccessorType.Both:
-        return symbol.parent?.findPositionForNewMemberFunction(util.AccessLevel.public);
+        return symbol.firstNamedParent()?.findPositionForNewMemberFunction(util.AccessLevel.public);
     }
 }
 
@@ -186,7 +188,7 @@ async function addNewAccessorToWorkspaceEdit(
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
         let formattedInlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
         if (!skipAccessSpecifierCheck
-                && !newAccessor.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+                && !newAccessor.namedParent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
             formattedInlineDefinition = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedInlineDefinition;
         }
@@ -200,7 +202,7 @@ async function addNewAccessorToWorkspaceEdit(
 
         let formattedDeclaration = newAccessor.declaration + ';';
         if (!skipAccessSpecifierCheck
-                && !newAccessor.parent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
+                && !newAccessor.namedParent?.positionHasAccess(declarationPos, util.AccessLevel.public)) {
             formattedDeclaration = util.accessSpecifierString(util.AccessLevel.public)
                     + classDoc.endOfLine + formattedDeclaration;
         }

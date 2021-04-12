@@ -7,6 +7,7 @@ import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
@@ -364,6 +365,10 @@ export default class CSymbol extends SourceSymbol {
                     targetScope = scope;
                 }
 
+                if (targetScope.isAnonymous()) {
+                    continue;
+                }
+
                 if (targetScope.isNamespace()) {
                     scopeString += targetScope.name + '::';
                 } else {
@@ -587,6 +592,17 @@ export default class CSymbol extends SourceSymbol {
         return normalize ? parse.normalize(templateName) : templateName;
     }
 
+    /**
+     * Returns the first non-anonymous parent of this symbol, or undefined if there is none.
+     */
+    firstNamedParent(): CSymbol | undefined {
+        let parent = this.parent;
+        while (parent?.isAnonymous()) {
+            parent = parent.parent;
+        }
+        return parent;
+    }
+
     isFunctionDeclaration(): boolean {
         return this.isFunction() && !/}\s*(\s*;)*$/.test(this.parsableText)
             && !this.isDeletedOrDefaulted() && !this.isPureVirtual();
@@ -680,6 +696,20 @@ export default class CSymbol extends SourceSymbol {
      */
     isUnqualifiedNamespace(): boolean {
         return this.isNamespace() && /^\s*::\s*[\w_][\w\d_]*/.test(this.parsableTrailingText);
+    }
+
+    isAnonymous(): boolean {
+        switch (activeLanguageServer()) {
+        case LanguageServer.cpptools:
+            return this.name.includes('anonymous-namespace')
+                || /__unnamed_(class|struct|union)/.test(this.name);
+        case LanguageServer.clangd:
+            return /anonymous (namespace|class|struct|union)/.test(this.name);
+        case LanguageServer.ccls:
+            return /anon (class|struct|union)/.test(this.name);
+        case LanguageServer.unknown:
+            return false;
+        }
     }
 
     isTypedef(): boolean {

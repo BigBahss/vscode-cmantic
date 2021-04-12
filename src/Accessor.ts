@@ -18,7 +18,7 @@ enum MemberFunctionQualifier {
  */
 export abstract class Accessor {
     readonly memberVariable: CSymbol;
-    readonly parent?: CSymbol;
+    readonly namedParent?: CSymbol;
     protected qualifier: MemberFunctionQualifier;
 
     abstract name: string;
@@ -28,7 +28,7 @@ export abstract class Accessor {
 
     constructor(memberVariable: CSymbol) {
         this.memberVariable = memberVariable;
-        this.parent = memberVariable.parent;
+        this.namedParent = memberVariable.firstNamedParent();
         this.qualifier = memberVariable.isStatic() ? MemberFunctionQualifier.Static : MemberFunctionQualifier.None;
     }
 
@@ -44,7 +44,7 @@ export abstract class Accessor {
     async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
         const eol = target.endOfLine;
         const inlineSpecifier =
-            ((!this.parent || !util.containsExclusive(this.parent.range, position))
+            ((!this.namedParent || !util.containsExclusive(this.namedParent.range, position))
             && this.memberVariable.document.fileName === target.fileName)
                 ? 'inline '
                 : '';
@@ -57,8 +57,8 @@ export abstract class Accessor {
     protected memberPrefix(): string {
         if (cfg.useExplicitThisPointer(this.memberVariable.uri) && !this.isStatic) {
             return 'this->';
-        } else if (this.isStatic && this.parent) {
-            return this.parent.name + '::';
+        } else if (this.isStatic && this.namedParent) {
+            return this.namedParent.name + '::';
         } else {
             return '';
         }
