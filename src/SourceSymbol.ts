@@ -63,7 +63,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
             if (symbol.kind === vscode.SymbolKind.Property) {
                 this.kind = vscode.SymbolKind.Method;
             }
-        } else if (parent?.isClassOrStruct()) {
+        } else if (parent?.isClassType()) {
             this.signature = parent.name + '::' + this.signature;
         }
 
@@ -100,7 +100,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isMemberVariable(): boolean {
-        return this.parent?.isClassOrStruct() === true
+        return this.parent?.isClassType() === true
             && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
@@ -120,7 +120,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return (this.parent?.isClassOrStruct() && this.name === this.parent.name)
+            return (this.parent?.isClassType() && this.name === this.parent.name)
                 || this.signature.includes(this.name + '::' + this.name);
         default:
             return false;
@@ -132,7 +132,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return (this.parent?.isClassOrStruct() && this.name === '~' + this.parent.name)
+            return (this.parent?.isClassType() && this.name === '~' + this.parent.name)
                 || /(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
         default:
             return false;
@@ -147,7 +147,12 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         return this.kind === vscode.SymbolKind.Struct;
     }
 
-    isClassOrStruct(): boolean {
+    /**
+     * Tests if this symbol is a class, struct, or union. Note that the LSP does not have a SymbolKind
+     * for unions, so it is up to the language server to provide them as classes or structs. Also note
+     * that clangd provides typedefs and type-aliases as classes, so this test is not perfect.
+     */
+    isClassType(): boolean {
         return this.kind === vscode.SymbolKind.Class || this.kind === vscode.SymbolKind.Struct;
     }
 
@@ -185,7 +190,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     memberVariables(): SourceSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -193,7 +198,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     constructors(): SourceSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 

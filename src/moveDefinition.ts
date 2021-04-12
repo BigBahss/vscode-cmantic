@@ -118,7 +118,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         }
         definition = symbol;
 
-        if (definition.parent?.isClassOrStruct()) {
+        if (definition.parent?.isClassType()) {
             classDoc = sourceDoc;
         } else {
             const declarationLocation = await definition.findDeclaration();
@@ -129,12 +129,12 @@ export async function moveDefinitionIntoOrOutOfClass(
                         ? sourceDoc
                         : await SourceDocument.open(declarationLocation.uri);
                 declaration = await classDoc.getSymbol(declarationLocation.range.start);
-                if (!declaration?.parent?.isClassOrStruct()) {
+                if (!declaration?.parent?.isClassType()) {
                     declaration = undefined;
                 }
             }
 
-            if (declaration?.parent?.isClassOrStruct() === false || !classDoc) {
+            if (declaration?.parent?.isClassType() === false || !classDoc) {
                 const parentClass = await definition.getParentClass();
                 if (parentClass) {
                     classDoc = parentClass.document;
@@ -146,7 +146,7 @@ export async function moveDefinitionIntoOrOutOfClass(
         }
     }
 
-    if (definition.parent?.isClassOrStruct()) {
+    if (definition.parent?.isClassType()) {
         const position = await getNewPosition(classDoc, definition);
 
         const definitionText = await definition.getDefinitionForTargetPosition(classDoc, position, declaration, true);

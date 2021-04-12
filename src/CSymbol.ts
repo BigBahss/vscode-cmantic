@@ -133,7 +133,7 @@ export default class CSymbol extends SourceSymbol {
 
         this._accessSpecifiers = [];
 
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return this._accessSpecifiers;
         }
 
@@ -257,7 +257,7 @@ export default class CSymbol extends SourceSymbol {
     findPositionForNewMemberFunction(
         access: util.AccessLevel, relativeName?: string, memberVariable?: CSymbol
     ): ProposedPosition | undefined {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return;
         }
 
@@ -349,12 +349,12 @@ export default class CSymbol extends SourceSymbol {
 
     async scopeString(target: SourceDocument, position: vscode.Position, namespacesOnly?: boolean): Promise<string> {
         let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.isNamespace())
+        const scopes = (this.isClassType() || this.isNamespace())
                 ? [...this.scopes(), this]
                 : this.scopes();
 
         for (const scope of scopes) {
-            if (namespacesOnly && scope.isClassOrStruct()) {
+            if (namespacesOnly && scope.isClassType()) {
                 break;
             }
 
@@ -405,7 +405,7 @@ export default class CSymbol extends SourceSymbol {
                         ? this.document
                         : await SourceDocument.open(immediateScopeDefinition.uri);
                 const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
-                if (immediateScopeSymbol?.isClassOrStruct()) {
+                if (immediateScopeSymbol?.isClassType()) {
                     return immediateScopeSymbol;
                 }
             }
@@ -413,7 +413,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     baseClasses(): SubSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -459,7 +459,7 @@ export default class CSymbol extends SourceSymbol {
      * Retruns the member variables of this class/struct that are const or a reference.
      */
     memberVariablesThatRequireInitialization(): CSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -477,7 +477,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     nonStaticMemberVariables(): CSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -526,7 +526,7 @@ export default class CSymbol extends SourceSymbol {
         const allTemplateStatements: string[] = [];
 
         this.scopes().forEach(scope => {
-            if (scope.isClassOrStruct() && scope.isUnspecializedTemplate())  {
+            if (scope.isClassType() && scope.isUnspecializedTemplate())  {
                 allTemplateStatements.push(...scope.templateStatements(removeDefaultArgs));
             }
         });
