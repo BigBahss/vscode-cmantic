@@ -457,11 +457,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
+        const classOrStruct = symbol.isClassOrStruct() && !symbol.isAnonymous() ? symbol : symbol.firstNamedParent();
+        if (!classOrStruct) {
+            return [];
+        }
+        const titleSnippet = ` for "${classOrStruct.name}"`;
+
         const generateEqualityOperators = new RefactorAction(
-                operatorTitle.equality, 'cmantic.generateEqualityOperators');
+                operatorTitle.equality + titleSnippet, 'cmantic.generateEqualityOperators');
         const generateStreamOutputOperator = new RefactorAction(
-                operatorTitle.streamOutput, 'cmantic.generateStreamOutputOperator');
+                operatorTitle.streamOutput + titleSnippet, 'cmantic.generateStreamOutputOperator');
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
         generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
 
