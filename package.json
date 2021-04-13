@@ -31,8 +31,8 @@
     "c++",
     "refactor",
     "generate definition",
-    "generate accessor",
-    "getter setter"
+    "generate declaration",
+    "generate getter setter"
   ],
   "activationEvents": [
     "onLanguage:c",
