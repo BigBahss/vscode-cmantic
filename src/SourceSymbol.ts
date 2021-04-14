@@ -160,6 +160,10 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         return this.kind === vscode.SymbolKind.Namespace;
     }
 
+    isEnum(): boolean {
+        return this.kind === vscode.SymbolKind.Enum;
+    }
+
     /**
      * This is a fuzzy test to see if the symbol might be a typedef or type-alias. This tells us that it
      * is worth it to open the document cooresponding to this.uri to resolve the typedef/type-alias.

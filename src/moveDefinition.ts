@@ -82,8 +82,8 @@ export async function moveDefinitionToMatchingSourceFile(
     if (!declaration && SourceFile.isHeader(definition.uri)) {
         const newDeclaration = definition.newFunctionDeclaration();
         const replaceRange = cfg.alwaysMoveComments(definition.uri)
-                ? definition.rangeWithLeadingComment()
-                : definition.fullRange();
+                ? definition.rangeWithComments
+                : definition.fullRange;
         workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);
     } else {
         const deletionRange = getDeletionRange(definition);
@@ -156,15 +156,15 @@ export async function moveDefinitionIntoOrOutOfClass(
         workspaceEdit.insert(classDoc.uri, position, formattedDefinition);
         const newDeclaration = definition.newFunctionDeclaration();
         const replaceRange = cfg.alwaysMoveComments(definition.uri)
-                ? definition.rangeWithLeadingComment()
-                : definition.fullRange();
+                ? definition.rangeWithComments
+                : definition.fullRange;
         workspaceEdit.replace(definition.uri, replaceRange, newDeclaration);
         return vscode.workspace.applyEdit(workspaceEdit);
     } else if (declaration) {
         const combinedDefinition = declaration.combineDefinition(definition);
 
         const workspaceEdit = new vscode.WorkspaceEdit();
-        workspaceEdit.replace(declaration.uri, declaration.fullRange(), combinedDefinition);
+        workspaceEdit.replace(declaration.uri, declaration.fullRange, combinedDefinition);
         const deletionRange = getDeletionRange(definition);
         workspaceEdit.delete(definition.uri, deletionRange);
         return vscode.workspace.applyEdit(workspaceEdit);
@@ -208,7 +208,7 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
 }
 
 function getDeletionRange(definition: CSymbol): vscode.Range {
-    let deletionRange = definition.rangeWithLeadingComment();
+    let deletionRange = definition.rangeWithComments;
     if (definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
         deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.start.line - 1).range);
     }
