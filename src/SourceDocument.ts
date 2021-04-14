@@ -27,7 +27,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     private _preprocessorDirectives?: SubSymbol[];
     private _conditionals?: PreprocessorConditional[];
     private _includedFiles?: string[];
-    private _headerGuard?: SubSymbol[];
+    private _headerGuardDirectives?: SubSymbol[];
 
     constructor(document: vscode.TextDocument, sourceFile?: SourceFile) {
         super(document.uri);
@@ -192,30 +192,30 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     }
 
     get headerGuardDirectives(): SubSymbol[] {
-        if (this._headerGuard) {
-            return this._headerGuard;
+        if (this._headerGuardDirectives) {
+            return this._headerGuardDirectives;
         }
 
-        this._headerGuard = [];
+        this._headerGuardDirectives = [];
         if (!this.isHeader()) {
-            return this._headerGuard;
+            return this._headerGuardDirectives;
         }
 
         for (let i = 0; i < this.preprocessorDirectives.length; ++i) {
             if (/^#\s*pragma\s+once\b/.test(this.preprocessorDirectives[i].text())) {
-                this._headerGuard.push(this.preprocessorDirectives[i]);
+                this._headerGuardDirectives.push(this.preprocessorDirectives[i]);
             }
 
             const match = this.preprocessorDirectives[i].text().match(/(?<=^#\s*ifndef\s+)[\w_][\w\d_]*\b/);
             if (match && i + 1 < this.preprocessorDirectives.length) {
                 const re_headerGuardDefine = new RegExp(`^#\\s*define\\s+${match[0]}\\b`);
                 if (re_headerGuardDefine.test(this.preprocessorDirectives[i + 1].text())) {
-                    this._headerGuard.push(this.preprocessorDirectives[i]);
-                    this._headerGuard.push(this.preprocessorDirectives[i + 1]);
+                    this._headerGuardDirectives.push(this.preprocessorDirectives[i]);
+                    this._headerGuardDirectives.push(this.preprocessorDirectives[i + 1]);
                     // The header guard conditional should be the last in the array, so we walk backwards.
                     for (let j = this.conditionals.length - 1; j >= 0; --j) {
                         if (this.conditionals[j].start === this.preprocessorDirectives[i]) {
-                            this._headerGuard.push(this.conditionals[j].end);
+                            this._headerGuardDirectives.push(this.conditionals[j].end);
                             break;
                         }
                     }
@@ -224,7 +224,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             }
         }
 
-        return this._headerGuard;
+        return this._headerGuardDirectives;
     }
 
     get hasHeaderGuard(): boolean {
@@ -253,7 +253,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     positionAfterHeaderGuard(): vscode.Position | undefined {
         for (let i = this.headerGuardDirectives.length - 1; i >= 0; --i) {
             if (!/^#\s*endif\b/.test(this.headerGuardDirectives[i].text())) {
-                return new vscode.Position(this.headerGuardDirectives[i].range.start.line, 0);
+                return new vscode.Position(this.headerGuardDirectives[i].range.start.line + 1, 0);
             }
         }
     }
