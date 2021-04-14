@@ -61,7 +61,7 @@ export class ComparisonOperator extends Operator {
     }
 }
 
-export class EqualsOperator extends ComparisonOperator {
+export class EqualOperator extends ComparisonOperator {
     constructor(parent: CSymbol, operands?: Operand[]) {
         super(parent, 'operator==');
         if (operands) {
@@ -99,7 +99,7 @@ export class EqualsOperator extends ComparisonOperator {
     }
 }
 
-export class NotEqualsOperator extends ComparisonOperator {
+export class NotEqualOperator extends ComparisonOperator {
     constructor(parent: CSymbol) {
         super(parent, 'operator!=');
         if (cfg.useExplicitThisPointer(parent.uri) && !this.isFriend) {
@@ -153,6 +153,39 @@ export class LessThanOperator extends ComparisonOperator {
             this.body += `return ${cast + lhsCast} < ${cast + rhsCast};`;
         } else {
             this.body += `return ${lhs + lastOperand.name} < ${rhs + lastOperand.name};`;
+        }
+    }
+}
+
+export class GreaterThanOperator extends ComparisonOperator {
+    constructor(parent: CSymbol) {
+        super(parent, 'operator>');
+        if (this.isFriend) {
+            this.body = 'return rhs < lhs;';
+        } else {
+            this.body = 'return other < *this;';
+        }
+    }
+}
+
+export class LessThanOrEqualOperator extends ComparisonOperator {
+    constructor(parent: CSymbol) {
+        super(parent, 'operator<=');
+        if (this.isFriend) {
+            this.body = 'return !(rhs < lhs);';
+        } else {
+            this.body = 'return !(other < *this);';
+        }
+    }
+}
+
+export class GreaterThanOrEqualOperator extends ComparisonOperator {
+    constructor(parent: CSymbol) {
+        super(parent, 'operator>=');
+        if (this.isFriend) {
+            this.body = 'return !(lhs < rhs);';
+        } else {
+            this.body = 'return !(*this < other);';
         }
     }
 }

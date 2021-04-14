@@ -6,7 +6,7 @@ import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import {
-    Operand, Operator, EqualsOperator, NotEqualsOperator, LessThanOperator, StreamOutputOperator
+    Operand, Operator, EqualOperator, NotEqualOperator, LessThanOperator, StreamOutputOperator
 } from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
@@ -60,11 +60,11 @@ export async function generateEqualityOperators(
         return;
     }
 
-    const equalsOp = new EqualsOperator(parentClass, operands);
-    const notEqualsOp = new NotEqualsOperator(parentClass);
+    const equalOp = new EqualOperator(parentClass, operands);
+    const notEqualOp = new NotEqualOperator(parentClass);
 
     const targets = await promptUserForDefinitionLocations(
-            parentClass, classDoc, equalPosition, equalsOp.name, notEqualsOp.name);
+            parentClass, classDoc, equalPosition, equalOp.name, notEqualOp.name);
     if (!targets) {
         return;
     }
@@ -77,10 +77,10 @@ export async function generateEqualityOperators(
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewOperatorToWorkspaceEdit(equalsOp, equalPosition, classDoc, targets.first, workspaceEdit);
+    await addNewOperatorToWorkspaceEdit(equalOp, equalPosition, classDoc, targets.first, workspaceEdit);
     if (targets.second) {
         await addNewOperatorToWorkspaceEdit(
-                notEqualsOp, notEqualPosition, classDoc, targets.second, workspaceEdit, true);
+                notEqualOp, notEqualPosition, classDoc, targets.second, workspaceEdit, true);
     }
 
     return vscode.workspace.applyEdit(workspaceEdit);
