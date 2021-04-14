@@ -45,19 +45,25 @@ export abstract class Operator {
     }
 }
 
-export class EqualsOperator extends Operator {
+export class ComparisonOperator extends Operator {
     isFriend: boolean;
     name: string;
     returnType: string;
     parameters: string;
 
-    constructor(parent: CSymbol, operands?: Operand[]) {
+    constructor(parent: CSymbol, name: string) {
         super(parent);
         this.isFriend = cfg.friendComparisonOperators(parent.uri);
-        this.name = 'operator==';
+        this.name = name;
         this.returnType = 'bool ';
         const type = `const ${parent.templatedName()} &`;
         this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+    }
+}
+
+export class EqualsOperator extends ComparisonOperator {
+    constructor(parent: CSymbol, operands?: Operand[]) {
+        super(parent, 'operator==');
         if (operands) {
             this.setOperands(operands);
         }
@@ -88,24 +94,14 @@ export class EqualsOperator extends Operator {
         });
 
         if (this.body.length > 3) {
-            this.body = 'return ' + this.body.slice(0, -3).trimEnd() + ';';
+            this.body = `return ${this.body.slice(0, -3).trimEnd()};`;
         }
     }
 }
 
-export class NotEqualsOperator extends Operator {
-    isFriend: boolean;
-    name: string;
-    returnType: string;
-    parameters: string;
-
+export class NotEqualsOperator extends ComparisonOperator {
     constructor(parent: CSymbol) {
-        super(parent);
-        this.isFriend = cfg.friendComparisonOperators(parent.uri);
-        this.name = 'operator!=';
-        this.returnType = 'bool ';
-        const type = `const ${parent.templatedName()} &`;
-        this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+        super(parent, 'operator!=');
         if (cfg.useExplicitThisPointer(parent.uri) && !this.isFriend) {
             this.body = 'return !(*this == other);';
         } else if (this.isFriend) {
@@ -116,19 +112,9 @@ export class NotEqualsOperator extends Operator {
     }
 }
 
-export class LessThanOperator extends Operator {
-    isFriend: boolean;
-    name: string;
-    returnType: string;
-    parameters: string;
-
+export class LessThanOperator extends ComparisonOperator {
     constructor(parent: CSymbol, operands?: Operand[]) {
-        super(parent);
-        this.isFriend = cfg.friendComparisonOperators(parent.uri);
-        this.name = 'operator<';
-        this.returnType = 'bool ';
-        const type = `const ${parent.templatedName()} &`;
-        this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+        super(parent, 'operator<');
         if (operands) {
             this.setOperands(operands);
         }
