@@ -191,7 +191,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return this._includedFiles;
     }
 
-    get headerGuard(): SubSymbol[] {
+    get headerGuardDirectives(): SubSymbol[] {
         if (this._headerGuard) {
             return this._headerGuard;
         }
@@ -227,14 +227,33 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
         return this._headerGuard;
     }
 
-    hasHeaderGuard(): boolean {
-        return this.headerGuard.length > 0;
+    get hasHeaderGuard(): boolean {
+        return this.headerGuardDirectives.length > 0;
+    }
+
+    get hasPragmaOnce(): boolean {
+        for (const directive of this.headerGuardDirectives) {
+            if (/^#\s*pragma\s+once\b/.test(directive.text())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    get headerGuardDefine(): string {
+        for (const directive of this.headerGuardDirectives) {
+            const match = directive.text().match(/(?<=^#\s*define\s+)[\w_][\w\d_]*\b/);
+            if (match) {
+                return match[0];
+            }
+        }
+        return '';
     }
 
     positionAfterHeaderGuard(): vscode.Position | undefined {
-        for (let i = this.headerGuard.length - 1; i >= 0; --i) {
-            if (!/^#\s*endif/.test(this.headerGuard[i].text())) {
-                return new vscode.Position(this.headerGuard[i].range.start.line, 0);
+        for (let i = this.headerGuardDirectives.length - 1; i >= 0; --i) {
+            if (!/^#\s*endif\b/.test(this.headerGuardDirectives[i].text())) {
+                return new vscode.Position(this.headerGuardDirectives[i].range.start.line, 0);
             }
         }
     }

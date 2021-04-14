@@ -1,7 +1,7 @@
 <h1 align="center">
-    <img src="./images/cmantic-small.png" width="128">
-    <br>
-    <b>C-mantic</b>
+  <img src="./images/cmantic-small.png" width="128">
+  <br>
+  <b>C-mantic</b>
 </h1>
 
 C/C++ extension that provides generative-code commands and refactorings. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
@@ -82,7 +82,7 @@ Additionally, for non-primitive, non-pointer data types, setters will be generat
 
 With your cursor inside of a class/struct, `Generate Equality Operators` can be found in the `Refactor...` menu.
 
-`Generate Equality Operators` will prompt you to select base classes and member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File').
+`Generate Equality Operators` will prompt you to select base classes and member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, equality operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
 
 ### **Generate Stream Output Operator**
 
