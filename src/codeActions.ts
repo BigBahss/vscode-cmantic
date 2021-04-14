@@ -9,54 +9,48 @@ import { failure as addDeclarationFailure, title as addDeclarationTitle } from '
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
 import { failure as createSourceFileFailure } from './createSourceFile';
-import { failure as addHeaderGuardFailure } from './addHeaderGuard';
+import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './addHeaderGuard';
 import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
 
 export class CodeAction extends vscode.CodeAction {
-    constructor(title: string, kind: vscode.CodeActionKind, command?: string) {
+    command: vscode.Command;
+
+    constructor(title: string, command: string, kind?: vscode.CodeActionKind) {
         super(title, kind);
-        this.kind = kind;
         this.title = title;
-        if (command) {
-            this.command = { title: title, command: command };
-        }
+        this.command = { title: title, command: command };
+        this.kind = kind;
     }
 
     setTitle(title: string): void {
         this.title = title;
-        if (this.command) {
-            this.command.title = title;
-        }
+        this.command.title = title;
     }
 
     setCommand(command: string): void {
-        if (!this.command) {
-            this.command = { title: this.title, command: command };
-        } else {
-            this.command.command = command;
-        }
+        this.command.command = command;
     }
 
     setArguments(...args: any[]): void {
-        if (this.command) {
-            this.command.arguments = args;
-        }
+        this.command.arguments = args;
     }
 
-    disable(reason: string): void { this.disabled = { reason: reason }; }
+    disable(reason: string): void {
+        this.disabled = { reason: reason };
+    }
 }
 
 export class RefactorAction extends CodeAction {
-    constructor(title: string, command?: string) {
-        super(title, vscode.CodeActionKind.Refactor, command);
+    constructor(title: string, command: string) {
+        super(title, command, vscode.CodeActionKind.Refactor);
     }
 }
 
 export class SourceAction extends CodeAction {
-    constructor(title: string, command?: string) {
-        super(title, vscode.CodeActionKind.Source, command);
+    constructor(title: string, command: string) {
+        super(title, command, vscode.CodeActionKind.Source);
     }
 }
 
@@ -93,7 +87,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
         const [refactorings, sourceActions] = await Promise.all([
             this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
-            this.getSourceActions(sourceDoc, matchingUri)
+            this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
         ]);
 
         if (token?.isCancellationRequested) {
@@ -484,6 +478,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     }
 
     private async getSourceActions(
+        rangeOrSelection: vscode.Range | vscode.Selection,
+        context: vscode.CodeActionContext,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<SourceAction[]> {
@@ -492,6 +488,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const createMatchingSourceFile = new SourceAction(
                 'Create Matching Source File', 'cmantic.createMatchingSourceFile');
 
+        addHeaderGuard.setArguments(sourceDoc);
+        addInclude.setArguments(sourceDoc);
         createMatchingSourceFile.setArguments(sourceDoc);
 
         if (!sourceDoc.isHeader()) {
@@ -501,8 +499,19 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             createMatchingSourceFile.disable(createSourceFileFailure.sourceFileExists);
         }
 
-        if (sourceDoc.hasHeaderGuard()) {
-            addHeaderGuard.disable(addHeaderGuardFailure.headerGuardExists);
+        if (sourceDoc.hasHeaderGuard) {
+            addHeaderGuard.setTitle('Amend Header Guard');
+            if (headerGuardMatchesConfiguredStyle(sourceDoc)) {
+                addHeaderGuard.disable(addHeaderGuardFailure.headerGuardMatches);
+            } else if (!context.only?.contains(vscode.CodeActionKind.Source)) {
+                for (const directive of sourceDoc.headerGuardDirectives) {
+                    if (directive.range.contains(rangeOrSelection)) {
+                        addHeaderGuard.kind = vscode.CodeActionKind.QuickFix;
+                        addHeaderGuard.isPreferred = true;
+                        break;
+                    }
+                }
+            }
         }
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];

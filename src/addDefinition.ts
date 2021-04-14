@@ -69,7 +69,7 @@ export async function addDefinitionInSourceFile(): Promise<boolean | undefined> 
         return;
     }
 
-    await addDefinition(symbol, headerDoc, matchingUri);
+    return addDefinition(symbol, headerDoc, matchingUri);
 }
 
 export async function addDefinitionInCurrentFile(): Promise<boolean | undefined> {
