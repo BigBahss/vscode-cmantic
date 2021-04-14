@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as cfg from './configuration';
 import * as parse from './parsing';
-import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';

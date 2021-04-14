@@ -4,7 +4,7 @@ import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
 import {
-    addDefinition, addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions
+    addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions, addDefinition
 } from './addDefinition';
 import { addDeclaration } from './addDeclaration';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
@@ -12,11 +12,13 @@ import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
 } from './generateGetterSetter';
-import { generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator } from './generateOperators';
-import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
+import {
+    generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator
+} from './generateOperators';
 import { createMatchingSourceFile } from './createSourceFile';
-import { addInclude } from './addInclude';
 import { addHeaderGuard } from './addHeaderGuard';
+import { addInclude } from './addInclude';
+import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
 import { CodeActionProvider } from './codeActions';
 
 

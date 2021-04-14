@@ -8,9 +8,9 @@ import { failure as addDefinitionFailure, title as addDefinitionTitle } from './
 import { failure as addDeclarationFailure, title as addDeclarationTitle } from './addDeclaration';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
+import { title as operatorTitle } from './generateOperators';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './addHeaderGuard';
-import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
 
