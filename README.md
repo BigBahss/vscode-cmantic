@@ -14,6 +14,7 @@ C/C++ extension that provides generative-code commands and refactorings. Relevan
 - [Move Definition](#move-definition)
 - [Generate Getters and Setters](#generate-getters-and-setters)
 - [Generate Equality Operators](#generate-equality-operators)
+- [Generate Relational Operators](#generate-relational-operators)
 - [Generate Stream Output Operator](#generate-stream-output-operator)
 - [Create Matching Source File](#create-matching-source-file)
 - [Add Header Guard](#add-header-guard)
@@ -83,6 +84,12 @@ Additionally, for non-primitive, non-pointer data types, setters will be generat
 With your cursor inside of a class/struct, `Generate Equality Operators` can be found in the `Refactor...` menu.
 
 `Generate Equality Operators` will prompt you to select base classes and member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, equality operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
+
+### **Generate Relational Operators (coming in v0.8.0)**
+
+With your cursor inside of a class/struct, `Generate Relational Operators` can be found in the `Refactor...` menu.
+
+`Generate Relational Operators` will prompt you to select base classes and member variables to compare in order to generate `operator<` (`operator>`, `operator<=`, and `operator>=` are generated in terms of `operator<`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, relational operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
 
 ### **Generate Stream Output Operator**
 

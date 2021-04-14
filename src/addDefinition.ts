@@ -4,9 +4,9 @@ import * as util from './utility';
 import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
-import { getMatchingHeaderSource, logger } from './extension';
 import { ProposedPosition } from './ProposedPosition';
 import { createMatchingSourceFile } from './createSourceFile';
+import { getMatchingHeaderSource, logger } from './extension';
 
 
 export const title = {

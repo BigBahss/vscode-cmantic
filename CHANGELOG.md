@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed a bug where `Add Include` would place the include between the `#ifndef` and `#define` of a header guard when there are no includes yet in the file.
+
 ## [0.7.1] - April 14, 2021
 ### Added
 - Added a setting `Cpp: Friend Comparison Operators` to generate equality operators as friend functions rather than member functions.
