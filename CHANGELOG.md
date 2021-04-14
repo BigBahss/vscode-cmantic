@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.7.1] - April 14, 2021
 ### Added
 - Added a setting `Cpp: Friend Comparison Operators` to generate equality operators as friend functions rather than member functions.
 

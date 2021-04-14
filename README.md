@@ -1,7 +1,7 @@
 <h1 align="center">
-    <img src="./images/cmantic-small.png" width="128">
-    <br>
-    <b>C-mantic</b>
+  <img src="./images/cmantic-small.png" width="128">
+  <br>
+  <b>C-mantic</b>
 </h1>
 
 C/C++ extension that provides generative-code commands and refactorings. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
