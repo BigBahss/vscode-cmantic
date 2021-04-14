@@ -171,7 +171,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             }
         }
 
-        return this._conditionals.reverse();
+        return this._conditionals;
     }
 
     get includedFiles(): string[] {
