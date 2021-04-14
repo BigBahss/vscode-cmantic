@@ -8,9 +8,9 @@ import { failure as addDefinitionFailure, title as addDefinitionTitle } from './
 import { failure as addDeclarationFailure, title as addDeclarationTitle } from './addDeclaration';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
+import { title as operatorTitle } from './generateOperators';
 import { failure as createSourceFileFailure } from './createSourceFile';
 import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './addHeaderGuard';
-import { title as operatorTitle } from './generateOperators';
 import { getMatchingHeaderSource } from './extension';
 
 
@@ -454,12 +454,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
         const generateEqualityOperators = new RefactorAction(
                 operatorTitle.equality, 'cmantic.generateEqualityOperators');
+        const generateRelationalOperators = new RefactorAction(
+                operatorTitle.relational, 'cmantic.generateRelationalOperators');
         const generateStreamOutputOperator = new RefactorAction(
                 operatorTitle.streamOutput, 'cmantic.generateStreamOutputOperator');
+
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
+        generateRelationalOperators.setArguments(classOrStruct, sourceDoc);
         generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
 
-        return [generateEqualityOperators, generateStreamOutputOperator];
+        return [generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator];
     }
 
     private async getFileRefactorings(

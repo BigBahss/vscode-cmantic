@@ -5,8 +5,8 @@ import * as parse from './parsing';
 import SourceFile from './SourceFile';
 import SourceSymbol from './SourceSymbol';
 import CSymbol from './CSymbol';
-import { ProposedPosition } from './ProposedPosition';
 import SubSymbol from './SubSymbol';
+import { ProposedPosition } from './ProposedPosition';
 
 
 const re_preprocessorDirective = /(?<=^\s*)#.*\S(?=\s*$)/gm;
