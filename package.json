@@ -92,6 +92,11 @@
         "category": "C-mantic"
       },
       {
+        "command": "cmantic.generateRelationalOperators",
+        "title": "Generate Relational Operators",
+        "category": "C-mantic"
+      },
+      {
         "command": "cmantic.generateStreamOutputOperator",
         "title": "Generate Stream Output Operator",
         "category": "C-mantic"

@@ -5,12 +5,15 @@ import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { Operator, EqualsOperator, NotEqualsOperator, Operand, StreamOutputOperator } from './Operator';
+import {
+    Operand, Operator, EqualsOperator, NotEqualsOperator, LessThanOperator, StreamOutputOperator
+} from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
 
 export const title = {
     equality: 'Generate Equality Operators',
+    relational: 'Generate Relational Operators',
     streamOutput: 'Generate Stream Output Operator'
 };
 
@@ -79,6 +82,58 @@ export async function generateEqualityOperators(
         await addNewOperatorToWorkspaceEdit(
                 notEqualsOp, notEqualPosition, classDoc, targets.second, workspaceEdit, true);
     }
+
+    return vscode.workspace.applyEdit(workspaceEdit);
+}
+
+export async function generateRelationalOperators(
+    parentClass?: CSymbol,
+    classDoc?: SourceDocument
+): Promise<boolean | undefined> {
+    if (!parentClass || !classDoc) {
+        // Command was called from the command-palette
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            logger.alertError(failure.noActiveTextEditor);
+            return;
+        }
+
+        classDoc = new SourceDocument(editor.document);
+
+        const symbol = await classDoc.getSymbol(editor.selection.start);
+
+        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
+
+        if (!parentClass?.isClassOrStruct()) {
+            logger.alertWarning(failure.noClassOrStruct);
+            return;
+        }
+    }
+
+    const p_operands = promptUserForOperands(parentClass, 'Select what you would like to compare in operator<');
+
+    const lessThanPosition = parentClass.findPositionForNewMemberFunction(util.AccessLevel.public);
+    if (!lessThanPosition) {
+        logger.alertError(failure.positionNotFound);
+        return;
+    }
+
+    const operands = await p_operands;
+    if (!operands) {
+        return;
+    }
+
+    const lessThanOp = new LessThanOperator(parentClass, operands);
+
+    const targets = await promptUserForDefinitionLocations(
+            parentClass, classDoc, lessThanPosition, lessThanOp.name);
+    if (!targets) {
+        return;
+    }
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    await addNewOperatorToWorkspaceEdit(lessThanOp, lessThanPosition, classDoc, targets.first, workspaceEdit);
+
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -133,6 +188,7 @@ export async function generateStreamOutputOperator(
     if (newOstreamIncludePos) {
         workspaceEdit.insert(classDoc.uri, newOstreamIncludePos, '#include <ostream>' + classDoc.endOfLine);
     }
+
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -153,7 +209,6 @@ interface OperandQuickPickItem extends vscode.QuickPickItem {
 
 async function promptUserForOperands(parentClass: CSymbol, prompt: string): Promise<Operand[] | undefined> {
     const operands: Operand[] = [...parentClass.baseClasses(), ...parentClass.nonStaticMemberVariables()];
-
     if (operands.length === 0) {
         return [];
     }

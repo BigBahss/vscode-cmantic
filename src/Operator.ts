@@ -64,28 +64,24 @@ export class EqualsOperator extends Operator {
     }
 
     setOperands(operands: Operand[]): void {
+        this.body = '';
+        if (operands.length === 0) {
+            return;
+        }
+
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '    ' : indent;
         const lhs = cfg.useExplicitThisPointer(this.parent.uri) && !this.isFriend
-                ? 'this->'
-                : this.isFriend
-                    ? 'lhs.'
-                    : '';
-        const rhs = this.isFriend
-                ? 'rhs.'
-                : 'other.';
-
-        this.body = '';
+                ? 'this->' : (this.isFriend ? 'lhs.' : '');
+        const lhsCast = this.isFriend ? '(lhs)' : '(*this)';
+        const rhs = this.isFriend ? 'rhs.' : 'other.';
+        const rhsCast = this.isFriend ? '(rhs)' : '(other)';
 
         operands.forEach(operand => {
             if (operand instanceof SubSymbol) {
                 const cast = `static_cast<const ${operand.name} &>`;
-                if (this.isFriend) {
-                    this.body += `${cast}(lhs) == ${cast}(rhs)${eol + indent + alignment}&& `;
-                } else {
-                    this.body += `${cast}(*this) == ${cast}(other)${eol + indent + alignment}&& `;
-                }
+                this.body += `${cast + lhsCast} == ${cast + rhsCast + eol + indent + alignment}&& `;
             } else {
                 this.body += `${lhs + operand.name} == ${rhs + operand.name + eol + indent + alignment}&& `;
             }
@@ -120,6 +116,60 @@ export class NotEqualsOperator extends Operator {
     }
 }
 
+export class LessThanOperator extends Operator {
+    isFriend: boolean;
+    name: string;
+    returnType: string;
+    parameters: string;
+
+    constructor(parent: CSymbol, operands?: Operand[]) {
+        super(parent);
+        this.isFriend = cfg.friendComparisonOperators(parent.uri);
+        this.name = 'operator<';
+        this.returnType = 'bool ';
+        const type = `const ${parent.templatedName()} &`;
+        this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
+        if (operands) {
+            this.setOperands(operands);
+        }
+    }
+
+    setOperands(operands: Operand[]): void {
+        this.body = '';
+        if (operands.length === 0) {
+            return;
+        }
+
+        const eol = this.parent.document.endOfLine;
+        const indent = util.indentation();
+        const lhs = cfg.useExplicitThisPointer(this.parent.uri) && !this.isFriend
+                ? 'this->' : (this.isFriend ? 'lhs.' : '');
+        const lhsCast = this.isFriend ? '(lhs)' : '(*this)';
+        const rhs = this.isFriend ? 'rhs.' : 'other.';
+        const rhsCast = this.isFriend ? '(rhs)' : '(other)';
+        const returnTrue = eol + indent + indent + 'return true;' + eol + indent;
+        const returnFalse = eol + indent + indent + 'return false;' + eol + indent;
+
+        const lastOperand = operands.pop()!;
+        operands.forEach(operand => {
+            if (operand instanceof SubSymbol) {
+                const cast = `static_cast<const ${operand.name} &>`;
+                this.body += `if (${cast + lhsCast} < ${cast + rhsCast})${returnTrue}`
+                           + `if (${cast + rhsCast} < ${cast + lhsCast})${returnFalse}`;
+            } else {
+                this.body += `if (${lhs + operand.name} < ${rhs + operand.name})${returnTrue}`
+                           + `if (${rhs + operand.name} < ${lhs + operand.name})${returnFalse}`;
+            }
+        });
+
+        if (lastOperand instanceof SubSymbol) {
+            const cast = `static_cast<const ${lastOperand.name} &>`;
+            this.body += `return ${cast + lhsCast} < ${cast + rhsCast};`;
+        } else {
+            this.body += `return ${lhs + lastOperand.name} < ${rhs + lastOperand.name};`;
+        }
+    }
+}
 
 export class StreamOutputOperator extends Operator {
     isFriend: boolean;
@@ -139,11 +189,14 @@ export class StreamOutputOperator extends Operator {
     }
 
     setOperands(operands: Operand[]): void {
+        this.body = '';
+        if (operands.length === 0) {
+            return;
+        }
+
         const eol = this.parent.document.endOfLine;
         const indent = util.indentation();
         const alignment = indent.includes(' ') ? '   ' : indent;
-
-        this.body = '';
         let spacer = '';
 
         operands.forEach(operand => {

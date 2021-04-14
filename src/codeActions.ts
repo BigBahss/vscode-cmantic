@@ -454,12 +454,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
         const generateEqualityOperators = new RefactorAction(
                 operatorTitle.equality, 'cmantic.generateEqualityOperators');
+        const generateRelationalOperators = new RefactorAction(
+                operatorTitle.relational, 'cmantic.generateRelationalOperators');
         const generateStreamOutputOperator = new RefactorAction(
                 operatorTitle.streamOutput, 'cmantic.generateStreamOutputOperator');
+
         generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
+        generateRelationalOperators.setArguments(classOrStruct, sourceDoc);
         generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
 
-        return [generateEqualityOperators, generateStreamOutputOperator];
+        return [generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator];
     }
 
     private async getFileRefactorings(
