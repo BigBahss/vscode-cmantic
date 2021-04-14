@@ -6,7 +6,10 @@ import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition, TargetLocation } from './ProposedPosition';
 import {
-    Operand, Operator, EqualOperator, NotEqualOperator, LessThanOperator, StreamOutputOperator
+    Operand, Operator,
+    EqualOperator, NotEqualOperator,
+    LessThanOperator, GreaterThanOperator, LessThanOrEqualOperator, GreaterThanOrEqualOperator,
+    StreamOutputOperator
 } from './Operator';
 import { getMatchingHeaderSource, logger } from './extension';
 
@@ -64,7 +67,9 @@ export async function generateEqualityOperators(
     const notEqualOp = new NotEqualOperator(parentClass);
 
     const targets = await promptUserForDefinitionLocations(
-            parentClass, classDoc, equalPosition, equalOp.name, notEqualOp.name);
+            parentClass, classDoc, equalPosition,
+            'Select where to place the definition of operator==',
+            'Select where to place the definition of operator!=');
     if (!targets) {
         return;
     }
@@ -124,15 +129,37 @@ export async function generateRelationalOperators(
     }
 
     const lessThanOp = new LessThanOperator(parentClass, operands);
+    const greaterThanOp = new GreaterThanOperator(parentClass);
+    const lessThanOrEqualOp = new LessThanOrEqualOperator(parentClass);
+    const greaterThanOrEqualOp = new GreaterThanOrEqualOperator(parentClass);
 
     const targets = await promptUserForDefinitionLocations(
-            parentClass, classDoc, lessThanPosition, lessThanOp.name);
+            parentClass, classDoc, lessThanPosition,
+            'Select where to place the definition of operator<',
+            'Select where to place the definitions of operator>, operator<=, and operator>=');
     if (!targets) {
         return;
     }
 
+    const nextPosition = new ProposedPosition(lessThanPosition, {
+        relativeTo: lessThanPosition.options.relativeTo,
+        after: true,
+        nextTo: true,
+        indent: lessThanPosition.options.indent
+    });
+
     const workspaceEdit = new vscode.WorkspaceEdit();
     await addNewOperatorToWorkspaceEdit(lessThanOp, lessThanPosition, classDoc, targets.first, workspaceEdit);
+    if (targets.second) {
+        await Promise.all([
+            addNewOperatorToWorkspaceEdit(
+                    greaterThanOp, nextPosition, classDoc, targets.second, workspaceEdit, true),
+            addNewOperatorToWorkspaceEdit(
+                    lessThanOrEqualOp, nextPosition, classDoc, targets.second, workspaceEdit, true),
+            addNewOperatorToWorkspaceEdit(
+                    greaterThanOrEqualOp, nextPosition, classDoc, targets.second, workspaceEdit, true),
+        ]);
+    }
 
     return vscode.workspace.applyEdit(workspaceEdit);
 }
@@ -178,7 +205,8 @@ export async function generateStreamOutputOperator(
 
     const streamOutputOp = new StreamOutputOperator(parentClass, operands);
 
-    const targets = await promptUserForDefinitionLocations(parentClass, classDoc, declarationPos, streamOutputOp.name);
+    const targets = await promptUserForDefinitionLocations(
+            parentClass, classDoc, declarationPos, 'Select where to place the definition of operator<<');
     if (!targets) {
         return;
     }
@@ -272,20 +300,18 @@ async function promptUserForDefinitionLocations(
     parentClass: CSymbol,
     classDoc: SourceDocument,
     declarationPos: ProposedPosition,
-    firstOperatorName: string,
-    secondOperatorName?: string
+    firstPrompt: string,
+    secondPrompt?: string
 ): Promise<TargetLocations | undefined> {
     const firstDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(parentClass, classDoc),
-            { placeHolder: `Select where to place the definition of ${firstOperatorName}` });
+            new DefinitionLocationQuickPickItems(parentClass, classDoc), { placeHolder: firstPrompt });
     if (!firstDefinitionItem) {
         return;
     }
 
-    const p_secondDefinitionItem = secondOperatorName !== undefined
+    const p_secondDefinitionItem = secondPrompt !== undefined
             ? vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-                new DefinitionLocationQuickPickItems(parentClass, classDoc),
-                { placeHolder: `Select where to place the definition of ${secondOperatorName}` })
+                new DefinitionLocationQuickPickItems(parentClass, classDoc), { placeHolder: secondPrompt })
             : undefined;
 
     const matchingUri = await getMatchingHeaderSource(classDoc.uri);
