@@ -48,14 +48,13 @@ export abstract class Operator {
 export class ComparisonOperator extends Operator {
     isFriend: boolean;
     name: string;
-    returnType: string;
+    returnType: string = 'bool ';
     parameters: string;
 
     constructor(parent: CSymbol, name: string) {
         super(parent);
         this.isFriend = cfg.friendComparisonOperators(parent.uri);
         this.name = name;
-        this.returnType = 'bool ';
         const type = `const ${parent.templatedName()} &`;
         this.parameters = this.isFriend ? `${type}lhs, ${type}rhs` : `${type}other`;
     }
@@ -93,21 +92,17 @@ export class EqualOperator extends ComparisonOperator {
             }
         });
 
-        if (this.body.length > 3) {
-            this.body = `return ${this.body.slice(0, -3).trimEnd()};`;
-        }
+        this.body = `return ${this.body.slice(0, -3).trimEnd()};`;
     }
 }
 
 export class NotEqualOperator extends ComparisonOperator {
     constructor(parent: CSymbol) {
         super(parent, 'operator!=');
-        if (cfg.useExplicitThisPointer(parent.uri) && !this.isFriend) {
-            this.body = 'return !(*this == other);';
-        } else if (this.isFriend) {
+        if (this.isFriend) {
             this.body = 'return !(lhs == rhs);';
         } else {
-            this.body = 'return !operator==(other);';
+            this.body = 'return !(*this == other);';
         }
     }
 }
@@ -191,17 +186,15 @@ export class GreaterThanOrEqualOperator extends ComparisonOperator {
 }
 
 export class StreamOutputOperator extends Operator {
-    isFriend: boolean;
+    isFriend: boolean = true;
     name: string;
-    returnType: string;
+    returnType: string = 'std::ostream &';
     parameters: string;
 
     constructor(parent: CSymbol, operands?: Operand[]) {
         super(parent);
-        this.isFriend = true;
         this.name = 'operator<<';
-        this.returnType = 'std::ostream &';
-        this.parameters = `std::ostream &os, const ${parent.templatedName()} &rhs`;
+        this.parameters = `${this.returnType}os, const ${parent.templatedName()} &rhs`;
         if (operands) {
             this.setOperands(operands);
         }
@@ -210,6 +203,7 @@ export class StreamOutputOperator extends Operator {
     setOperands(operands: Operand[]): void {
         this.body = '';
         if (operands.length === 0) {
+            this.body += 'return os;';
             return;
         }
 
@@ -227,8 +221,6 @@ export class StreamOutputOperator extends Operator {
             spacer = ' ';
         });
 
-        if (this.body.length > 0) {
-            this.body = `os ${this.body.trimEnd()};${eol + indent}return os;`;
-        }
+        this.body = `os ${this.body.trimEnd()};${eol + indent}return os;`;
     }
 }
