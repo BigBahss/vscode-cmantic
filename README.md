@@ -114,7 +114,7 @@ After the file is created, you will also be asked if you want to add definitions
 
 The `Add Header Guard` command adds a header guard to the current header file based on the setting `Header Guard: Style`. Based on this setting C-mantic will insert either a conditional `#define` block, `#pragma once`, or both. `#define` names are generated based on the setting `Header Guard: Define Format`.
 
-If however, the file already has a header guard that does not matched your configured style, then the `Add Header Guard` command will "amend" the existing one to match your configuration. Additionally, if you select the header guard with your cursor, then `Amend Header Guard` will be suggested as a quick-fix.
+If however, the file already has a header guard that does not match your configured style, then the `Add Header Guard` command will "amend" the existing one to match your configuration. Additionally, if you select the header guard with your cursor, then `Amend Header Guard` will be suggested as a quick-fix.
 
 ### **Add Include**
 
