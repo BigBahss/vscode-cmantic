@@ -130,18 +130,19 @@ export class Setter extends Accessor {
         super(memberVariable);
         this.name = memberVariable.setterName();
         this.returnType = 'void ';
+        const memberPrefix = this.memberPrefix();
         let baseName = memberVariable.baseName();
         if (baseName !== memberVariable.name) {
             this.parameterName = baseName;
         } else {
             baseName = cfg.formatToCaseStyle(baseName, memberVariable.uri);
-            if (baseName !== memberVariable.name) {
+            if (baseName !== memberVariable.name || memberPrefix) {
                 this.parameterName = baseName;
             } else {
                 this.parameterName = baseName + '_';
             }
         }
         this.parameter = '';
-        this.body = `${this.memberPrefix() + memberVariable.name} = ${this.parameterName};`;
+        this.body = `${memberPrefix + memberVariable.name} = ${this.parameterName};`;
     }
 }
