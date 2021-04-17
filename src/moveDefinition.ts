@@ -209,10 +209,12 @@ async function getNewPosition(targetDoc: SourceDocument, declaration?: SourceSym
 
 function getDeletionRange(definition: CSymbol): vscode.Range {
     let deletionRange = definition.rangeWithComments;
-    if (definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
+    if (deletionRange.start.line > 0
+            && definition.document.lineAt(deletionRange.start.line - 1).isEmptyOrWhitespace) {
         deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.start.line - 1).range);
     }
-    if (definition.document.lineAt(deletionRange.end.line + 1).isEmptyOrWhitespace) {
+    if (deletionRange.end.line < definition.document.lineCount - 1
+            && definition.document.lineAt(deletionRange.end.line + 1).isEmptyOrWhitespace) {
         deletionRange = deletionRange.union(definition.document.lineAt(deletionRange.end.line + 1).range);
     }
     return deletionRange;

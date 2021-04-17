@@ -4,6 +4,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [Unreleased]
 ### Fixed
 - Fixed a bug where `Add Include` would place the include between the `#ifndef` and `#define` of a header guard when there are no includes yet in the file.
+- Fixed an error thrown while trying to generate code after the last line or before the first line in the file (realistically this only would happen if the file did not end in a newline and a beter position could not be found).
 
 ## [0.7.1] - April 14, 2021
 ### Added

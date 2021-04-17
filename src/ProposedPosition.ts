@@ -68,13 +68,13 @@ function formatTextToInsert(
     const accessSpecifierIndentation = util.indentation() + '(?=(public|protected|private))';
     insertText = insertText.replace(new RegExp(accessSpecifierIndentation, 'g'), '');
 
-    const nextLine = function (): TextLine | undefined {
-        if (position.options.after) {
+    const nextLine = ((): TextLine | undefined => {
+        if (position.options.after && position.line < sourceDoc.lineCount - 1) {
             return sourceDoc.lineAt(position.line + 1);
-        } else if (position.options.before) {
+        } else if (position.options.before && position.line > 0) {
             return sourceDoc.lineAt(position.line - 1);
         }
-    } ();
+    }) ();
 
     const eol = util.endOfLine(sourceDoc);
     const newLines = (position.options.nextTo || !nextLine
