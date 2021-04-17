@@ -9,7 +9,6 @@ C/C++ extension that provides generative-code commands and refactorings. Relevan
 ## **Features at a glance**
 
 - [Add Definition](#add-definition)
-- [Generate Constructor](#generate-constructor)
 - [Add Declaration](#add-declaration)
 - [Move Definition](#move-definition)
 - [Generate Getters and Setters](#generate-getters-and-setters)
@@ -85,7 +84,7 @@ With your cursor inside of a class/struct, `Generate Equality Operators` can be 
 
 `Generate Equality Operators` will prompt you to select base classes and member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, equality operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
 
-### **Generate Relational Operators (coming in v0.8.0)**
+### **Generate Relational Operators**
 
 With your cursor inside of a class/struct, `Generate Relational Operators` can be found in the `Refactor...` menu.
 
@@ -111,9 +110,11 @@ After the file is created, you will also be asked if you want to add definitions
 
 ### **Add Header Guard**
 
-`Add Header Guard` can be found in the `Source Actions...` menu.
+`Add Header Guard`/`Amend Header Guard` can be found in the `Source Actions...` menu.
 
 The `Add Header Guard` command adds a header guard to the current header file based on the setting `Header Guard: Style`. Based on this setting C-mantic will insert either a conditional `#define` block, `#pragma once`, or both. `#define` names are generated based on the setting `Header Guard: Define Format`.
+
+If however, the file already has a header guard that does not matched your configured style, then the `Add Header Guard` command will "amend" the existing one to match your configuration. Additionally, if you select the header guard with your cursor, then `Amend Header Guard` will be suggested as a quick-fix.
 
 ### **Add Include**
 

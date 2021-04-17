@@ -1,7 +1,5 @@
 # TODO
 
-Coming in v0.8.0: `Generate Relational Operators` and `Amend Header Guard`.
-
 ## Ideas/Plans for features and improvements
 
 ### Higher priority
@@ -10,7 +8,7 @@ Coming in v0.8.0: `Generate Relational Operators` and `Amend Header Guard`.
 
 - Generate overrides for virtual functions of base classes.
 
-- Update function signature. After changing a function's signature, the light-bulb will popup to prompt the user to update the declaration/definition of the function.
+- Update function signature. After changing a function's signature, the light-bulb will pop up and prompt to update the declaration/definition of the function.
 
 ### Lower priority
 

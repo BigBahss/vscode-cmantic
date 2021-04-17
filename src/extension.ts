@@ -181,7 +181,7 @@ function setActiveLanguageServer(): void {
 const re_semver = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
 const updateMessage =
-        'C-mantic v0.7.0: Added "Generate Stream Output Operator" and "Add Definitions..." commands.';
+        'C-mantic v0.8.0: Added "Generate Relational Operators" and "Amend Header Guard" code-actions.';
 const readmeButton = 'Open README';
 const changelogButton = 'Open CHANGELOG';
 const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/README.md');
