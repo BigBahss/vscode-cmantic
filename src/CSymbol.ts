@@ -940,6 +940,11 @@ export default class CSymbol extends SourceSymbol {
         return this._trueStart = this.document.positionAt(templateOffset);
     }
 
+    /**
+     * Only relavant to class-types and enums which can have trailing
+     * instance declarations and initializations. Returns the position
+     * past the final semi-colon of the class-type/enum definition.
+     */
     get trueEnd(): vscode.Position {
         if (this._trueEnd) {
             return this._trueEnd;
