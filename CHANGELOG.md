@@ -2,6 +2,10 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Extended the capability of `Add Header Guard` to update existing header guards if they do not match the configured settings. The code-action will display as `Amend Header Guard`. (#26)
+- Added `cmantic.generateRelationalOperators` command/code-action. Works very similar to `cmantic.generateEqualityOperators` and `cmantic.generateStreamOutputOperator`. (#28)
+
 ### Fixed
 - Fixed a bug where `Add Include` would place the include between the `#ifndef` and `#define` of a header guard when there are no includes yet in the file.
 
