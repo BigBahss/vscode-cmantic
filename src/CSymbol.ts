@@ -7,6 +7,7 @@ import SourceDocument from './SourceDocument';
 import SourceSymbol from './SourceSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { activeLanguageServer, LanguageServer } from './extension';
 
 
 // Only matches identifiers that are not folowed by a scope resolution operator (::).
@@ -19,6 +20,15 @@ const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 export default class CSymbol extends SourceSymbol {
     readonly document: SourceDocument;
     parent?: CSymbol;
+
+    // Don't use these, use their getters instead.
+    private _parsableText?: string;
+    private _parsableTemplateSnippet?: string;
+    private _accessSpecifiers?: SubSymbol[];
+    private _namedScopes?: string[];
+    private _trueStart?: vscode.Position;
+    private _trueEnd?: vscode.Position;
+    private _leadingCommentStart?: vscode.Position;
 
     constructor(symbol: SourceSymbol, document: SourceDocument) {
         super(symbol, document.uri);
@@ -35,7 +45,13 @@ export default class CSymbol extends SourceSymbol {
 
     text(): string { return this.document.getText(this.range); }
 
-    fullText(): string { return this.document.getText(this.fullRange()); }
+    fullText(): string { return this.document.getText(this.fullRange); }
+
+    /**
+     * The entire range of all code associated with this symbol, including template statements,
+     * and trailing object declarations, up to (and including) the final semi-colon.
+     */
+     get fullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.trueEnd); }
 
     /**
      * Returns the text contained in this symbol with comments, strings, and attributes masked with spaces.
@@ -44,10 +60,8 @@ export default class CSymbol extends SourceSymbol {
         if (this._parsableText !== undefined) {
             return this._parsableText;
         }
-        this._parsableText = parse.maskNonSourceText(this.text());
-        return this._parsableText;
+        return this._parsableText = parse.maskNonSourceText(this.text());
     }
-    private _parsableText?: string;
 
     get parsableFullText(): string {
         return this.parsableTemplateSnippet + this.parsableText;
@@ -77,44 +91,16 @@ export default class CSymbol extends SourceSymbol {
             return this._parsableTemplateSnippet;
         }
 
-        this._parsableTemplateSnippet = parse.maskNonSourceText(this._parsableTemplateSnippet);
-        return this._parsableTemplateSnippet;
-    }
-    private _parsableTemplateSnippet?: string;
-
-    fullTextWithLeadingComment(): string {
-        return this.document.getText(this.rangeWithLeadingComment());
+        return this._parsableTemplateSnippet = parse.maskNonSourceText(this._parsableTemplateSnippet);
     }
 
-    /**
-     * Returns the text contained in this symbol that comes before this.selectionRange.
-     */
-    leadingText(): string {
-        return this.document.getText(new vscode.Range(this.range.start, this.selectionRange.start));
-    }
-
-    /**
-     * Returns the text contained in this symbol that comes before this.selectionRange,
-     * including potential template statement.
-     */
-    fullLeadingText(): string {
-        return this.document.getText(new vscode.Range(this.trueStart, this.selectionRange.start));
-    }
-
-    /**
-     * Returns the range of this symbol including potential template statement.
-     */
-    fullRange(): vscode.Range { return new vscode.Range(this.trueStart, this.range.end); }
-
-    rangeWithLeadingComment(): vscode.Range {
-        return new vscode.Range(this.leadingCommentStart, this.range.end);
+    get rangeWithComments(): vscode.Range {
+        return new vscode.Range(this.leadingCommentStart, this.trailingCommentEnd());
     }
 
     startOffset(): number { return this.document.offsetAt(this.range.start); }
 
     endOffset(): number { return this.document.offsetAt(this.range.end); }
-
-    trueStartOffset(): number { return this.document.offsetAt(this.trueStart); }
 
     isBefore(offset: number): boolean { return this.endOffset() < offset; }
 
@@ -132,7 +118,7 @@ export default class CSymbol extends SourceSymbol {
 
         this._accessSpecifiers = [];
 
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return this._accessSpecifiers;
         }
 
@@ -163,7 +149,6 @@ export default class CSymbol extends SourceSymbol {
 
         return this._accessSpecifiers;
     }
-    private _accessSpecifiers?: SubSymbol[];
 
     rangesOfAccess(access: util.AccessLevel): vscode.Range[] {
         const re_accessSpecifier = util.accessSpecifierRegexp(access);
@@ -256,7 +241,7 @@ export default class CSymbol extends SourceSymbol {
     findPositionForNewMemberFunction(
         access: util.AccessLevel, relativeName?: string, memberVariable?: CSymbol
     ): ProposedPosition | undefined {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return;
         }
 
@@ -327,7 +312,6 @@ export default class CSymbol extends SourceSymbol {
 
         return this._namedScopes;
     }
-    private _namedScopes?: string[];
 
     allScopes(): string[] {
         const allScopes: string[] = [];
@@ -348,12 +332,12 @@ export default class CSymbol extends SourceSymbol {
 
     async scopeString(target: SourceDocument, position: vscode.Position, namespacesOnly?: boolean): Promise<string> {
         let scopeString = '';
-        const scopes = (this.isClassOrStruct() || this.isNamespace())
+        const scopes = (this.isClassType() || this.isNamespace())
                 ? [...this.scopes(), this]
                 : this.scopes();
 
         for (const scope of scopes) {
-            if (namespacesOnly && scope.isClassOrStruct()) {
+            if (namespacesOnly && scope.isClassType()) {
                 break;
             }
 
@@ -362,6 +346,10 @@ export default class CSymbol extends SourceSymbol {
             if (!targetScope || !util.containsExclusive(targetScope.range, position)) {
                 if (!targetScope) {
                     targetScope = scope;
+                }
+
+                if (targetScope.isAnonymous()) {
+                    continue;
                 }
 
                 if (targetScope.isNamespace()) {
@@ -400,7 +388,7 @@ export default class CSymbol extends SourceSymbol {
                         ? this.document
                         : await SourceDocument.open(immediateScopeDefinition.uri);
                 const immediateScopeSymbol = await immediateScopeDoc.getSymbol(immediateScopeDefinition.range.start);
-                if (immediateScopeSymbol?.isClassOrStruct()) {
+                if (immediateScopeSymbol?.isClassType()) {
                     return immediateScopeSymbol;
                 }
             }
@@ -408,7 +396,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     baseClasses(): SubSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -454,7 +442,7 @@ export default class CSymbol extends SourceSymbol {
      * Retruns the member variables of this class/struct that are const or a reference.
      */
     memberVariablesThatRequireInitialization(): CSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -472,7 +460,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     nonStaticMemberVariables(): CSymbol[] {
-        if (!this.isClassOrStruct()) {
+        if (!this.isClassType()) {
             return [];
         }
 
@@ -521,7 +509,7 @@ export default class CSymbol extends SourceSymbol {
         const allTemplateStatements: string[] = [];
 
         this.scopes().forEach(scope => {
-            if (scope.isClassOrStruct() && scope.isUnspecializedTemplate())  {
+            if (scope.isClassType() && scope.isUnspecializedTemplate())  {
                 allTemplateStatements.push(...scope.templateStatements(removeDefaultArgs));
             }
         });
@@ -585,6 +573,17 @@ export default class CSymbol extends SourceSymbol {
     templatedName(normalize?: boolean): string {
         const templateName = this.name + this.templateParameters();
         return normalize ? parse.normalize(templateName) : templateName;
+    }
+
+    /**
+     * Returns the first non-anonymous parent of this symbol, or undefined if there is none.
+     */
+    firstNamedParent(): CSymbol | undefined {
+        let parent = this.parent;
+        while (parent?.isAnonymous()) {
+            parent = parent.parent;
+        }
+        return parent;
     }
 
     isFunctionDeclaration(): boolean {
@@ -682,6 +681,20 @@ export default class CSymbol extends SourceSymbol {
         return this.isNamespace() && /^\s*::\s*[\w_][\w\d_]*/.test(this.parsableTrailingText);
     }
 
+    isAnonymous(): boolean {
+        switch (activeLanguageServer()) {
+        case LanguageServer.cpptools:
+            return this.name.includes('anonymous-namespace')
+                || /__unnamed_(class|struct|union)/.test(this.name);
+        case LanguageServer.clangd:
+            return /anonymous (namespace|class|struct|union)/.test(this.name);
+        case LanguageServer.ccls:
+            return /anon (class|struct|union)/.test(this.name);
+        case LanguageServer.unknown:
+            return false;
+        }
+    }
+
     isTypedef(): boolean {
         return this.mightBeTypedefOrTypeAlias() && /\btypedef\b/.test(this.parsableText);
     }
@@ -750,7 +763,7 @@ export default class CSymbol extends SourceSymbol {
             const typeFile = new SourceFile(locations[0].uri);
             const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
 
-            if (typeSymbol?.kind === vscode.SymbolKind.Enum) {
+            if (typeSymbol?.isEnum()) {
                 return true;
             } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
                 const typeDoc = await typeFile.openDocument();
@@ -877,7 +890,7 @@ export default class CSymbol extends SourceSymbol {
         const newIndentation = line.text.substring(0, line.firstNonWhitespaceCharacterIndex);
 
         // If this CSymbol (declaration) doesn't have a comment, then we want to pull the comment from the definition.
-        if (!this.hasLeadingComment() && definition.hasLeadingComment()) {
+        if (!this.hasLeadingComment && definition.hasLeadingComment) {
             const leadingCommentRange = new vscode.Range(definition.leadingCommentStart, definition.trueStart);
             const leadingComment = definition.document.getText(leadingCommentRange);
             return leadingComment.replace(re_oldIndentation, '').replace(/\n(?!$)/gm, '\n' + newIndentation)
@@ -911,26 +924,47 @@ export default class CSymbol extends SourceSymbol {
                 return this._trueStart;
             }
 
-            this._trueStart = this.document.positionAt(namespaceStartOffset);
-            return this._trueStart;
+            return this._trueStart = this.document.positionAt(namespaceStartOffset);
         }
 
         maskedText = parse.maskAngleBrackets(maskedText).trimEnd();
         if (!maskedText.endsWith('>')) {
-            this._trueStart = this.range.start;
-            return this._trueStart;
+            return this._trueStart = this.range.start;
         }
 
         const templateOffset = maskedText.search(/\b(template\s*<\s*>\s*)$/);
         if (templateOffset === -1) {
-            this._trueStart = this.range.start;
-            return this._trueStart;
+            return this._trueStart = this.range.start;
         }
 
-        this._trueStart = this.document.positionAt(templateOffset);
-        return this._trueStart;
+        return this._trueStart = this.document.positionAt(templateOffset);
     }
-    private _trueStart?: vscode.Position;
+
+    /**
+     * Only relavant to class-types and enums which can have trailing
+     * instance declarations and initializations. Returns the position
+     * past the final semi-colon of the class-type/enum definition.
+     */
+    get trueEnd(): vscode.Position {
+        if (this._trueEnd) {
+            return this._trueEnd;
+        }
+
+        if (this.parsableText.endsWith(';') || this.isNamespace() || this.isFunctionDefinition()) {
+            return this._trueEnd = this.range.end;
+        }
+
+        if (this.isClassType() || this.isEnum()) {
+            const end = this.document.lineAt(this.document.lineCount - 1).range.end;
+            const maskedText = parse.maskNonSourceText(this.document.getText(new vscode.Range(this.range.end, end)));
+            const indexOfSemiColon = maskedText.indexOf(';');
+            if (indexOfSemiColon !== -1) {
+                return this._trueEnd = this.document.positionAt(this.endOffset() + indexOfSemiColon + 1);
+            }
+        }
+
+        return this._trueEnd = this.range.end;
+    }
 
     declarationStart(): vscode.Position {
         if (!this.parsableLeadingText.startsWith('template')) {
@@ -1004,11 +1038,8 @@ export default class CSymbol extends SourceSymbol {
         return this.document.positionAt(this.startOffset() + lastMatch.index);
     }
 
-    hasLeadingComment(): boolean {
-        if (this.leadingCommentStart.isEqual(this.trueStart)) {
-            return false;
-        }
-        return true;
+    get hasLeadingComment(): boolean {
+        return !this.leadingCommentStart.isEqual(this.trueStart);
     }
 
     get leadingCommentStart(): vscode.Position {
@@ -1020,18 +1051,15 @@ export default class CSymbol extends SourceSymbol {
         const re_trimEnd = new RegExp(`[ \\t]*${this.document.endOfLine}?[ \\t]*$`);
         const maskedText = parse.maskComments(this.document.getText(before)).replace(re_trimEnd, '');
         if (!maskedText.endsWith('//') && !maskedText.endsWith('*/')) {
-            this._leadingCommentStart = this.trueStart;
-            return this._leadingCommentStart;
+            return this._leadingCommentStart = this.trueStart;
         }
 
         if (maskedText.endsWith('*/')) {
             const commentStartOffset = maskedText.lastIndexOf('/*');
             if (commentStartOffset !== -1) {
-                this._leadingCommentStart = this.document.positionAt(commentStartOffset);
-                return this._leadingCommentStart;
+                return this._leadingCommentStart = this.document.positionAt(commentStartOffset);
             }
-            this._leadingCommentStart = this.trueStart;
-            return this._leadingCommentStart;
+            return this._leadingCommentStart = this.trueStart;
         }
 
         for (let i = this.trueStart.line - 1; i >= 0; --i) {
@@ -1041,33 +1069,30 @@ export default class CSymbol extends SourceSymbol {
                 if (indexOfComment === -1) {
                     break;  // This shouldn't happen, but just in-case.
                 }
-                this._leadingCommentStart = new vscode.Position(i + 1, indexOfComment);
-                return this._leadingCommentStart;
+                return this._leadingCommentStart = new vscode.Position(i + 1, indexOfComment);
             }
         }
 
-        this._leadingCommentStart = this.trueStart;
-        return this._leadingCommentStart;
+        return this._leadingCommentStart = this.trueStart;
     }
-    private _leadingCommentStart?: vscode.Position;
 
     trailingCommentEnd(): vscode.Position {
         const documentEnd = this.document.lineAt(this.document.lineCount - 1).range.end;
-        const documentTrailingText = this.document.getText(new vscode.Range(this.range.end, documentEnd));
+        const documentTrailingText = this.document.getText(new vscode.Range(this.trueEnd, documentEnd));
 
         if (/[ \t]*\/\//.test(documentTrailingText)) {
-            return this.document.lineAt(this.range.end).range.end;
+            return this.document.lineAt(this.trueEnd).range.end;
         }
 
         if (/[ \t]*\/\*/.test(documentTrailingText)) {
             const maskedTrailingText = parse.maskComments(documentTrailingText);
             const commentEndIndex = maskedTrailingText.indexOf('*/');
             if (commentEndIndex !== -1) {
-                return this.document.positionAt(this.endOffset() + commentEndIndex + 2);
+                return this.document.positionAt(this.document.offsetAt(this.trueEnd) + commentEndIndex + 2);
             }
         }
 
-        return this.range.end;
+        return this.trueEnd;
     }
 
     private getPositionForNewChild(): ProposedPosition {

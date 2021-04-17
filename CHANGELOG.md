@@ -8,6 +8,11 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed a bug where `Add Include` would place the include between the `#ifndef` and `#define` of a header guard when there are no includes yet in the file.
+- Fixed some problems stemming from anonymous scopes:
+  - Definitions can now be properly generated from anonymous namespaces.
+  - Getters/Setters can now be generated for members of anonymous sub-classes (the functions are generated as members of the named parent class).
+  - With the cursor inside of an anonymous sub-class, `Generate Equality Operators` and `Generate Stream Output Operator` will now operate on the named parent class.
+- Fixed an error thrown while trying to generate code after the last line or before the first line in the file (realistically this would only happen if the file did not end in a newline and a beter position could not be found).
 
 ## [0.7.1] - April 14, 2021
 ### Added

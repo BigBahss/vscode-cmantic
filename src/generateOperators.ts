@@ -39,12 +39,10 @@ export async function generateEqualityOperators(
         }
 
         classDoc = new SourceDocument(editor.document);
-
         const symbol = await classDoc.getSymbol(editor.selection.start);
+        parentClass = symbol?.isClassType() && !symbol.isAnonymous() ? symbol : symbol?.firstNamedParent();
 
-        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
-
-        if (!parentClass?.isClassOrStruct()) {
+        if (!parentClass?.isClassType()) {
             logger.alertWarning(failure.noClassOrStruct);
             return;
         }
@@ -104,12 +102,10 @@ export async function generateRelationalOperators(
         }
 
         classDoc = new SourceDocument(editor.document);
-
         const symbol = await classDoc.getSymbol(editor.selection.start);
+        parentClass = symbol?.isClassType() && !symbol.isAnonymous() ? symbol : symbol?.firstNamedParent();
 
-        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
-
-        if (!parentClass?.isClassOrStruct()) {
+        if (!parentClass?.isClassType()) {
             logger.alertWarning(failure.noClassOrStruct);
             return;
         }
@@ -177,12 +173,10 @@ export async function generateStreamOutputOperator(
         }
 
         classDoc = new SourceDocument(editor.document);
-
         const symbol = await classDoc.getSymbol(editor.selection.start);
+        parentClass = symbol?.isClassType() && !symbol.isAnonymous() ? symbol : symbol?.firstNamedParent();
 
-        parentClass = symbol?.isClassOrStruct() ? symbol : symbol?.parent;
-
-        if (!parentClass?.isClassOrStruct()) {
+        if (!parentClass?.isClassType()) {
             logger.alertWarning(failure.noClassOrStruct);
             return;
         }

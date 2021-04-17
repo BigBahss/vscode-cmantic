@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as xregexp from 'xregexp';
 import CSymbol from './CSymbol';
+import SubSymbol from './SubSymbol';
 import { logger } from './extension';
 
 
@@ -149,8 +150,9 @@ export function getEndOfStatement(document: vscode.TextDocument, position: vscod
     return document.positionAt(document.offsetAt(position) + match[0].length);
 }
 
-export function getRangeOfSymbolName(symbol: CSymbol): vscode.Range {
-    if (symbol.document.getText(symbol.selectionRange) === symbol.name) {
+export function getRangeOfSymbolName(symbol: CSymbol | SubSymbol): vscode.Range {
+    if (symbol.document.getText(symbol.selectionRange) === symbol.name
+            || symbol.selectionRange.isEqual(symbol.range)) {
         return symbol.selectionRange;
     }
 

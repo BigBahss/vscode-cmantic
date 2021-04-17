@@ -209,7 +209,7 @@ interface InitializerQuickPickItem extends vscode.QuickPickItem {
 async function getInitializersIfFunctionIsConstructor(
     functionDeclaration: CSymbol
 ): Promise<Initializer[] | undefined> {
-    if (!functionDeclaration.isConstructor() || !functionDeclaration.parent?.isClassOrStruct()) {
+    if (!functionDeclaration.isConstructor() || !functionDeclaration.parent?.isClassType()) {
         return [];
     }
     const parentClass = functionDeclaration.parent;

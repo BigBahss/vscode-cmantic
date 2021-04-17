@@ -163,7 +163,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         symbol: CSymbol
     ): boolean {
         return symbol.document.languageId === 'cpp'
-            && (symbol.isClassOrStruct() || symbol.parent?.isClassOrStruct() === true)
+            && (symbol.isClassType() || symbol.parent?.isClassType() === true)
                 && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
     }
 
@@ -250,7 +250,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         } ();
 
         if ((declaration?.matches(definition) && SourceFile.isHeader(declaration.uri))
-                || definition.parent?.isClassOrStruct()) {
+                || definition.parent?.isClassType()) {
             addDeclaration.disable(addDeclarationFailure.declarationExists);
         } else {
             const parentClass = await definition.getParentClass();
@@ -300,7 +300,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         let declaration: CSymbol | undefined;
         let declarationDoc: SourceDocument | undefined;
 
-        if (definition.parent?.isClassOrStruct()) {
+        if (definition.parent?.isClassType()) {
             if (definition.parent.isClass()) {
                 moveDefinitionIntoOrOutOfClass.setTitle(moveDefinitionTitle.outOfClass);
             } else {
@@ -451,17 +451,22 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const classOrStruct = symbol.isClassOrStruct() ? symbol : symbol.parent;
-        const generateEqualityOperators = new RefactorAction(
-                operatorTitle.equality, 'cmantic.generateEqualityOperators');
-        const generateRelationalOperators = new RefactorAction(
-                operatorTitle.relational, 'cmantic.generateRelationalOperators');
-        const generateStreamOutputOperator = new RefactorAction(
-                operatorTitle.streamOutput, 'cmantic.generateStreamOutputOperator');
+        const classSymbol = symbol.isClassType() && !symbol.isAnonymous() ? symbol : symbol.firstNamedParent();
+        if (!classSymbol) {
+            return [];
+        }
+        const titleSnippet = ` for "${classSymbol.name}"`;
 
-        generateEqualityOperators.setArguments(classOrStruct, sourceDoc);
-        generateRelationalOperators.setArguments(classOrStruct, sourceDoc);
-        generateStreamOutputOperator.setArguments(classOrStruct, sourceDoc);
+        const generateEqualityOperators = new RefactorAction(
+                operatorTitle.equality + titleSnippet, 'cmantic.generateEqualityOperators');
+        const generateRelationalOperators = new RefactorAction(
+                operatorTitle.relational + titleSnippet, 'cmantic.generateRelationalOperators');
+        const generateStreamOutputOperator = new RefactorAction(
+                operatorTitle.streamOutput + titleSnippet, 'cmantic.generateStreamOutputOperator');
+
+        generateEqualityOperators.setArguments(classSymbol, sourceDoc);
+        generateRelationalOperators.setArguments(classSymbol, sourceDoc);
+        generateStreamOutputOperator.setArguments(classSymbol, sourceDoc);
 
         return [generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator];
     }

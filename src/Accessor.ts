@@ -7,39 +7,78 @@ import CSymbol from './CSymbol';
 
 const re_qualifiers = /\b(static|const|volatile|mutable)\b/g;
 
+enum MemberFunctionQualifier {
+    None,
+    Const,
+    Static
+}
+
 /**
  * Represents a new accessor member function for a member variable.
  */
-export interface Accessor {
-    readonly parent?: CSymbol;
+export abstract class Accessor {
     readonly memberVariable: CSymbol;
-    name: string;
-    isStatic: boolean;
-    returnType: string;
-    parameter: string;
-    body: string;
-    declaration: string;
-    definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string>;
+    readonly namedParent?: CSymbol;
+    protected qualifier: MemberFunctionQualifier;
+
+    abstract name: string;
+    abstract returnType: string;
+    abstract parameter: string;
+    abstract body: string;
+
+    constructor(memberVariable: CSymbol) {
+        this.memberVariable = memberVariable;
+        this.namedParent = memberVariable.firstNamedParent();
+        this.qualifier = memberVariable.isStatic() ? MemberFunctionQualifier.Static : MemberFunctionQualifier.None;
+    }
+
+    get isConst(): boolean { return this.qualifier === MemberFunctionQualifier.Const; }
+
+    get isStatic(): boolean { return this.qualifier === MemberFunctionQualifier.Static; }
+
+    get declaration(): string {
+        return (this.isStatic ? 'static ' : '') + this.returnType + this.name
+                + '(' + this.parameter + ')' + (this.isConst ? ' const' : '');
+    }
+
+    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
+        const eol = target.endOfLine;
+        const inlineSpecifier =
+            ((!this.namedParent || !util.containsExclusive(this.namedParent.range, position))
+            && this.memberVariable.document.fileName === target.fileName)
+                ? 'inline '
+                : '';
+        return this.memberVariable.combinedTemplateStatements(true, eol) + inlineSpecifier
+                + this.returnType + await this.memberVariable.scopeString(target, position)
+                + this.name + '(' + this.parameter + ')' + (this.isConst ? ' const' : '')
+                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
+    }
+
+    protected memberPrefix(): string {
+        if (cfg.useExplicitThisPointer(this.memberVariable.uri) && !this.isStatic) {
+            return 'this->';
+        } else if (this.isStatic && this.namedParent) {
+            return this.namedParent.name + '::';
+        } else {
+            return '';
+        }
+    }
 }
 
 /**
  * Represents a new getter member function for a member variable.
  */
-export class Getter implements Accessor {
-    readonly parent?: CSymbol;
-    readonly memberVariable: CSymbol;
+export class Getter extends Accessor {
     name: string;
-    isStatic: boolean;
     returnType: string;
     parameter: string;
     body: string;
 
     constructor(memberVariable: CSymbol) {
+        super(memberVariable);
+        this.qualifier = this.isStatic ? this.qualifier : MemberFunctionQualifier.Const;
         const leadingText = memberVariable.parsableLeadingText.replace('[[', '').replace(']]', '');
-        this.parent = memberVariable.parent;
-        this.memberVariable = memberVariable;
         this.name = memberVariable.getterName();
-        this.isStatic = memberVariable.isStatic();
 
         const templateParamStart = leadingText.indexOf('<');
         const templateParamEnd = leadingText.lastIndexOf('>');
@@ -53,45 +92,19 @@ export class Getter implements Accessor {
         }
 
         this.parameter = '';
-        let memberPrefix = '';
-        if (cfg.useExplicitThisPointer(memberVariable.uri) && !this.isStatic) {
-            memberPrefix = 'this->';
-        } else if (this.isStatic && memberVariable.parent) {
-            memberPrefix = memberVariable.parent.name + '::';
-        }
-        this.body = 'return ' + memberPrefix + memberVariable.name + ';';
-    }
-
-    get declaration(): string {
-        return (this.isStatic ? 'static ' : '') + this.returnType + this.name + '()' + (this.isStatic ? '' : ' const');
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
-        const eol = target.endOfLine;
-        const inlineSpecifier =
-            ((!this.parent || !util.containsExclusive(this.parent.range, position))
-            && this.memberVariable.document.fileName === target.fileName)
-                ? 'inline '
-                : '';
-        return this.memberVariable.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
-                + await this.memberVariable.scopeString(target, position) + this.name + '()'
-                + (this.isStatic ? '' : ' const') + curlySeparator + '{'
-                + eol + util.indentation() + this.body + eol + '}';
+        this.body = `return ${this.memberPrefix() + memberVariable.name};`;
     }
 }
 
 /**
  * Represents a new setter member function for a member variable.
  */
-export class Setter implements Accessor {
-    readonly parent?: CSymbol;
-    readonly memberVariable: CSymbol;
+export class Setter extends Accessor {
     name: string;
-    isStatic: boolean;
     returnType: string;
-    parameterName: string;
     parameter: string;
     body: string;
+    private parameterName: string;
 
     /**
      * This builder method is necessary since CSymbol.isPrimitive() is asynchronous.
@@ -114,45 +127,22 @@ export class Setter implements Accessor {
     }
 
     private constructor(memberVariable: CSymbol) {
-        this.parent = memberVariable.parent;
-        this.memberVariable = memberVariable;
+        super(memberVariable);
         this.name = memberVariable.setterName();
-        this.isStatic = memberVariable.isStatic();
         this.returnType = 'void ';
+        const memberPrefix = this.memberPrefix();
         let baseName = memberVariable.baseName();
         if (baseName !== memberVariable.name) {
             this.parameterName = baseName;
         } else {
             baseName = cfg.formatToCaseStyle(baseName, memberVariable.uri);
-            if (baseName !== memberVariable.name) {
+            if (baseName !== memberVariable.name || memberPrefix) {
                 this.parameterName = baseName;
             } else {
                 this.parameterName = baseName + '_';
             }
         }
         this.parameter = '';
-        let memberPrefix = '';
-        if (cfg.useExplicitThisPointer(memberVariable.uri) && !this.isStatic) {
-            memberPrefix = 'this->';
-        } else if (this.isStatic && memberVariable.parent) {
-            memberPrefix = memberVariable.parent.name + '::';
-        }
         this.body = `${memberPrefix + memberVariable.name} = ${this.parameterName};`;
-    }
-
-    get declaration(): string {
-        return (this.isStatic ? 'static ' : '') + 'void ' + this.name + '(' + this.parameter + ')';
-    }
-
-    async definition(target: SourceDocument, position: vscode.Position, curlySeparator: string): Promise<string> {
-        const eol = target.endOfLine;
-        const inlineSpecifier =
-            ((!this.parent || !util.containsExclusive(this.parent.range, position))
-            && this.memberVariable.document.fileName === target.fileName)
-                ? 'inline '
-                : '';
-        return this.memberVariable.combinedTemplateStatements(true, eol) + inlineSpecifier + this.returnType
-                + await this.memberVariable.scopeString(target, position) + this.name + '(' + this.parameter + ')'
-                + curlySeparator + '{' + eol + util.indentation() + this.body + eol + '}';
     }
 }

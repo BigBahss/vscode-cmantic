@@ -57,7 +57,7 @@ export default class SourceFile {
                     continue;
                 }
 
-                if (sourceSymbol.children.length === 0 || sourceSymbol.selectionRange.contains(position)) {
+                if (sourceSymbol.children.length === 0) {
                     return sourceSymbol;
                 } else {
                     const child = searchSymbolTree(sourceSymbol.children);

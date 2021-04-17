@@ -511,7 +511,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
-                if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
+                if (!linkedSymbol || linkedSymbol.isClassType()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
                     continue;
@@ -555,7 +555,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
                 }
 
                 const linkedSymbol = await targetDoc.getSymbol(location.range.start);
-                if (!linkedSymbol || linkedSymbol.isClassOrStruct()) {
+                if (!linkedSymbol || linkedSymbol.isClassType()) {
                     /* cpptools is dumb and will return the class when finding the
                      * declaration/definition of an undeclared member function. */
                     continue;
@@ -599,7 +599,7 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
             const parentClassLocation = await immediateScope.findDefinition();
             if (parentClassLocation?.uri.fsPath === this.uri.fsPath) {
                 parentClass = await this.getSymbol(parentClassLocation.range.start);
-                if (parentClass?.isClassOrStruct()) {
+                if (parentClass?.isClassType()) {
                     return parentClass.findPositionForNewMemberFunction(access);
                 }
             }
