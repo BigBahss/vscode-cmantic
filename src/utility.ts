@@ -113,14 +113,12 @@ export function revealRange(editor: vscode.TextEditor, range: vscode.Range): voi
     // revealRange() sometimes doesn't work for large files, this appears to be a bug in vscode.
     // Waiting a bit and re-executing seems to work around this issue. (BigBahss/vscode-cmantic#2)
     setTimeout(() => {
-        if (editor && range) {
-            for (const visibleRange of editor.visibleRanges) {
-                if (visibleRange.contains(range)) {
-                    return;
-                }
+        for (const visibleRange of editor.visibleRanges) {
+            if (visibleRange.contains(range)) {
+                return;
             }
-            editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
         }
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
     }, 500);
 }
 
@@ -132,8 +130,8 @@ export function indentation(options?: vscode.TextEditorOptions): string {
         }
     }
 
-    if (options && options.insertSpaces) {
-        return ' '.repeat(<number>(options.tabSize));
+    if (options?.insertSpaces) {
+        return ' '.repeat(options.tabSize as number);
     }
     return '\t';
 }

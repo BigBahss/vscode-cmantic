@@ -104,7 +104,7 @@ export class Setter extends Accessor {
     returnType: string;
     parameter: string;
     body: string;
-    private parameterName: string;
+    private readonly parameterName: string;
 
     /**
      * This builder method is necessary since CSymbol.isPrimitive() is asynchronous.

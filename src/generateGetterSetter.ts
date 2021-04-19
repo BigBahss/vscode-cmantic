@@ -237,7 +237,7 @@ async function getTargetForAccessorDefinition(
                         await classDoc.findSmartPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
             }
         }
-        // fallthrough
+        // [[fallthrough]]
     case cfg.DefinitionLocation.CurrentFile:
         return new TargetLocation(
                 await classDoc.findSmartPositionForFunctionDefinition(declarationPos, classDoc), classDoc);
