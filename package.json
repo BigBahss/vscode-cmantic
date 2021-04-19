@@ -21,9 +21,6 @@
   "engines": {
     "vscode": "^1.49.0"
   },
-  "dependencies": {
-    "xregexp": "^5.0.1"
-  },
   "categories": [
     "Programming Languages"
   ],
@@ -39,6 +36,9 @@
     "onLanguage:cpp"
   ],
   "main": "./dist/extension",
+  "dependencies": {
+    "xregexp": "^5.0.1"
+  },
   "contributes": {
     "commands": [
       {
@@ -340,14 +340,13 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "test": "npm run compile && node ./out/test/runTest.js",
+    "compile": "tsc --project ./",
+    "test": "npm run webpack && npm run compile && node ./out/test/runTest.js",
     "lint": "eslint -c .eslintrc.js --ext .ts ./src --max-warnings=0",
     "package": "vsce package",
-    "vscode:prepublish": "webpack --mode production",
+    "vscode:prepublish": "npm run lint && webpack --mode production",
     "webpack": "webpack --mode development",
-    "webpack-dev": "webpack --mode development --watch"
+    "webpack-watch": "webpack --mode development --watch"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",

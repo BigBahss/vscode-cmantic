@@ -2,7 +2,7 @@
 	"version": "0.2.0",
 	"configurations": [
         {
-			"name": "Run Extension",
+			"name": "Debug Extension",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
@@ -16,7 +16,7 @@
             "internalConsoleOptions": "neverOpen"
 		},
 		{
-			"name": "Extension Tests",
+			"name": "Debug Tests",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
@@ -28,7 +28,7 @@
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
 			],
-			"preLaunchTask": "npm: compile",
+			"preLaunchTask": "pretest",
             "internalConsoleOptions": "openOnSessionStart"
 		}
 	]
