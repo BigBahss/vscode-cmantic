@@ -196,9 +196,9 @@ async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Pro
     const previousVersion = context.globalState.get<string>(versionKey);
     context.globalState.update(versionKey, currentVersion);
 
-    const [,currentMinor,] = currentVersion.split('.');
+    const currentMinor = currentVersion.split('.')[1];
     if (previousVersion !== undefined && re_semver.test(previousVersion)) {
-        const [,previousMinor,] = previousVersion.split('.');
+        const previousMinor = previousVersion.split('.')[1];
         if (+previousMinor >= +currentMinor) {
             return;
         }

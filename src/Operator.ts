@@ -40,7 +40,7 @@ export abstract class Operator {
                 : '';
         return this.parent.combinedTemplateStatements(true, eol, !this.isFriend) + friendSpecifier
                 + inlineSpecifier + this.returnType + await this.parent.scopeString(target, position, this.isFriend)
-                + this.name + '('+ this.parameters + ')' + (this.isFriend ? '' : ' const') + curlySeparator + '{'
+                + this.name + '(' + this.parameters + ')' + (this.isFriend ? '' : ' const') + curlySeparator + '{'
                 + eol + util.indentation() + this.body + eol + '}';
     }
 }

@@ -48,13 +48,15 @@ export default class SourceDocument extends SourceFile implements vscode.TextDoc
     save(): Thenable<boolean> { return this.doc.save(); }
     get eol(): vscode.EndOfLine { return this.doc.eol; }
     get lineCount(): number { return this.doc.lineCount; }
-    lineAt(lineOrPosition: number | vscode.Position): vscode.TextLine { return this.doc.lineAt(lineOrPosition as any); }
+    lineAt(lineOrPos: number | vscode.Position): vscode.TextLine { return this.doc.lineAt(lineOrPos as any); }
     offsetAt(position: vscode.Position): number { return this.doc.offsetAt(position); }
     positionAt(offset: number): vscode.Position { return this.doc.positionAt(offset); }
     getText(range?: vscode.Range): string { return this.doc.getText(range); }
-    getWordRangeAtPosition(position: vscode.Position, regex?: RegExp): vscode.Range | undefined { return this.doc.getWordRangeAtPosition(position, regex); }
     validateRange(range: vscode.Range): vscode.Range { return this.doc.validateRange(range); }
     validatePosition(position: vscode.Position): vscode.Position { return this.doc.validatePosition(position); }
+    getWordRangeAtPosition(position: vscode.Position, regex?: RegExp): vscode.Range | undefined {
+        return this.doc.getWordRangeAtPosition(position, regex);
+    }
 
     get endOfLine(): string { return util.endOfLine(this); }
 

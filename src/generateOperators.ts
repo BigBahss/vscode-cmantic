@@ -153,7 +153,7 @@ export async function generateRelationalOperators(
             addNewOperatorToWorkspaceEdit(
                     lessThanOrEqualOp, nextPosition, classDoc, targets.second, workspaceEdit, true),
             addNewOperatorToWorkspaceEdit(
-                    greaterThanOrEqualOp, nextPosition, classDoc, targets.second, workspaceEdit, true),
+                    greaterThanOrEqualOp, nextPosition, classDoc, targets.second, workspaceEdit, true)
         ]);
     }
 
