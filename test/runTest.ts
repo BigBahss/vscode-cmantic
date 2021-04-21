@@ -4,7 +4,7 @@ import * as cp from 'child_process';
 import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTests } from 'vscode-test';
 
 
-async function main() {
+async function main(): Promise<void> {
 	try {
 		const extensionDevelopmentPath = path.resolve(__dirname, '../');
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');

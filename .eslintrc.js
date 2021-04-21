@@ -153,7 +153,7 @@ module.exports = {
                 allowTypedFunctionExpressions: true,
                 allowHigherOrderFunctions: true,
                 allowDirectConstAssertionInArrowFunctions: true,
-                allowConciseArrowFunctionExpressionsStartingWithVoid: false
+                allowConciseArrowFunctionExpressionsStartingWithVoid: true
             }
         ],
         "@typescript-eslint/no-confusing-non-null-assertion": "warn",
