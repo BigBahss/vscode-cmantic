@@ -5,6 +5,7 @@ import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
+import { createMultiQuickPick } from './QuickPick';
 import { createMatchingSourceFile } from './createSourceFile';
 import { getMatchingHeaderSource, logger } from './extension';
 
@@ -206,6 +207,8 @@ interface InitializerQuickPickItem extends vscode.QuickPickItem {
     initializer: Initializer;
 }
 
+const quickPick = createMultiQuickPick<InitializerQuickPickItem, Initializer>('initializer');
+
 async function getInitializersIfFunctionIsConstructor(
     functionDeclaration: CSymbol
 ): Promise<Initializer[] | undefined> {
@@ -240,27 +243,10 @@ async function getInitializersIfFunctionIsConstructor(
         initializerItems.push(initializerItem);
     });
 
-    const selectedIems = await vscode.window.showQuickPick<InitializerQuickPickItem>(initializerItems, {
-        matchOnDescription: true,
-        placeHolder: `Select initializers for "${util.formatSignature(functionDeclaration)}"`,
-        ignoreFocusOut: true,
-        canPickMany: true
-    });
-
-    if (!selectedIems) {
+    const selectedInitializers = await showInitializersQuickPick(initializerItems, functionDeclaration, parentClass);
+    if (!selectedInitializers) {
         return;
     }
-
-    if (selectedIems.length === 1 && selectedIems[0].initializer === parentClass) {
-        return [parentClass];
-    }
-
-    const selectedInitializers: Initializer[] = [];
-    selectedIems.forEach(item => {
-        if (item.initializer !== parentClass) {
-            selectedInitializers.push(item.initializer);
-        }
-    });
 
     parentClass.memberVariablesThatRequireInitialization().forEach(memberVariable => {
         if (!selectedInitializers.some(initializer => initializer.name === memberVariable.name)) {
@@ -270,6 +256,30 @@ async function getInitializersIfFunctionIsConstructor(
     selectedInitializers.sort(util.sortByRange);
 
     return selectedInitializers;
+}
+
+function showInitializersQuickPick(
+    initializerItems: InitializerQuickPickItem[], ctorDeclaration: CSymbol, parentClass: CSymbol
+): Promise<Initializer[] | undefined> {
+    quickPick.title = `Select initializers for "${util.formatSignature(ctorDeclaration)}"`;
+    quickPick.items = initializerItems;
+
+    if (initializerItems[0].initializer === parentClass) {
+        let lastSelection = quickPick.selectedItems;
+        quickPick.onDidChangeSelection(selectedItems => {
+            if ((lastSelection.length < initializerItems.length - 1 && selectedItems.length === initializerItems.length)
+                    || (lastSelection[0].initializer === parentClass && selectedItems.length > lastSelection.length)) {
+                selectedItems.shift();
+                quickPick.selectedItems = selectedItems;
+            } else if (selectedItems.some(item => item.initializer === parentClass)
+                    && !lastSelection.some(item => item.initializer === parentClass)) {
+                quickPick.selectedItems = [initializerItems[0]];
+            }
+            lastSelection = quickPick.selectedItems;
+        });
+    }
+
+    return quickPick.promptUser();
 }
 
 async function constructFunctionSkeleton(
@@ -433,13 +443,13 @@ export async function generateDefinitionsWorkspaceEdit(
      * separately, one at a time. In order to insert them all in the same order that their
      * declarations appear in the file, we map the declarations to the WorkspaceEditArguments
      * and insert them all into the WorkspaceEdit at the end. */
-    const constructors: CSymbol[] = [];
-    const nonConstructors: CSymbol[] = [];
+    const ctors: CSymbol[] = [];
+    const nonCtors: CSymbol[] = [];
     functionDeclarations.forEach(declaration => {
         if (declaration.isConstructor()) {
-            constructors.push(declaration);
+            ctors.push(declaration);
         } else {
-            nonConstructors.push(declaration);
+            nonCtors.push(declaration);
         }
     });
 
@@ -447,7 +457,7 @@ export async function generateDefinitionsWorkspaceEdit(
 
     async function generateNextChunkOfNonConstructors(i: number): Promise<void> {
         const p_argsEntries: Promise<WorkspaceEditArgumentsEntry | undefined>[] = [];
-        nonConstructors.slice(i, i + 5).forEach(declaration => {
+        nonCtors.slice(i, i + 5).forEach(declaration => {
             p_argsEntries.push(getWorkspaceEditArgumentsEntry(declaration, declarationDoc, targetDoc));
         });
 
@@ -468,11 +478,11 @@ export async function generateDefinitionsWorkspaceEdit(
         progress.report({ message: `${0}/${functionDeclarations.length} generated`, increment: 0 });
         const increment = (1 / functionDeclarations.length) * 100;
 
-        let constructorsAdded = 0;
-        let nonConstructorsAdded = 0;
+        let ctorsAdded = 0;
+        let nonCtorAdded = 0;
 
-        const p_generatedConstructors = async function (): Promise<void> {
-            for (const declaration of constructors) {
+        const p_generatedConstructors = (async (): Promise<void> => {
+            for (const declaration of ctors) {
                 if (token.isCancellationRequested) {
                     userCancelledOperation = true;
                     return;
@@ -484,24 +494,24 @@ export async function generateDefinitionsWorkspaceEdit(
                 }
 
                 progress.report({
-                    message: `${++constructorsAdded + nonConstructorsAdded}/${functionDeclarations.length} generated`,
+                    message: `${++ctorsAdded + nonCtorAdded}/${functionDeclarations.length} generated`,
                     increment: increment
                 });
             }
-        } ();
+        }) ();
 
-        for (let i = 0; i < nonConstructors.length; i += 5) {
+        for (let i = 0; i < nonCtors.length; i += 5) {
             if (token.isCancellationRequested) {
                 userCancelledOperation = true;
                 return;
             }
 
             await generateNextChunkOfNonConstructors(i);
-            nonConstructorsAdded = Math.min(i + 5, nonConstructors.length);
+            nonCtorAdded = Math.min(i + 5, nonCtors.length);
 
             progress.report({
-                message: `${constructorsAdded + nonConstructorsAdded}/${functionDeclarations.length} generated`,
-                increment: increment * (nonConstructorsAdded - i)
+                message: `${ctorsAdded + nonCtorAdded}/${functionDeclarations.length} generated`,
+                increment: increment * (nonCtorAdded - i)
             });
         }
 
