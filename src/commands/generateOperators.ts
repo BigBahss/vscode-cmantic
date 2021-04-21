@@ -1,17 +1,17 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
-import * as util from './utility';
-import SourceDocument from './SourceDocument';
-import CSymbol from './CSymbol';
-import SubSymbol from './SubSymbol';
-import { ProposedPosition, TargetLocation } from './ProposedPosition';
+import * as cfg from '../configuration';
+import * as util from '../utility';
+import SourceDocument from '../SourceDocument';
+import CSymbol from '../CSymbol';
+import SubSymbol from '../SubSymbol';
+import { ProposedPosition, TargetLocation } from '../ProposedPosition';
 import {
     Operand, Operator,
     EqualOperator, NotEqualOperator,
     LessThanOperator, GreaterThanOperator, LessThanOrEqualOperator, GreaterThanOrEqualOperator,
     StreamOutputOperator
-} from './Operator';
-import { getMatchingHeaderSource, logger } from './extension';
+} from '../Operator';
+import { getMatchingHeaderSource, logger } from '../extension';
 
 
 export const title = {

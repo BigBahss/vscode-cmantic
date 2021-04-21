@@ -4,13 +4,13 @@ import * as util from './utility';
 import SourceFile from './SourceFile';
 import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
-import { failure as addDefinitionFailure, title as addDefinitionTitle } from './addDefinition';
-import { failure as addDeclarationFailure, title as addDeclarationTitle } from './addDeclaration';
-import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './moveDefinition';
-import { failure as getterSetterFailure, title as getterSetterTitle } from './generateGetterSetter';
-import { title as operatorTitle } from './generateOperators';
-import { failure as createSourceFileFailure } from './createSourceFile';
-import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './addHeaderGuard';
+import { failure as addDefinitionFailure, title as addDefinitionTitle } from './commands/addDefinition';
+import { failure as addDeclarationFailure, title as addDeclarationTitle } from './commands/addDeclaration';
+import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './commands/moveDefinition';
+import { failure as getterSetterFailure, title as getterSetterTitle } from './commands/generateGetterSetter';
+import { title as operatorTitle } from './commands/generateOperators';
+import { failure as createSourceFileFailure } from './commands/createSourceFile';
+import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './commands/addHeaderGuard';
 import { getMatchingHeaderSource } from './extension';
 
 

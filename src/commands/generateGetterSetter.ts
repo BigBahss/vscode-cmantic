@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
-import * as util from './utility';
-import SourceDocument from './SourceDocument';
-import CSymbol from './CSymbol';
-import { ProposedPosition, TargetLocation } from './ProposedPosition';
-import { Accessor, Getter, Setter } from './Accessor';
-import { getMatchingHeaderSource, logger } from './extension';
+import * as cfg from '../configuration';
+import * as util from '../utility';
+import SourceDocument from '../SourceDocument';
+import CSymbol from '../CSymbol';
+import { ProposedPosition, TargetLocation } from '../ProposedPosition';
+import { Accessor, Getter, Setter } from '../Accessor';
+import { getMatchingHeaderSource, logger } from '../extension';
 
 
 export const title = {

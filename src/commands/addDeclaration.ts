@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import * as util from './utility';
-import SourceFile from './SourceFile';
-import SourceDocument from './SourceDocument';
-import CSymbol from './CSymbol';
-import { getMatchingHeaderSource, logger } from './extension';
+import * as util from '../utility';
+import SourceFile from '../SourceFile';
+import SourceDocument from '../SourceDocument';
+import CSymbol from '../CSymbol';
+import { getMatchingHeaderSource, logger } from '../extension';
 
 
 export const title = {

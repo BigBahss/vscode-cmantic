@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
-import SourceDocument from './SourceDocument';
-import SubSymbol from './SubSymbol';
-import { ProposedPosition } from './ProposedPosition';
-import { logger } from './extension';
+import * as cfg from '../configuration';
+import SourceDocument from '../SourceDocument';
+import SubSymbol from '../SubSymbol';
+import { ProposedPosition } from '../ProposedPosition';
+import { logger } from '../extension';
 
 
 export const failure = {

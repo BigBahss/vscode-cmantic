@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
-import * as cfg from './configuration';
-import * as util from './utility';
-import SourceDocument from './SourceDocument';
-import CSymbol from './CSymbol';
-import SubSymbol from './SubSymbol';
-import { ProposedPosition } from './ProposedPosition';
-import { createMultiQuickPick } from './QuickPick';
+import * as cfg from '../configuration';
+import * as util from '../utility';
+import SourceDocument from '../SourceDocument';
+import CSymbol from '../CSymbol';
+import SubSymbol from '../SubSymbol';
+import { ProposedPosition } from '../ProposedPosition';
+import { createMultiQuickPick } from '../QuickPick';
 import { createMatchingSourceFile } from './createSourceFile';
-import { getMatchingHeaderSource, logger } from './extension';
+import { getMatchingHeaderSource, logger } from '../extension';
 
 
 export const title = {

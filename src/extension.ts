@@ -5,20 +5,20 @@ import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
 import {
     addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions, addDefinition
-} from './addDefinition';
-import { addDeclaration } from './addDeclaration';
-import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
+} from './commands/addDefinition';
+import { addDeclaration } from './commands/addDeclaration';
+import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './commands/moveDefinition';
 import {
     generateGetterSetter, generateGetter, generateSetter,
     generateGetterSetterFor, generateGetterFor, generateSetterFor
-} from './generateGetterSetter';
+} from './commands/generateGetterSetter';
 import {
     generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator
-} from './generateOperators';
-import { createMatchingSourceFile } from './createSourceFile';
-import { addHeaderGuard } from './addHeaderGuard';
-import { addInclude } from './addInclude';
-import { switchHeaderSourceInWorkspace } from './switchHeaderSource';
+} from './commands/generateOperators';
+import { createMatchingSourceFile } from './commands/createSourceFile';
+import { addHeaderGuard } from './commands/addHeaderGuard';
+import { addInclude } from './commands/addInclude';
+import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
 import { CodeActionProvider } from './codeActions';
 
 

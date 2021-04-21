@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as cfg from './configuration';
-import * as util from './utility';
-import SourceDocument from './SourceDocument';
-import CSymbol from './CSymbol';
-import { getMatchingHeaderSource, logger } from './extension';
+import * as cfg from '../configuration';
+import * as util from '../utility';
+import SourceDocument from '../SourceDocument';
+import CSymbol from '../CSymbol';
+import { getMatchingHeaderSource, logger } from '../extension';
 import { promptUserToSelectFunctions, generateDefinitionsWorkspaceEdit, revealNewFunction } from './addDefinition';
 
 
