@@ -160,8 +160,11 @@ function pollExtensionsToSetLanguageServer(): void {
     let i = 0;
     const timer = setInterval(() => {
         setActiveLanguageServer();
-        if (languageServer !== LanguageServer.unknown || ++i > 15) {
+        if (languageServer !== LanguageServer.unknown || ++i > 30) {
             clearInterval(timer);
+            if (i > 30) {
+                logger.logWarn('No language server detected after 30 seconds.');
+            }
         }
     }, 1000);
 }
@@ -169,10 +172,13 @@ function pollExtensionsToSetLanguageServer(): void {
 function setActiveLanguageServer(): void {
     if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
         languageServer = LanguageServer.cpptools;
+        logger.logInfo(`Language server detected as ${cpptoolsId}.`);
     } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
         languageServer = LanguageServer.clangd;
+        logger.logInfo(`Language server detected as ${clangdId}.`);
     } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
         languageServer = LanguageServer.ccls;
+        logger.logInfo(`Language server detected as ${cclsId}.`);
     } else {
         languageServer = LanguageServer.unknown;
     }
