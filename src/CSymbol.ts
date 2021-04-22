@@ -245,27 +245,29 @@ export default class CSymbol extends SourceSymbol {
             return;
         }
 
-        /* If relativeName is a setterName, then ProposedPosition should be before, since the new member function is
-         * a getter. This is to match the positioning of these members when both are generated at the same time. */
-        const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
+        if (relativeName) {
+            /* If relativeName is a setterName, then ProposedPosition should be before, since the new member function
+             * is a getter. This is to match the order of these members when both are generated at the same time. */
+            const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
-        for (let i = this.children.length - 1, child: CSymbol;
-            i >= 0 && (child = new CSymbol(this.children[i], this.document));
-            --i
-        ) {
-            if (child.name === relativeName) {
-                if (isGetter) {
-                    return new ProposedPosition(child.leadingCommentStart, {
-                        relativeTo: child.range,
-                        before: true,
-                        nextTo: true
-                    });
-                } else {
-                    return new ProposedPosition(child.trailingCommentEnd(), {
-                        relativeTo: child.range,
-                        after: true,
-                        nextTo: true
-                    });
+            for (let i = this.children.length - 1, child: CSymbol;
+                i >= 0 && (child = new CSymbol(this.children[i], this.document));
+                --i
+            ) {
+                if (child.name === relativeName) {
+                    if (isGetter) {
+                        return new ProposedPosition(child.leadingCommentStart, {
+                            relativeTo: child.range,
+                            before: true,
+                            nextTo: true
+                        });
+                    } else {
+                        return new ProposedPosition(child.trailingCommentEnd(), {
+                            relativeTo: child.range,
+                            after: true,
+                            nextTo: true
+                        });
+                    }
                 }
             }
         }

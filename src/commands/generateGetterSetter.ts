@@ -84,16 +84,13 @@ export async function generateGetterSetterFor(
             return;
         }
         logger.alertInformation(failure.isConst + ' Only generating a getter.');
-        await generateGetterFor(symbol, classDoc);
-        return;
+        return generateGetterFor(symbol, classDoc);
     } else if (getter && !setter) {
         logger.alertInformation(failure.getterExists + ' Only generating a setter.');
-        await generateSetterFor(symbol, classDoc);
-        return;
+        return generateSetterFor(symbol, classDoc);
     } else if (!getter && setter) {
         logger.alertInformation(failure.setterExists + ' Only generating a getter.');
-        await generateGetterFor(symbol, classDoc);
-        return;
+        return generateGetterFor(symbol, classDoc);
     } else if (getter && setter) {
         logger.alertInformation(failure.getterAndSetterExists);
         return;
