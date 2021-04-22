@@ -85,7 +85,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const [refactorings, sourceActions] = await Promise.all([
+        const codeActions = await Promise.all([
             this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
         ]);
@@ -94,7 +94,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        return [...refactorings, ...sourceActions];
+        return codeActions.flat();
     }
 
     private async getRefactorings(
