@@ -73,7 +73,7 @@ async function getCurrentSymbolAndCall(
 }
 
 export async function generateGetterSetterFor(
-    symbol: CSymbol, classDoc: SourceDocument
+    symbol: CSymbol, classDoc: SourceDocument, matchingUri?: vscode.Uri
 ): Promise<boolean | undefined> {
     const getter = symbol.parent?.findGetterFor(symbol);
     const setter = symbol.parent?.findSetterFor(symbol);
@@ -113,12 +113,16 @@ export async function generateGetterSetterFor(
     });
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewAccessorToWorkspaceEdit(new Getter(symbol), getterPosition, classDoc, workspaceEdit);
-    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit, true);
+    await Promise.all([
+        addNewAccessorToWorkspaceEdit(new Getter(symbol), getterPosition, classDoc, workspaceEdit, matchingUri),
+        addNewAccessorToWorkspaceEdit(await Setter.create(symbol), setterPosition, classDoc, workspaceEdit, matchingUri, true)
+    ]);
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
-export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<boolean | undefined> {
+export async function generateGetterFor(
+    symbol: CSymbol, classDoc: SourceDocument, matchingUri?: vscode.Uri
+): Promise<boolean | undefined> {
     const getter = symbol.parent?.findGetterFor(symbol);
     if (getter) {
         logger.alertInformation(failure.getterExists);
@@ -132,11 +136,13 @@ export async function generateGetterFor(symbol: CSymbol, classDoc: SourceDocumen
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(new Getter(symbol), position, classDoc, workspaceEdit, matchingUri);
     await vscode.workspace.applyEdit(workspaceEdit);
 }
 
-export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocument): Promise<boolean | undefined> {
+export async function generateSetterFor(
+    symbol: CSymbol, classDoc: SourceDocument, matchingUri?: vscode.Uri
+): Promise<boolean | undefined> {
     if (symbol.isConst()) {
         logger.alertInformation(failure.isConst);
         return;
@@ -155,7 +161,7 @@ export async function generateSetterFor(symbol: CSymbol, classDoc: SourceDocumen
     }
 
     const workspaceEdit = new vscode.WorkspaceEdit();
-    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), position, classDoc, workspaceEdit);
+    await addNewAccessorToWorkspaceEdit(await Setter.create(symbol), position, classDoc, workspaceEdit, matchingUri);
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
@@ -181,9 +187,10 @@ async function addNewAccessorToWorkspaceEdit(
     declarationPos: ProposedPosition,
     classDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit,
+    matchingUri?: vscode.Uri,
     skipAccessSpecifierCheck?: boolean
 ): Promise<void> {
-    const target = await getTargetForAccessorDefinition(newAccessor, declarationPos, classDoc);
+    const target = await getTargetForAccessorDefinition(newAccessor, declarationPos, classDoc, matchingUri);
 
     if (target.sourceDoc.fileName === classDoc.fileName && target.position.isEqual(declarationPos)) {
         let formattedInlineDefinition = newAccessor.declaration + ' { ' + newAccessor.body + ' }';
@@ -219,7 +226,8 @@ async function addNewAccessorToWorkspaceEdit(
 async function getTargetForAccessorDefinition(
     accessor: Accessor,
     declarationPos: ProposedPosition,
-    classDoc: SourceDocument
+    classDoc: SourceDocument,
+    matchingUri?: vscode.Uri
 ): Promise<TargetLocation> {
     const accessorDefinitionLocation = (accessor instanceof Getter)
             ? cfg.getterDefinitionLocation(classDoc)
@@ -229,13 +237,10 @@ async function getTargetForAccessorDefinition(
     case cfg.DefinitionLocation.Inline:
         return new TargetLocation(declarationPos, classDoc);
     case cfg.DefinitionLocation.SourceFile:
-        if (classDoc.isHeader()) {
-            const matchingUri = await getMatchingHeaderSource(classDoc.uri);
-            if (matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
-                const targetDoc = await SourceDocument.open(matchingUri);
-                return new TargetLocation(
-                        await classDoc.findSmartPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
-            }
+        if (classDoc.isHeader() && matchingUri && !accessor.memberVariable.hasUnspecializedTemplate()) {
+            const targetDoc = await SourceDocument.open(matchingUri);
+            return new TargetLocation(
+                    await classDoc.findSmartPositionForFunctionDefinition(declarationPos, targetDoc), targetDoc);
         }
         // [[fallthrough]]
     case cfg.DefinitionLocation.CurrentFile:

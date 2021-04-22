@@ -112,7 +112,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             this.getAddDefinitionRefactorings(context, symbol, sourceDoc, matchingUri),
             this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
-            this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc),
+            this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getClassRefactorings(context, symbol, sourceDoc),
             this.getFileRefactorings(context, sourceDoc, matchingUri)
         ]);
@@ -405,7 +405,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         memberVariable: CSymbol,
-        sourceDoc: SourceDocument
+        sourceDoc: SourceDocument,
+        matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
         if (!this.shouldProvideGetterSetter(rangeOrSelection, context, memberVariable)) {
             return [];
@@ -419,9 +420,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         const generateSetter = new RefactorAction(
                 getterSetterTitle.setter + titleSnippet, 'cmantic.generateSetterFor');
 
-        generateGetterSetter.setArguments(memberVariable, sourceDoc);
-        generateGetter.setArguments(memberVariable, sourceDoc);
-        generateSetter.setArguments(memberVariable, sourceDoc);
+        generateGetterSetter.setArguments(memberVariable, sourceDoc, matchingUri);
+        generateGetter.setArguments(memberVariable, sourceDoc, matchingUri);
+        generateSetter.setArguments(memberVariable, sourceDoc, matchingUri);
 
         const getter = memberVariable.parent?.findGetterFor(memberVariable);
         const setter = memberVariable.parent?.findSetterFor(memberVariable);
