@@ -250,6 +250,7 @@ export default class CSymbol extends SourceSymbol {
              * is a getter. This is to match the order of these members when both are generated at the same time. */
             const isGetter = memberVariable ? relativeName === memberVariable.setterName() : false;
 
+            // This is a reverse ranged for loop, since we generally want to place new members towards the end.
             for (let i = this.children.length - 1, child: CSymbol;
                 i >= 0 && (child = new CSymbol(this.children[i], this.document));
                 --i

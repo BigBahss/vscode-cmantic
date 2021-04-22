@@ -6,22 +6,24 @@ import * as parse from '../../src/parsing';
 import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
-import { CodeActionProvider } from '../../src/codeActions';
+import { CodeAction, CodeActionProvider } from '../../src/codeActions';
 import { commands, cpptoolsId } from '../../src/extension';
 
-const wait = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));
+function wait(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(() => resolve(), ms));
+}
 
 function getClass(symbols: SourceSymbol[]): SourceSymbol {
-    for (const documentSymbol of symbols) {
-        if (documentSymbol.kind === vscode.SymbolKind.Class) {
-            return documentSymbol;
+    for (const symbol of symbols) {
+        if (symbol.isClass()) {
+            return symbol;
         }
     }
     throw new Error('Class not found.');
 }
 
 suite('Extension Test Suite', function () {
-    this.timeout(60000);
+    this.timeout(90000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
 
@@ -31,7 +33,7 @@ suite('Extension Test Suite', function () {
 	const testFilePath = path.join(rootPath, 'test', 'workspace', 'include', 'derived.h');
     const testFileUri = vscode.Uri.file(testFilePath);
 
-    const codeActionProvider = new CodeActionProvider();
+    let sourceDoc: SourceDocument | undefined;
 
     suiteSetup(async () => {
         const cpptools = vscode.extensions.getExtension(cpptoolsId);
@@ -39,26 +41,28 @@ suite('Extension Test Suite', function () {
         if (!cpptools.isActive) {
             await cpptools.activate();
         }
-        await vscode.commands.executeCommand('vscode.open', testFileUri);
+
+        const editor = await vscode.window.showTextDocument(testFileUri);
+        sourceDoc = new SourceDocument(editor.document);
+        assert(cpptools.isActive);
     });
 
     test('Test CodeActionProvider', async () => {
-        const editor = vscode.window.activeTextEditor;
-        assert(editor);
+        assert(sourceDoc);
 
-        const sourceDoc = new SourceDocument(editor.document);
-
-        // Wait until the language server is initialized (the test will timeout after 60s).
+        // Wait until the language server is initialized (the test will timeout after 90s).
         do {
-            await wait(1500);
+            await wait(2000);
             await sourceDoc.executeSourceSymbolProvider();
         } while (!sourceDoc.symbols);
 
         const testClass = getClass(sourceDoc.symbols);
         assert(testClass.children.length > 0);
 
+        const codeActionProvider = new CodeActionProvider();
+
         for (const child of testClass.children) {
-            const codeActions = await codeActionProvider.provideCodeActions(
+            const codeActions: CodeAction[] = await codeActionProvider.provideCodeActions(
                     sourceDoc, child.selectionRange, { diagnostics: [] });
             assert(codeActions.length > 0);
 
