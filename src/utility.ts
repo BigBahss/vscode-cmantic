@@ -6,6 +6,7 @@ import CSymbol from './CSymbol';
 import SubSymbol from './SubSymbol';
 import { ProposedPosition } from './ProposedPosition';
 import { activeLanguageServer, LanguageServer } from './extension';
+import { showSingleQuickPick } from './QuickPick';
 
 
 /**
@@ -333,8 +334,8 @@ const accessItems: AccessQuickPickItem[] = [
 ];
 
 export async function getMemberAccessFromUser(): Promise<AccessLevel | undefined> {
-    const accessItem = await vscode.window.showQuickPick<AccessQuickPickItem>(accessItems, {
-        placeHolder: 'Select member access level'
+    const accessItem = await showSingleQuickPick<AccessQuickPickItem>(accessItems, {
+        title: 'Select member access level'
     });
 
     return accessItem?.access;

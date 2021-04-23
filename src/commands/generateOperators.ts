@@ -12,6 +12,7 @@ import {
     StreamOutputOperator
 } from '../Operator';
 import { getMatchingHeaderSource, logger } from '../extension';
+import { showMultiQuickPick, showSingleQuickPick } from '../QuickPick';
 
 
 export const title = {
@@ -225,7 +226,7 @@ function getPositionForOstreamInclude(
     }
 }
 
-interface OperandQuickPickItem extends vscode.QuickPickItem {
+interface OperandItem extends vscode.QuickPickItem {
     operand: Operand;
 }
 
@@ -235,7 +236,7 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
         return [];
     }
 
-    const operandItems: OperandQuickPickItem[] = [];
+    const operandItems: OperandItem[] = [];
     operands.forEach(operand => {
         if (operand instanceof SubSymbol) {
             operandItems.push({
@@ -254,10 +255,9 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
         }
     });
 
-    const selectedIems = await vscode.window.showQuickPick<OperandQuickPickItem>(operandItems, {
+    const selectedIems = await showMultiQuickPick(operandItems, {
         matchOnDescription: true,
-        placeHolder: prompt,
-        canPickMany: true
+        title: prompt
     });
 
     if (!selectedIems) {
@@ -270,19 +270,21 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
     return selectedOperands;
 }
 
-interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
+interface DefinitionLocationItem extends vscode.QuickPickItem {
     location: cfg.DefinitionLocation;
 }
 
-class DefinitionLocationQuickPickItems extends Array<DefinitionLocationQuickPickItem> {
-    constructor(parentClass: CSymbol, sourceDoc: SourceDocument) {
-        super({ label: 'Inline', location: cfg.DefinitionLocation.Inline },
-              { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile });
+function getDefinitionLocationItems(parentClass: CSymbol, sourceDoc: SourceDocument): DefinitionLocationItem[] {
+    const items: DefinitionLocationItem[] = [
+        { label: 'Inline', location: cfg.DefinitionLocation.Inline },
+        { label: 'Current File', location: cfg.DefinitionLocation.CurrentFile }
+    ];
 
-        if (sourceDoc.isHeader() && !parentClass.hasUnspecializedTemplate()) {
-            this.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
-        }
+    if (sourceDoc.isHeader() && !parentClass.hasUnspecializedTemplate()) {
+        items.push({ label: 'Source File', location: cfg.DefinitionLocation.SourceFile });
     }
+
+    return items;
 }
 
 interface TargetLocations {
@@ -297,15 +299,14 @@ async function promptUserForDefinitionLocations(
     firstPrompt: string,
     secondPrompt?: string
 ): Promise<TargetLocations | undefined> {
-    const firstDefinitionItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-            new DefinitionLocationQuickPickItems(parentClass, classDoc), { placeHolder: firstPrompt });
+    const firstDefinitionItem = await showSingleQuickPick(
+            getDefinitionLocationItems(parentClass, classDoc), { title: firstPrompt });
     if (!firstDefinitionItem) {
         return;
     }
 
     const p_secondDefinitionItem = secondPrompt !== undefined
-            ? vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(
-                new DefinitionLocationQuickPickItems(parentClass, classDoc), { placeHolder: secondPrompt })
+            ? showSingleQuickPick(getDefinitionLocationItems(parentClass, classDoc), { title: secondPrompt })
             : undefined;
 
     const matchingUri = await getMatchingHeaderSource(classDoc.uri);

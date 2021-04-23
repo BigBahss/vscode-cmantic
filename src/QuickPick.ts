@@ -11,7 +11,7 @@ export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.
     matchOnDetail?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
-    title?: string;
+    title: string;
     buttons?: ReadonlyArray<vscode.QuickInputButton>;
     onDidTriggerButton?(button: vscode.QuickInputButton, quickPick: vscode.QuickPick<T>): any;
 }

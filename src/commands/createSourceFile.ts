@@ -6,6 +6,7 @@ import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
 import { getMatchingHeaderSource, logger } from '../extension';
 import { promptUserToSelectFunctions, generateDefinitionsWorkspaceEdit, revealNewFunction } from './addDefinition';
+import { showSingleQuickPick } from '../QuickPick';
 
 
 export const failure = {
@@ -62,16 +63,17 @@ export async function createMatchingSourceFile(
         return (diff_a < diff_b) ? -1 : 1;
     });
 
-    const folder = await vscode.window.showQuickPick(
-            sourceFolders, { placeHolder: 'Select/Enter the name of the folder where the new source file will go' });
+    const folder = await showSingleQuickPick(
+            sourceFolders, { title: 'Select/Enter the name of the folder where the new source file will go' });
     if (!folder) {
         return;
     }
 
     let extension = await getSourceFileExtension(folder.uri);
     if (!extension) {
-        extension = await vscode.window.showQuickPick(
-                cfg.sourceExtensions(folder.uri), { placeHolder: 'Select an extension for the new source file' });
+        extension = (await showSingleQuickPick(
+                cfg.sourceExtensions(folder.uri).map(ext => { return { label: ext }; }),
+                { title: 'Select an extension for the new source file' }))?.label;
         if (!extension) {
             return;
         }
@@ -251,10 +253,10 @@ async function findUndefinedFunctions(functionDeclarations: CSymbol[]): Promise<
 async function generateDefinitions(
     p_undefinedFunctions: Promise<CSymbol[]>, headerDoc: SourceDocument, sourceDoc: SourceDocument
 ): Promise<void> {
-    const result = await vscode.window.showQuickPick(
-            ['Yes', 'No'],
-            { placeHolder: `Add Definitions from "${vscode.workspace.asRelativePath(headerDoc.uri)}"?` });
-    if (result !== 'Yes') {
+    const result = await showSingleQuickPick(
+            [{ label: 'Yes' }, { label: 'No' }],
+            { title: `Add Definitions from "${vscode.workspace.asRelativePath(headerDoc.uri)}"?` });
+    if (result?.label !== 'Yes') {
         return;
     }
 
