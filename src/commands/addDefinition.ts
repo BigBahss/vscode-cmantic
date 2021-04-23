@@ -286,7 +286,9 @@ async function showInitializersQuickPick(
         };
     }
 
-    return (await showMultiQuickPick(initializerItems, options, token))?.map(item => item.initializer);
+    const selectedItems = await showMultiQuickPick(initializerItems, options, token);
+
+    return selectedItems?.map(item => item.initializer);
 }
 
 async function constructFunctionSkeleton(
@@ -561,34 +563,25 @@ async function getWorkspaceEditArgumentsEntry(
 }
 
 export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
-    interface FunctionQuickPickItem extends vscode.QuickPickItem {
+    interface FunctionItem extends vscode.QuickPickItem {
         declaration: CSymbol;
     }
 
-    const functionItems: FunctionQuickPickItem[] = [];
-    functionDeclarations.forEach(declaration => {
-        functionItems.push({
+    const functionItems: FunctionItem[] = functionDeclarations.map(declaration => {
+        return {
             label: '$(symbol-function) ' + declaration.name,
             description: util.formatSignature(declaration),
             declaration: declaration
-        });
+        };
     });
 
-    const selectedItems = await vscode.window.showQuickPick<FunctionQuickPickItem>(functionItems, {
+    const selectedItems = await showMultiQuickPick(functionItems, {
         matchOnDescription: true,
-        placeHolder: 'Select the functions to add definitions for',
         ignoreFocusOut: true,
-        canPickMany: true
+        title: 'Select the functions to add definitions for'
     });
 
-    if (!selectedItems) {
-        return;
-    }
-
-    const selectedFunctions: CSymbol[] = [];
-    selectedItems.forEach(item => selectedFunctions.push(item.declaration));
-
-    return selectedFunctions;
+    return selectedItems?.map(item => item.declaration);
 }
 
 async function promptUserForDefinitionLocation(
