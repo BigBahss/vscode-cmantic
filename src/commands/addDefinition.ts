@@ -5,7 +5,7 @@ import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
 import SubSymbol from '../SubSymbol';
 import { ProposedPosition } from '../ProposedPosition';
-import { createMultiQuickPick } from '../QuickPick';
+import { showMultiQuickPick, MultiQuickPickOptions } from '../QuickPick';
 import { createMatchingSourceFile } from './createSourceFile';
 import { getMatchingHeaderSource, logger } from '../extension';
 
@@ -203,11 +203,9 @@ export async function addDefinitions(
 
 type Initializer = CSymbol | SubSymbol;
 
-interface InitializerQuickPickItem extends vscode.QuickPickItem {
+interface InitializerItem extends vscode.QuickPickItem {
     initializer: Initializer;
 }
-
-const quickPick = createMultiQuickPick<InitializerQuickPickItem, Initializer>('initializer');
 
 async function getInitializersIfFunctionIsConstructor(
     functionDeclaration: CSymbol
@@ -227,9 +225,9 @@ async function getInitializersIfFunctionIsConstructor(
         return [];
     }
 
-    const initializerItems: InitializerQuickPickItem[] = [];
+    const initializerItems: InitializerItem[] = [];
     initializers.forEach(initializer => {
-        const initializerItem: InitializerQuickPickItem = { label: '', initializer: initializer };
+        const initializerItem: InitializerItem = { label: '', initializer: initializer };
         if (initializer === parentClass) {
             initializerItem.label = '$(symbol-class) ' + initializer.name;
             initializerItem.description = 'Delegating constructor (cannot be used with any other initializers)';
@@ -258,17 +256,23 @@ async function getInitializersIfFunctionIsConstructor(
     return selectedInitializers;
 }
 
-function showInitializersQuickPick(
-    initializerItems: InitializerQuickPickItem[], ctorDeclaration: CSymbol, parentClass: CSymbol
+async function showInitializersQuickPick(
+    initializerItems: InitializerItem[], ctorDeclaration: CSymbol, parentClass: CSymbol
 ): Promise<Initializer[] | undefined> {
-    quickPick.title = `Select initializers for "${util.formatSignature(ctorDeclaration)}"`;
-    quickPick.items = initializerItems;
+    const options: MultiQuickPickOptions<InitializerItem> = {
+        matchOnDescription: true,
+        ignoreFocusOut: true,
+        title: `Select initializers for "${util.formatSignature(ctorDeclaration)}"`
+    };
 
     if (initializerItems[0].initializer === parentClass) {
-        let lastSelection = quickPick.selectedItems;
-        quickPick.onDidChangeSelection(selectedItems => {
-            if ((lastSelection.length < initializerItems.length - 1 && selectedItems.length === initializerItems.length)
-                    || (lastSelection[0].initializer === parentClass && selectedItems.length > lastSelection.length)) {
+        let lastSelection: readonly InitializerItem[] = initializerItems.filter(item => item.picked);
+        options.onDidChangeSelection = (selectedItems, quickPick) => {
+            if ((lastSelection.length < initializerItems.length - 1
+                    && selectedItems.length === initializerItems.length)
+                || (lastSelection[0].initializer === parentClass
+                    && selectedItems.length > lastSelection.length)
+            ) {
                 selectedItems.shift();
                 quickPick.selectedItems = selectedItems;
             } else if (selectedItems.some(item => item.initializer === parentClass)
@@ -276,10 +280,10 @@ function showInitializersQuickPick(
                 quickPick.selectedItems = [initializerItems[0]];
             }
             lastSelection = quickPick.selectedItems;
-        });
+        };
     }
 
-    return quickPick.promptUser();
+    return (await showMultiQuickPick(initializerItems, options))?.map(item => item.initializer);
 }
 
 async function constructFunctionSkeleton(

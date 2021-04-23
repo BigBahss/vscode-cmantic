@@ -1,39 +1,50 @@
 import * as vscode from 'vscode';
 
 
-export interface QuickPick<Item extends vscode.QuickPickItem, DesiredProp> extends vscode.QuickPick<Item> {
-    promptUser(): Promise<DesiredProp[] | undefined>;
+export interface MultiQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
+    matchOnDescription?: boolean;
+    matchOnDetail?: boolean;
+    placeHolder?: string;
+    ignoreFocusOut?: boolean;
+    title?: string;
+    onDidChangeSelection?(items: T[], quickPick: vscode.QuickPick<T>): any;
 }
 
-export function createMultiQuickPick<Item extends vscode.QuickPickItem, DesiredProp>(
-    keyOfDesiredProp: string
-): QuickPick<Item, DesiredProp> {
-    const quickPick = vscode.window.createQuickPick<Item>() as QuickPick<Item, DesiredProp>;
-    quickPick.canSelectMany = true;
-    quickPick.ignoreFocusOut = true;
-    quickPick.matchOnDescription = true;
+export function showMultiQuickPick<T extends vscode.QuickPickItem>(
+    items: T[], options: MultiQuickPickOptions, token?: vscode.CancellationToken
+): Promise<T[] | undefined> {
+    const qp = vscode.window.createQuickPick<T>();
+    qp.items = items;
+    qp.canSelectMany = true;
+    qp.matchOnDescription = !!options.matchOnDescription;
+    qp.matchOnDetail = !!options.matchOnDetail;
+    qp.placeholder = options.placeHolder;
+    qp.ignoreFocusOut = !!options.ignoreFocusOut;
+    qp.title = options.title;
 
-    quickPick.promptUser = (): Promise<DesiredProp[] | undefined> => {
-        quickPick.show();
+    return new Promise(resolve => {
+        const disposables: vscode.Disposable[] = [
+            qp,
+            qp.onDidAccept(() => {
+                resolve(qp.selectedItems.slice());
+                qp.hide();
+            }),
+            qp.onDidHide(() => {
+                disposables.forEach(disposable => disposable.dispose());
+                resolve(undefined);
+            })
+        ];
 
-        return new Promise(resolve => {
-            quickPick.onDidHide(() => resolve(undefined));
-            quickPick.onDidAccept(() => {
-                const selectedProperties: DesiredProp[] = [];
-                quickPick.selectedItems.forEach(item => {
-                    Object.entries(item).forEach(([key, prop]) => {
-                        if (key === keyOfDesiredProp) {
-                            selectedProperties.push(prop);
-                        }
-                    });
-                });
-                resolve(selectedProperties);
-                quickPick.hide();
-                quickPick.selectedItems = [];
-                quickPick.value = '';
-            });
-        });
-    };
+        if (options.onDidChangeSelection) {
+            disposables.push(qp.onDidChangeSelection(items => {
+                options.onDidChangeSelection!(items, qp);
+            }));
+        }
 
-    return quickPick;
+        if (token) {
+            disposables.push(token.onCancellationRequested(() => qp.hide()));
+        }
+
+        qp.show();
+    });
 }
