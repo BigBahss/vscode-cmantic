@@ -1,26 +1,57 @@
 import * as vscode from 'vscode';
 
 
-export interface MultiQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
+export interface SingleQuickPickOptions {
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
     title?: string;
+}
+
+export function showSingleQuickPick<T extends vscode.QuickPickItem>(
+    items: T[], options: SingleQuickPickOptions, token?: vscode.CancellationToken
+): Promise<T | undefined> {
+    const qp = vscode.window.createQuickPick<T>();
+    qp.items = items;
+    qp.canSelectMany = false;
+    setSharedQuickPickOptions(qp, options);
+    qp.buttons = [vscode.QuickInputButtons.Back];
+
+    return new Promise(resolve => {
+        const disposables: vscode.Disposable[] = [
+            qp,
+            qp.onDidAccept(() => {
+                resolve(qp.activeItems[0]);
+                qp.hide();
+            }),
+            qp.onDidHide(() => {
+                disposables.forEach(disposable => disposable.dispose());
+                resolve(undefined);
+            })
+        ];
+
+        if (token) {
+            disposables.push(token.onCancellationRequested(() => qp.hide()));
+        }
+
+        qp.show();
+    });
+}
+
+export interface MultiQuickPickOptions<
+    T extends vscode.QuickPickItem = vscode.QuickPickItem
+> extends SingleQuickPickOptions {
     onDidChangeSelection?(items: T[], quickPick: vscode.QuickPick<T>): any;
 }
 
 export function showMultiQuickPick<T extends vscode.QuickPickItem>(
-    items: T[], options: MultiQuickPickOptions, token?: vscode.CancellationToken
+    items: T[], options: MultiQuickPickOptions<T>, token?: vscode.CancellationToken
 ): Promise<T[] | undefined> {
     const qp = vscode.window.createQuickPick<T>();
     qp.items = items;
     qp.canSelectMany = true;
-    qp.matchOnDescription = !!options.matchOnDescription;
-    qp.matchOnDetail = !!options.matchOnDetail;
-    qp.placeholder = options.placeHolder;
-    qp.ignoreFocusOut = !!options.ignoreFocusOut;
-    qp.title = options.title;
+    setSharedQuickPickOptions(qp, options);
 
     return new Promise(resolve => {
         const disposables: vscode.Disposable[] = [
@@ -47,4 +78,12 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
 
         qp.show();
     });
+}
+
+function setSharedQuickPickOptions(qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions): void {
+    qp.matchOnDescription = !!options.matchOnDescription;
+    qp.matchOnDetail = !!options.matchOnDetail;
+    qp.placeholder = options.placeHolder;
+    qp.ignoreFocusOut = !!options.ignoreFocusOut;
+    qp.title = options.title;
 }

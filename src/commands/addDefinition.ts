@@ -5,7 +5,7 @@ import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
 import SubSymbol from '../SubSymbol';
 import { ProposedPosition } from '../ProposedPosition';
-import { showMultiQuickPick, MultiQuickPickOptions } from '../QuickPick';
+import { showSingleQuickPick, showMultiQuickPick, MultiQuickPickOptions } from '../QuickPick';
 import { createMatchingSourceFile } from './createSourceFile';
 import { getMatchingHeaderSource, logger } from '../extension';
 
@@ -591,11 +591,11 @@ async function promptUserForDefinitionLocation(
         return sourceDoc.uri;
     }
 
-    interface DefinitionLocationQuickPickItem extends vscode.QuickPickItem {
+    interface DefinitionLocationItem extends vscode.QuickPickItem {
         uri?: vscode.Uri;
     }
 
-    const locationItems: DefinitionLocationQuickPickItem[] = [];
+    const locationItems: DefinitionLocationItem[] = [];
 
     if (matchingUri) {
         locationItems.push({
@@ -613,9 +613,9 @@ async function promptUserForDefinitionLocation(
         uri: sourceDoc.uri
     });
 
-    const selectedItem = await vscode.window.showQuickPick<DefinitionLocationQuickPickItem>(locationItems, {
-        placeHolder: 'Select which file to add the definitions to',
-        ignoreFocusOut: true
+    const selectedItem = await showSingleQuickPick(locationItems, {
+        ignoreFocusOut: true,
+        title: 'Select which file to add the definitions to'
     });
 
     if (!selectedItem) {
