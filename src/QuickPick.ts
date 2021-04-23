@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 
 
+const closeButton: vscode.QuickInputButton = {
+    iconPath: new vscode.ThemeIcon('close'),
+    tooltip: 'Close (Escape)'
+};
+
 export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
@@ -29,6 +34,11 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
             qp.onDidHide(() => {
                 disposables.forEach(disposable => disposable.dispose());
                 resolve(undefined);
+            }),
+            qp.onDidTriggerButton(button => {
+                if (button === closeButton) {
+                    qp.hide();
+                }
             })
         ];
 
@@ -70,6 +80,11 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
             qp.onDidHide(() => {
                 disposables.forEach(disposable => disposable.dispose());
                 resolve(undefined);
+            }),
+            qp.onDidTriggerButton(button => {
+                if (button === closeButton) {
+                    qp.hide();
+                }
             })
         ];
 
@@ -99,5 +114,5 @@ function setSharedQuickPickOptions(qp: vscode.QuickPick<any>, options: SingleQui
     qp.placeholder = options.placeHolder;
     qp.ignoreFocusOut = !!options.ignoreFocusOut;
     qp.title = options.title;
-    qp.buttons = options.buttons ?? [];
+    qp.buttons = options.buttons ? [...options.buttons, closeButton] : [closeButton];
 }
