@@ -62,7 +62,7 @@ export function headerGuardMatchesConfiguredStyle(headerDoc: SourceDocument): bo
         return false;
     }
 
-    if (headerGuardStyle === cfg.HeaderGuardStyle.Define || headerGuardStyle === cfg.HeaderGuardStyle.Both
+    if ((headerGuardStyle === cfg.HeaderGuardStyle.Define || headerGuardStyle === cfg.HeaderGuardStyle.Both)
             && cfg.headerGuardDefine(headerDoc.uri) !== headerDoc.headerGuardDefine) {
         return false;
     }

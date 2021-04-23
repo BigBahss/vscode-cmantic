@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- Fixed a bug when determing if an existing header guard matches the configured settings.
+
 ## [0.8.0] - April 17, 2021
 ### Added
 - Extended the capability of `Add Header Guard` to update existing header guards if they do not match the configured settings. The code-action will display as `Amend Header Guard`. (#26)
