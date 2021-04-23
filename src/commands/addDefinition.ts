@@ -208,7 +208,7 @@ interface InitializerItem extends vscode.QuickPickItem {
 }
 
 async function getInitializersIfFunctionIsConstructor(
-    functionDeclaration: CSymbol
+    functionDeclaration: CSymbol, token?: vscode.CancellationToken
 ): Promise<Initializer[] | undefined> {
     if (!functionDeclaration.isConstructor() || !functionDeclaration.parent?.isClassType()) {
         return [];
@@ -241,7 +241,7 @@ async function getInitializersIfFunctionIsConstructor(
         initializerItems.push(initializerItem);
     });
 
-    const selectedInitializers = await showInitializersQuickPick(initializerItems, functionDeclaration, parentClass);
+    const selectedInitializers = await showInitializersQuickPick(initializerItems, functionDeclaration, parentClass, token);
     if (!selectedInitializers) {
         return;
     }
@@ -257,7 +257,10 @@ async function getInitializersIfFunctionIsConstructor(
 }
 
 async function showInitializersQuickPick(
-    initializerItems: InitializerItem[], ctorDeclaration: CSymbol, parentClass: CSymbol
+    initializerItems: InitializerItem[],
+    ctorDeclaration: CSymbol,
+    parentClass: CSymbol,
+    token?: vscode.CancellationToken
 ): Promise<Initializer[] | undefined> {
     const options: MultiQuickPickOptions<InitializerItem> = {
         matchOnDescription: true,
@@ -283,7 +286,7 @@ async function showInitializersQuickPick(
         };
     }
 
-    return (await showMultiQuickPick(initializerItems, options))?.map(item => item.initializer);
+    return (await showMultiQuickPick(initializerItems, options, token))?.map(item => item.initializer);
 }
 
 async function constructFunctionSkeleton(
@@ -487,14 +490,12 @@ export async function generateDefinitionsWorkspaceEdit(
 
         const p_generatedConstructors = (async (): Promise<void> => {
             for (const declaration of ctors) {
-                if (token.isCancellationRequested) {
-                    userCancelledOperation = true;
-                    return;
-                }
-
-                const entry = await getWorkspaceEditArgumentsEntry(declaration, declarationDoc, targetDoc);
+                const entry = await getWorkspaceEditArgumentsEntry(declaration, declarationDoc, targetDoc, token);
                 if (entry) {
                     allArgs.set(entry.declaration, entry.args);
+                } else if (token.isCancellationRequested) {
+                    userCancelledOperation = true;
+                    return;
                 }
 
                 progress.report({
@@ -540,9 +541,10 @@ export async function generateDefinitionsWorkspaceEdit(
 async function getWorkspaceEditArgumentsEntry(
     functionDeclaration: CSymbol,
     declarationDoc: SourceDocument,
-    targetDoc: SourceDocument
+    targetDoc: SourceDocument,
+    token?: vscode.CancellationToken
 ): Promise<WorkspaceEditArgumentsEntry | undefined> {
-    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration);
+    const p_initializers = getInitializersIfFunctionIsConstructor(functionDeclaration, token);
 
     const targetPos = await declarationDoc.findSmartPositionForFunctionDefinition(functionDeclaration, targetDoc);
 
