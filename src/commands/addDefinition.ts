@@ -165,29 +165,16 @@ export async function addDefinitions(
         return;
     }
 
-    const p_selectedFunctions = promptUserToSelectFunctions(undefinedFunctions);
-
-    const functionsThatRequireVisibleDefinition = undefinedFunctions.filter(declaration => {
-        return util.requiresVisibleDefinition(declaration);
-    });
-
-    const selectedFunctions = await p_selectedFunctions;
-    if (!selectedFunctions || selectedFunctions.length === 0) {
+    const selection = await promptUserForFunctionsAndTargetUri(undefinedFunctions, sourceDoc, matchingUri);
+    if (!selection) {
         return;
     }
 
-    const targetUri = util.arraysShareAnyElement(selectedFunctions, functionsThatRequireVisibleDefinition)
-            ? sourceDoc.uri
-            : await promptUserForDefinitionLocation(sourceDoc, matchingUri);
-    if (!targetUri) {
-        return;
-    }
-
-    const targetDoc = (targetUri.fsPath === sourceDoc.uri.fsPath)
+    const targetDoc = (selection.targetUri.fsPath === sourceDoc.uri.fsPath)
             ? sourceDoc
-            : await SourceDocument.open(targetUri);
+            : await SourceDocument.open(selection.targetUri);
 
-    const workspaceEdit = await generateDefinitionsWorkspaceEdit(selectedFunctions, sourceDoc, targetDoc);
+    const workspaceEdit = await generateDefinitionsWorkspaceEdit(selection.functions, sourceDoc, targetDoc);
     if (!workspaceEdit) {
         return;
     }
@@ -562,33 +549,31 @@ async function getWorkspaceEditArgumentsEntry(
     };
 }
 
-export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
-    interface FunctionItem extends vscode.QuickPickItem {
-        declaration: CSymbol;
-    }
-
-    const functionItems: FunctionItem[] = functionDeclarations.map(declaration => {
-        return {
-            label: '$(symbol-function) ' + declaration.name,
-            description: util.formatSignature(declaration),
-            declaration: declaration
-        };
-    });
-
-    const selectedItems = await showMultiQuickPick(functionItems, {
-        matchOnDescription: true,
-        ignoreFocusOut: true,
-        title: 'Select the functions to add definitions for'
-    });
-
-    return selectedItems?.map(item => item.declaration);
+interface FunctionsAndTargetUri {
+    functions: CSymbol[];
+    targetUri: vscode.Uri;
 }
 
-async function promptUserForDefinitionLocation(
-    sourceDoc: SourceDocument, matchingUri?: vscode.Uri
-): Promise<vscode.Uri | undefined> {
-    if (!sourceDoc.isHeader()) {
-        return sourceDoc.uri;
+async function promptUserForFunctionsAndTargetUri(
+    undefinedFunctions: CSymbol[], sourceDoc: SourceDocument, matchingUri: vscode.Uri | undefined
+): Promise<FunctionsAndTargetUri | undefined> {
+    const p_selectedFunctions = promptUserToSelectFunctions(undefinedFunctions);
+
+    const functionsThatRequireVisibleDefinition = undefinedFunctions.filter(declaration => {
+        return util.requiresVisibleDefinition(declaration);
+    });
+
+    const selectedFunctions = await p_selectedFunctions;
+    if (!selectedFunctions || selectedFunctions.length === 0) {
+        return;
+    }
+
+    if (!sourceDoc.isHeader()
+            || util.arraysShareAnyElement(selectedFunctions, functionsThatRequireVisibleDefinition)) {
+        return {
+            functions: selectedFunctions,
+            targetUri: sourceDoc.uri
+        };
     }
 
     interface DefinitionLocationItem extends vscode.QuickPickItem {
@@ -613,16 +598,55 @@ async function promptUserForDefinitionLocation(
         uri: sourceDoc.uri
     });
 
+    let userTriggeredBackButton = false;
+
     const selectedItem = await showSingleQuickPick(locationItems, {
         ignoreFocusOut: true,
-        title: 'Select which file to add the definitions to'
+        title: 'Select which file to add the definitions to',
+        buttons: [vscode.QuickInputButtons.Back],
+        onDidTriggerButton: ((button, quickPick) => {
+            if (button === vscode.QuickInputButtons.Back) {
+                userTriggeredBackButton = true;
+                quickPick.hide();
+            }
+        })
     });
 
-    if (!selectedItem) {
+    if (userTriggeredBackButton) {
+        return promptUserForFunctionsAndTargetUri(undefinedFunctions, sourceDoc, matchingUri);
+    } else if (!selectedItem) {
         return;
-    } else if (!selectedItem.uri) {
-        return createMatchingSourceFile(sourceDoc, true);
-    } else {
-        return selectedItem.uri;
     }
+
+    const targetUri = selectedItem.uri ?? await createMatchingSourceFile(sourceDoc, true);
+    if (!targetUri) {
+        return;
+    }
+
+    return {
+        functions: selectedFunctions,
+        targetUri: targetUri
+    };
+}
+
+export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[]): Promise<CSymbol[] | undefined> {
+    interface FunctionItem extends vscode.QuickPickItem {
+        declaration: CSymbol;
+    }
+
+    const functionItems: FunctionItem[] = functionDeclarations.map(declaration => {
+        return {
+            label: '$(symbol-function) ' + declaration.name,
+            description: util.formatSignature(declaration),
+            declaration: declaration
+        };
+    });
+
+    const selectedItems = await showMultiQuickPick(functionItems, {
+        matchOnDescription: true,
+        ignoreFocusOut: true,
+        title: 'Select the functions to add definitions for'
+    });
+
+    return selectedItems?.map(item => item.declaration);
 }

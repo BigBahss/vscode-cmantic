@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 
 
-export interface SingleQuickPickOptions {
+export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
     title?: string;
+    buttons?: ReadonlyArray<vscode.QuickInputButton>;
+    onDidTriggerButton?(button: vscode.QuickInputButton, quickPick: vscode.QuickPick<T>): any;
 }
 
 export function showSingleQuickPick<T extends vscode.QuickPickItem>(
@@ -16,7 +18,6 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
     qp.items = items;
     qp.canSelectMany = false;
     setSharedQuickPickOptions(qp, options);
-    qp.buttons = [vscode.QuickInputButtons.Back];
 
     return new Promise(resolve => {
         const disposables: vscode.Disposable[] = [
@@ -30,6 +31,12 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
                 resolve(undefined);
             })
         ];
+
+        if (options.onDidTriggerButton) {
+            disposables.push(qp.onDidTriggerButton(button => {
+                options.onDidTriggerButton!(button, qp);
+            }));
+        }
 
         if (token) {
             disposables.push(token.onCancellationRequested(() => qp.hide()));
@@ -66,6 +73,12 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
             })
         ];
 
+        if (options.onDidTriggerButton) {
+            disposables.push(qp.onDidTriggerButton(button => {
+                options.onDidTriggerButton!(button, qp);
+            }));
+        }
+
         if (options.onDidChangeSelection) {
             disposables.push(qp.onDidChangeSelection(items => {
                 options.onDidChangeSelection!(items, qp);
@@ -86,4 +99,5 @@ function setSharedQuickPickOptions(qp: vscode.QuickPick<any>, options: SingleQui
     qp.placeholder = options.placeHolder;
     qp.ignoreFocusOut = !!options.ignoreFocusOut;
     qp.title = options.title;
+    qp.buttons = options.buttons ?? [];
 }
