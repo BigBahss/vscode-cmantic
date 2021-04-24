@@ -7,6 +7,8 @@ const closeButton: vscode.QuickInputButton = {
 };
 
 export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
+    value?: string;
+    onDidChangeValue?(value: string, quickPick: vscode.QuickPick<T>): Promise<any>;
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
     placeHolder?: string;
@@ -42,6 +44,12 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
             })
         ];
 
+        if (options.onDidChangeValue) {
+            disposables.push(qp.onDidChangeValue(async (value) => {
+                options.onDidChangeValue!(qp.value, qp);
+            }));
+        }
+
         if (options.onDidTriggerButton) {
             disposables.push(qp.onDidTriggerButton(button => {
                 options.onDidTriggerButton!(button, qp);
@@ -53,6 +61,7 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
         }
 
         qp.show();
+        qp.value = options.value ?? '';
     });
 }
 
@@ -88,6 +97,12 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
             })
         ];
 
+        if (options.onDidChangeValue) {
+            disposables.push(qp.onDidChangeValue(value => {
+                options.onDidChangeValue!(value, qp);
+            }));
+        }
+
         if (options.onDidTriggerButton) {
             disposables.push(qp.onDidTriggerButton(button => {
                 options.onDidTriggerButton!(button, qp);
@@ -105,10 +120,13 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
         }
 
         qp.show();
+        qp.value = options.value ?? '';
     });
 }
 
-function setSharedQuickPickOptions(qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions): void {
+function setSharedQuickPickOptions(
+    qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions
+): void {
     qp.matchOnDescription = !!options.matchOnDescription;
     qp.matchOnDetail = !!options.matchOnDetail;
     qp.placeholder = options.placeHolder;
