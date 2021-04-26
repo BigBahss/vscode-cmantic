@@ -93,9 +93,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
 }
 
 async function cacheOpenDocuments(): Promise<void> {
-    const p_cached: Promise<void>[] = [];
-    vscode.workspace.textDocuments.forEach(document => p_cached.push(onDidOpenTextDocument(document)));
-    await Promise.all(p_cached);
+    await Promise.all(vscode.workspace.textDocuments.map(document => onDidOpenTextDocument(document)));
 }
 
 function registerCodeActionProvider(context: vscode.ExtensionContext): void {
@@ -132,15 +130,15 @@ async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<voi
 }
 
 async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
-    const p_cached: Promise<void>[] = [];
-    event.files.forEach(uri => {
-        const ext = util.fileExtension(uri.fsPath);
-        if (uri.scheme === 'file'
-                && (cfg.sourceExtensions(uri).includes(ext) || cfg.headerExtensions(uri).includes(ext))) {
-            p_cached.push(headerSourceCache.add(uri));
-        }
-    });
-    await Promise.all(p_cached);
+    await Promise.all(
+        event.files.map(uri => {
+            const ext = util.fileExtension(uri.fsPath);
+            if (uri.scheme === 'file'
+                    && (cfg.sourceExtensions(uri).includes(ext) || cfg.headerExtensions(uri).includes(ext))) {
+                return headerSourceCache.add(uri);
+            }
+        })
+    );
 }
 
 function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
