@@ -708,6 +708,25 @@ export default class CSymbol extends SourceSymbol {
     }
 
     async isPrimitive(resolveTypes: boolean): Promise<boolean> {
+        const resolveThisType = async (offset: number): Promise<boolean> => {
+            const locations = await this.document.findDefinitions(this.document.positionAt(offset));
+
+            if (locations.length > 0) {
+                const typeFile = new SourceFile(locations[0].uri);
+                const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+
+                if (typeSymbol?.isEnum()) {
+                    return true;
+                } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
+                    const typeDoc = await typeFile.openDocument();
+                    const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
+                    return typeCSymbol.isPrimitive(true);
+                }
+            }
+
+            return false;
+        };
+
         if (this.isVariable()) {
             const leadingText = this.parsableLeadingText;
             if (parse.matchesPrimitiveType(leadingText)) {
@@ -719,7 +738,7 @@ export default class CSymbol extends SourceSymbol {
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, parse.masker);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
+                return resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypedef()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -733,7 +752,7 @@ export default class CSymbol extends SourceSymbol {
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, parse.masker);
             const index = maskedText.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
+                return resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypeAlias()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -752,26 +771,7 @@ export default class CSymbol extends SourceSymbol {
             const type = this.parsableText.substring(indexOfEquals + 1);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
-            }
-        }
-
-        return false;
-    }
-
-    private async resolveThisType(offset: number): Promise<boolean> {
-        const locations = await this.document.findDefinitions(this.document.positionAt(offset));
-
-        if (locations.length > 0) {
-            const typeFile = new SourceFile(locations[0].uri);
-            const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
-
-            if (typeSymbol?.isEnum()) {
-                return true;
-            } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
-                const typeDoc = await typeFile.openDocument();
-                const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                return typeCSymbol.isPrimitive(true);
+                return resolveThisType(this.startOffset() + index);
             }
         }
 
