@@ -33,6 +33,7 @@ jobs:
       run: npm install
 
     - name: ESLint
+      if: matrix.code-version == 'stable'
       run: npm run lint
 
     - name: npm test
