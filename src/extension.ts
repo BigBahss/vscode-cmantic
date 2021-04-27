@@ -19,7 +19,7 @@ import { createMatchingSourceFile } from './commands/createSourceFile';
 import { addHeaderGuard } from './commands/addHeaderGuard';
 import { addInclude } from './commands/addInclude';
 import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
-import { CodeActionProvider } from './codeActions';
+import { CodeActionProvider } from './CodeActionProvider';
 
 
 export const extensionId = 'tdennis4496.cmantic';

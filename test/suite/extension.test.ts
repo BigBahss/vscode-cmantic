@@ -6,7 +6,7 @@ import * as parse from '../../src/parsing';
 import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
-import { CodeAction, CodeActionProvider } from '../../src/codeActions';
+import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
 import { commands, cpptoolsId } from '../../src/extension';
 
 function wait(ms: number): Promise<void> {
