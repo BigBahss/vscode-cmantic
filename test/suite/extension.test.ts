@@ -2,15 +2,19 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as process from 'process';
 import * as parse from '../../src/parsing';
 import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
+import { promisify } from 'util';
 import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
 import { commands, cpptoolsId } from '../../src/extension';
 
+const setTimeoutPromised = promisify(setTimeout);
+
 function wait(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(() => resolve(), ms));
+    return setTimeoutPromised(ms);
 }
 
 function getClass(symbols: SourceSymbol[]): SourceSymbol {
@@ -23,7 +27,10 @@ function getClass(symbols: SourceSymbol[]): SourceSymbol {
 }
 
 suite('Extension Test Suite', function () {
-    this.timeout(90000);
+    /* The CI will sometimes take a very long time to download cpptool's native binary,
+     * which caused tests to timeout and fail. So we set the timeout to 5 minutes for
+     * the CI (1 minute timeout for local tests). */
+    this.timeout(process.env.CI ? 300_000 : 60_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
 
@@ -41,18 +48,19 @@ suite('Extension Test Suite', function () {
         if (!cpptools.isActive) {
             await cpptools.activate();
         }
+        assert(cpptools.isActive);
 
         const editor = await vscode.window.showTextDocument(testFileUri);
         sourceDoc = new SourceDocument(editor.document);
-        assert(cpptools.isActive);
     });
 
     test('Test CodeActionProvider', async () => {
         assert(sourceDoc);
 
-        // Wait until the language server is initialized (the test will timeout after 90s).
+        // Wait until the language server is initialized.
+        const waitTime = process.env.CI ? 5_000 : 1_000;
         do {
-            await wait(2000);
+            await wait(waitTime);
             await sourceDoc.executeSourceSymbolProvider();
         } while (!sourceDoc.symbols);
 
