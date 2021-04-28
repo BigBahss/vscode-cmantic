@@ -44,7 +44,7 @@ suite('Extension Test Suite', function () {
 
     let sourceDoc: SourceDocument;
 
-    suiteSetup(async () => {
+    suiteSetup(async function () {
         const cpptools = vscode.extensions.getExtension(cpptoolsId);
         assert(cpptools);
         if (!cpptools.isActive) {
@@ -58,18 +58,18 @@ suite('Extension Test Suite', function () {
         sourceDoc = new SourceDocument(cppDoc);
     });
 
-    test('Test setActiveLanguageServer()', () => {
+    test('Test setActiveLanguageServer()', function () {
         setActiveLanguageServer();
         assert.strictEqual(activeLanguageServer(), LanguageServer.cpptools);
     });
 
-    test('Test getMatchingHeaderSource()', async () => {
+    test('Test getMatchingHeaderSource()', async function () {
         const expectedPath = path.join(testWorkspacePath, 'src', 'derived.cpp');
         const matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
         assert.strictEqual(matchingUri?.fsPath, expectedPath);
     });
 
-    test('Test CodeActionProvider', async () => {
+    test('Test CodeActionProvider', async function () {
         // Wait until the language server is initialized.
         const waitTime = process.env.CI ? 5_000 : 1_000;
         do {
@@ -106,7 +106,7 @@ suite('Extension Test Suite', function () {
         }
     });
 
-    test('Test Parsing Functions', () => {
+    test('Test Parsing Functions', function () {
         /* Since we depend on the specific error message thrown from XRegExp.matchRecursive() in
          * order to mask unbalanced delimiters, we meed to test wether the error message has
          * changed in new versions. If the error message has changed then these functions will
@@ -125,7 +125,7 @@ suite('Extension Test Suite', function () {
         assert.strictEqual(angleBrackets, '<   > ');
     });
 
-    test('Test Command Registration', () => {
+    test('Test Command Registration', function () {
         const packageJsonPath = path.join(rootPath, 'package.json');
         const packageJson = fs.readFileSync(packageJsonPath, { encoding: 'utf8', flag: 'r' });
 
