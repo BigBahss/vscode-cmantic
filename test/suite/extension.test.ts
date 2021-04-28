@@ -13,6 +13,7 @@ import {
     activeLanguageServer,
     commands,
     cpptoolsId,
+    getMatchingHeaderSource,
     LanguageServer,
     setActiveLanguageServer
 } from '../../src/extension';
@@ -61,9 +62,15 @@ suite('Extension Test Suite', function () {
         sourceDoc = new SourceDocument(cppDoc);
     });
 
-    test('Test Language Server Detection', () => {
+    test('Test setActiveLanguageServer()', () => {
         setActiveLanguageServer();
-        assert(activeLanguageServer() === LanguageServer.cpptools);
+        assert.strictEqual(activeLanguageServer(), LanguageServer.cpptools);
+    });
+
+    test('Test getMatchingHeaderSource()', async () => {
+        const expectedPath = path.join(rootPath, 'test', 'workspace', 'src', 'derived.cpp');
+        const matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
+        assert.strictEqual(matchingUri?.fsPath, expectedPath);
     });
 
     test('Test CodeActionProvider', async () => {
