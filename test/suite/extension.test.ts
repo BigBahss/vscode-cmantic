@@ -40,12 +40,7 @@ suite('Extension Test Suite', function () {
     this.timeout(process.env.CI ? 300_000 : 60_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
-
-    const packageJsonPath = path.join(rootPath, 'package.json');
-    const packageJson = fs.readFileSync(packageJsonPath, { encoding: 'utf8', flag: 'r' });
-
-	const testFilePath = path.join(rootPath, 'test', 'workspace', 'include', 'derived.h');
-    const testFileUri = vscode.Uri.file(testFilePath);
+    const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
 
     let sourceDoc: SourceDocument;
 
@@ -57,7 +52,8 @@ suite('Extension Test Suite', function () {
         }
         assert(cpptools.isActive);
 
-        const editor = await vscode.window.showTextDocument(testFileUri);
+        const testFilePath = path.join(testWorkspacePath, 'include', 'derived.h');
+        const editor = await vscode.window.showTextDocument(vscode.Uri.file(testFilePath));
         const cppDoc = await vscode.languages.setTextDocumentLanguage(editor.document, 'cpp');
         sourceDoc = new SourceDocument(cppDoc);
     });
@@ -68,7 +64,7 @@ suite('Extension Test Suite', function () {
     });
 
     test('Test getMatchingHeaderSource()', async () => {
-        const expectedPath = path.join(rootPath, 'test', 'workspace', 'src', 'derived.cpp');
+        const expectedPath = path.join(testWorkspacePath, 'src', 'derived.cpp');
         const matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
         assert.strictEqual(matchingUri?.fsPath, expectedPath);
     });
@@ -130,6 +126,9 @@ suite('Extension Test Suite', function () {
     });
 
     test('Test Command Registration', () => {
+        const packageJsonPath = path.join(rootPath, 'package.json');
+        const packageJson = fs.readFileSync(packageJsonPath, { encoding: 'utf8', flag: 'r' });
+
         const contributedCommands = JSON.parse(packageJson).contributes.commands;
         assert(contributedCommands instanceof Array);
 

@@ -6,9 +6,9 @@ import { downloadAndUnzipVSCode, resolveCliPathFromVSCodeExecutablePath, runTest
 
 async function main(): Promise<void> {
 	try {
-		const extensionDevelopmentPath = path.resolve(__dirname, '../');
-		const extensionTestsPath = path.resolve(__dirname, './suite/index');
-        const extensionTestWorkspacePath = path.resolve(__dirname, 'workspace');
+		const rootPath = path.resolve(__dirname, '..', '..');
+		const extensionTestsPath = path.join(__dirname, 'suite', 'index');
+        const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
 
         const executablePath = await downloadAndUnzipVSCode(process.env.CODE_VERSION);
         const cliPath = resolveCliPathFromVSCodeExecutablePath(executablePath);
@@ -21,12 +21,12 @@ async function main(): Promise<void> {
 
         await runTests({
             vscodeExecutablePath: executablePath,
-            extensionDevelopmentPath: extensionDevelopmentPath,
+            extensionDevelopmentPath: rootPath,
             extensionTestsPath: extensionTestsPath,
             launchArgs: [
-                extensionTestWorkspacePath,
+                testWorkspacePath,
                 '--user-data-dir',
-                path.join(extensionDevelopmentPath, '.test_data_dir')
+                path.join(__dirname, '.test_data_dir')
             ],
             version: process.env.CODE_VERSION
         });
