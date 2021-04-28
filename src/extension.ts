@@ -167,7 +167,7 @@ function pollExtensionsToSetLanguageServer(): void {
     }, 1000);
 }
 
-function setActiveLanguageServer(): void {
+export function setActiveLanguageServer(): void {
     if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
         languageServer = LanguageServer.cpptools;
         logger.logInfo(`Language server detected as ${cpptoolsId}.`);

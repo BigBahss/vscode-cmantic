@@ -9,7 +9,13 @@ import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
 import { promisify } from 'util';
 import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
-import { commands, cpptoolsId } from '../../src/extension';
+import {
+    activeLanguageServer,
+    commands,
+    cpptoolsId,
+    LanguageServer,
+    setActiveLanguageServer
+} from '../../src/extension';
 
 const setTimeoutPromised = promisify(setTimeout);
 
@@ -40,7 +46,7 @@ suite('Extension Test Suite', function () {
 	const testFilePath = path.join(rootPath, 'test', 'workspace', 'include', 'derived.h');
     const testFileUri = vscode.Uri.file(testFilePath);
 
-    let sourceDoc: SourceDocument | undefined;
+    let sourceDoc: SourceDocument;
 
     suiteSetup(async () => {
         const cpptools = vscode.extensions.getExtension(cpptoolsId);
@@ -55,9 +61,12 @@ suite('Extension Test Suite', function () {
         sourceDoc = new SourceDocument(cppDoc);
     });
 
-    test('Test CodeActionProvider', async () => {
-        assert(sourceDoc);
+    test('Test Language Server Detection', () => {
+        setActiveLanguageServer();
+        assert(activeLanguageServer() === LanguageServer.cpptools);
+    });
 
+    test('Test CodeActionProvider', async () => {
         // Wait until the language server is initialized.
         const waitTime = process.env.CI ? 5_000 : 1_000;
         do {
@@ -113,13 +122,11 @@ suite('Extension Test Suite', function () {
         assert.strictEqual(angleBrackets, '<   > ');
     });
 
-    interface ContributedCommand { command: string; title: string }
-
-    test('Test Registered Commands', () => {
+    test('Test Command Registration', () => {
         const contributedCommands = JSON.parse(packageJson).contributes.commands;
         assert(contributedCommands instanceof Array);
 
-        contributedCommands.forEach((contributedCommand: ContributedCommand) => {
+        contributedCommands.forEach((contributedCommand: { command: string }) => {
             assert(
                 Object.keys(commands).some(command => command === contributedCommand.command),
                 `Add '${contributedCommand.command}' to commands in 'src/extension.ts' so that it gets registered.`
