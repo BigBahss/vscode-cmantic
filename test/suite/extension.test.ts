@@ -51,7 +51,8 @@ suite('Extension Test Suite', function () {
         assert(cpptools.isActive);
 
         const editor = await vscode.window.showTextDocument(testFileUri);
-        sourceDoc = new SourceDocument(editor.document);
+        const cppDoc = await vscode.languages.setTextDocumentLanguage(editor.document, 'cpp');
+        sourceDoc = new SourceDocument(cppDoc);
     });
 
     test('Test CodeActionProvider', async () => {
