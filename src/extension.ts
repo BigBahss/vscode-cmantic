@@ -20,12 +20,10 @@ import { addHeaderGuard } from './commands/addHeaderGuard';
 import { addInclude } from './commands/addInclude';
 import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
 import { CodeActionProvider } from './CodeActionProvider';
+import { cclsId, clangdId, cpptoolsId, LanguageServer } from './common';
 
 
-export const extensionId = 'tdennis4496.cmantic';
-export const cpptoolsId = 'ms-vscode.cpptools';
-export const clangdId = 'llvm-vs-code-extensions.vscode-clangd';
-export const cclsId = 'ccls-project.ccls';
+export const cmanticId = 'tdennis4496.cmantic';
 
 export const logger = new Logger('C-mantic');
 
@@ -50,12 +48,7 @@ export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return headerSourceCache.get(uri);
 }
 
-export enum LanguageServer {
-    unknown,
-    cpptools,
-    clangd,
-    ccls
-}
+export { LanguageServer };
 
 let languageServer = LanguageServer.unknown;
 
@@ -192,7 +185,7 @@ const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/b
 const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/CHANGELOG.md');
 
 async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
-	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version;
+	const currentVersion = vscode.extensions.getExtension(cmanticId)?.packageJSON?.version;
     if (typeof currentVersion !== 'string' || !re_semver.test(currentVersion)) {
         return;
     }

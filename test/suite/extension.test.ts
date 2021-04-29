@@ -10,16 +10,15 @@ import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
 import {
     activeLanguageServer,
     commands,
-    cpptoolsId,
     getMatchingHeaderSource,
     LanguageServer,
     setActiveLanguageServer
 } from '../../src/extension';
-import { getClass, re_validSymbolName, wait } from './helpers';
+import { expectedLanguageServer, getClass, languageServerExtensionId, re_validSymbolName, wait } from './helpers';
 
 
 suite('Extension Test Suite', function () {
-    this.timeout(process.env.DEBUG_TESTS ? 0 : 60_000);
+    this.timeout(process.env.DEBUG_TESTS ? 0 : 30_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
     const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
@@ -28,12 +27,14 @@ suite('Extension Test Suite', function () {
 
     suiteSetup(async function () {
         if (!process.env.DEBUG_TESTS) {
-            const cpptools = vscode.extensions.getExtension(cpptoolsId);
-            assert(cpptools);
-            if (!cpptools.isActive) {
-                await cpptools.activate();
+            const languageServerExtension = vscode.extensions.getExtension(languageServerExtensionId());
+            assert(languageServerExtension);
+            if (!languageServerExtension.isActive) {
+                await languageServerExtension.activate();
             }
-            assert(cpptools.isActive);
+            assert(languageServerExtension.isActive);
+            console.log('Running tests with '
+                    + languageServerExtension.id + ' ' + languageServerExtension.packageJSON.version);
         }
 
         const testFilePath = path.join(testWorkspacePath, 'include', 'derived.h');
@@ -45,7 +46,7 @@ suite('Extension Test Suite', function () {
 
         // Wait until the language server is initialized.
         do {
-            await wait(1_500);
+            await wait(1_000);
             await sourceDoc.executeSourceSymbolProvider();
         } while (!sourceDoc.symbols);
     });
@@ -55,7 +56,7 @@ suite('Extension Test Suite', function () {
         if (process.env.DEBUG_TESTS) {
             assert.notStrictEqual(activeLanguageServer(), LanguageServer.unknown);
         } else {
-            assert.strictEqual(activeLanguageServer(), LanguageServer.cpptools);
+            assert.strictEqual(activeLanguageServer(), expectedLanguageServer());
         }
     });
 
