@@ -1,18 +1,18 @@
 #ifndef BASE_H
 #define BASE_H
 
-#include<string>
+#include "string.h"
 
 
 class Base
 {
 public:
     explicit Base();
-    explicit Base(const std::string &name);
+    explicit Base(const String &name);
     ~Base();
 
-    std::string name() const noexcept;
-    void setName(const std::string &name);
+    String name() const noexcept;
+    void setName(const String &name);
 
     int amount() const noexcept;
     void setAmount(int amount);
@@ -20,7 +20,7 @@ public:
     int instances() const noexcept;
 
 private:
-    std::string m_name;
+    String m_name;
     int m_amount;
 
     static int m_instances;

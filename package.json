@@ -365,13 +365,13 @@
     ]
   },
   "scripts": {
-    "compile": "tsc --project ./",
-    "test": "npm run webpack && npm run compile && node ./out/test/runTest.js",
+    "compile": "webpack --mode development",
+    "compile-watch": "webpack --mode development --watch",
+    "pretest": "tsc --project ./",
+    "test": "npm run compile && npm run pretest && node ./out/test/runTest.js",
     "lint": "eslint -c .eslintrc.js --ext .ts ./src --max-warnings=0",
-    "package": "vsce package",
     "vscode:prepublish": "npm run lint && webpack --mode production",
-    "webpack": "webpack --mode development",
-    "webpack-watch": "webpack --mode development --watch"
+    "package": "vsce package"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",

@@ -52,8 +52,10 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
         ++commonTrailingDirectories;
     }
 
-    return Math.max((a_segments.length - commonLeadingDirectories - commonTrailingDirectories),
-                    (b_segments.length - commonLeadingDirectories - commonTrailingDirectories));
+    const commonDirectories = commonLeadingDirectories + commonTrailingDirectories;
+    const coefficient = Math.max((a_segments.length - commonDirectories), (b_segments.length - commonDirectories));
+
+    return a_segments.length !== b_segments.length ? coefficient + 1 : coefficient;
 }
 
 export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {

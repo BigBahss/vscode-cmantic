@@ -12,6 +12,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/*.js"
             ],
+			"sourceMaps": true,
 			"preLaunchTask": "${defaultBuildTask}",
             "internalConsoleOptions": "neverOpen"
 		},
@@ -28,7 +29,8 @@
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
 			],
-			"preLaunchTask": "pretest",
+			"sourceMaps": true,
+			"preLaunchTask": "Pretest",
             "internalConsoleOptions": "openOnSessionStart"
 		}
 	]

@@ -4,9 +4,9 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Compile Watch",
 			"type": "npm",
-			"script": "webpack-watch",
-			"label": "webpack-watch",
+			"script": "compile-watch",
             "problemMatcher": [
 				{
                     "owner": "typescript",
@@ -49,9 +49,9 @@
 			}
 		},
 		{
+            "label": "Compile",
 			"type": "npm",
-			"script": "webpack",
-            "label": "webpack",
+			"script": "compile",
             "problemMatcher": [
 				{
                     "owner": "typescript",
@@ -82,21 +82,34 @@
 			"group": "build"
 		},
 		{
+            "label": "Pretest",
 			"type": "npm",
-			"script": "compile",
-            "label": "pretest",
+			"script": "pretest",
             "problemMatcher": "$tsc",
-			"dependsOn": "webpack",
+			"dependsOn": "Compile",
 			"presentation": {
 				"reveal": "never",
 				"revealProblems": "onProblem"
 			},
+            "group": "build"
+		},
+		{
+            "label": "Test",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "${workspaceFolder}/out/test/runTest.js",
+            ],
+            "dependsOn": "Pretest",
+			"presentation": {
+				"reveal": "always"
+			},
             "group": "test"
 		},
 		{
+			"label": "ESLint",
 			"type": "npm",
 			"script": "lint",
-			"label": "eslint",
 			"problemMatcher": "$eslint-stylish",
 			"presentation": {
 				"reveal": "never",

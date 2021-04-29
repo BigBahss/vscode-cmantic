@@ -63,6 +63,21 @@ export function activeLanguageServer(): LanguageServer {
     return languageServer;
 }
 
+export function setActiveLanguageServer(): void {
+    if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
+        languageServer = LanguageServer.cpptools;
+        logger.logInfo(`Language server detected as ${cpptoolsId}.`);
+    } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
+        languageServer = LanguageServer.clangd;
+        logger.logInfo(`Language server detected as ${clangdId}.`);
+    } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
+        languageServer = LanguageServer.ccls;
+        logger.logInfo(`Language server detected as ${cclsId}.`);
+    } else {
+        languageServer = LanguageServer.unknown;
+    }
+}
+
 export const commands = {
     'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
     'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
@@ -165,21 +180,6 @@ function pollExtensionsToSetLanguageServer(): void {
             }
         }
     }, 1000);
-}
-
-function setActiveLanguageServer(): void {
-    if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
-        languageServer = LanguageServer.cpptools;
-        logger.logInfo(`Language server detected as ${cpptoolsId}.`);
-    } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
-        languageServer = LanguageServer.clangd;
-        logger.logInfo(`Language server detected as ${clangdId}.`);
-    } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
-        languageServer = LanguageServer.ccls;
-        logger.logInfo(`Language server detected as ${cclsId}.`);
-    } else {
-        languageServer = LanguageServer.unknown;
-    }
 }
 
 const re_semver = /^\d+\.\d+\.\d+$/;
