@@ -19,7 +19,7 @@ import { getClass, re_validSymbolName, wait } from './helpers';
 
 
 suite('Extension Test Suite', function () {
-    this.timeout(60_000);
+    this.timeout(process.env.DEBUG_TESTS ? 0 : 60_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
     const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
@@ -27,12 +27,14 @@ suite('Extension Test Suite', function () {
     let sourceDoc: SourceDocument;
 
     suiteSetup(async function () {
-        const cpptools = vscode.extensions.getExtension(cpptoolsId);
-        assert(cpptools);
-        if (!cpptools.isActive) {
-            await cpptools.activate();
+        if (!process.env.DEBUG_TESTS) {
+            const cpptools = vscode.extensions.getExtension(cpptoolsId);
+            assert(cpptools);
+            if (!cpptools.isActive) {
+                await cpptools.activate();
+            }
+            assert(cpptools.isActive);
         }
-        assert(cpptools.isActive);
 
         const testFilePath = path.join(testWorkspacePath, 'include', 'derived.h');
         const editor = await vscode.window.showTextDocument(vscode.Uri.file(testFilePath));
@@ -50,7 +52,11 @@ suite('Extension Test Suite', function () {
 
     test('Test setActiveLanguageServer()', function () {
         setActiveLanguageServer();
-        assert.strictEqual(activeLanguageServer(), LanguageServer.cpptools);
+        if (process.env.DEBUG_TESTS) {
+            assert.notStrictEqual(activeLanguageServer(), LanguageServer.unknown);
+        } else {
+            assert.strictEqual(activeLanguageServer(), LanguageServer.cpptools);
+        }
     });
 
     test('Test getMatchingHeaderSource()', async function () {
