@@ -34,10 +34,7 @@ function getClass(symbols: SourceSymbol[]): SourceSymbol {
 }
 
 suite('Extension Test Suite', function () {
-    /* The CI will sometimes take a very long time to download cpptool's native binary,
-     * which caused tests to timeout and fail. So we set the timeout to 5 minutes for
-     * the CI (1 minute timeout for local tests). */
-    this.timeout(process.env.CI ? 300_000 : 60_000);
+    this.timeout(60_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
     const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
@@ -56,6 +53,14 @@ suite('Extension Test Suite', function () {
         const editor = await vscode.window.showTextDocument(vscode.Uri.file(testFilePath));
         const cppDoc = await vscode.languages.setTextDocumentLanguage(editor.document, 'cpp');
         sourceDoc = new SourceDocument(cppDoc);
+
+        setActiveLanguageServer();
+
+        // Wait until the language server is initialized.
+        do {
+            await wait(1_500);
+            await sourceDoc.executeSourceSymbolProvider();
+        } while (!sourceDoc.symbols);
     });
 
     test('Test setActiveLanguageServer()', function () {
@@ -67,17 +72,28 @@ suite('Extension Test Suite', function () {
         const expectedPath = path.join(testWorkspacePath, 'src', 'derived.cpp');
         const matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
         assert.strictEqual(matchingUri?.fsPath, expectedPath);
+
         const originalUri = await getMatchingHeaderSource(matchingUri);
         assert.strictEqual(originalUri?.fsPath, sourceDoc.uri.fsPath);
     });
 
+    test('Test SourceSymbol Hierarchy', function () {
+        assert(sourceDoc.symbols);
+
+        function traverseSymbolTree(symbols: SourceSymbol[]): void {
+            symbols.forEach(symbol => {
+                symbol.children.forEach(child => {
+                    assert.strictEqual(child.parent, symbol);
+                });
+                traverseSymbolTree(symbol.children);
+            });
+        }
+
+        traverseSymbolTree(sourceDoc.symbols);
+    });
+
     test('Test CodeActionProvider', async function () {
-        // Wait until the language server is initialized.
-        const waitTime = process.env.CI ? 5_000 : 1_000;
-        do {
-            await wait(waitTime);
-            await sourceDoc.executeSourceSymbolProvider();
-        } while (!sourceDoc.symbols);
+        assert(sourceDoc.symbols);
 
         const testClass = getClass(sourceDoc.symbols);
         assert(testClass.children.length > 0);
@@ -106,21 +122,6 @@ suite('Extension Test Suite', function () {
                 assert.strictEqual(codeActions.length, 6);
             }
         }
-    });
-
-    test('Test SourceSymbol Hierarchy', function () {
-        assert(sourceDoc.symbols);
-
-        function traverseSymbolTree(symbols: SourceSymbol[]): void {
-            symbols.forEach(symbol => {
-                symbol.children.forEach(child => {
-                    assert.strictEqual(child.parent, symbol);
-                });
-                traverseSymbolTree(symbol.children);
-            });
-        }
-
-        traverseSymbolTree(sourceDoc.symbols);
     });
 
     test('Test Parsing Functions', function () {
