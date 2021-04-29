@@ -85,33 +85,51 @@ suite('Extension Test Suite', function () {
     test('Test CodeActionProvider', async function () {
         this.slow(2_500);
 
-        assert(sourceDoc.symbols);
-
-        const testClass = getClass(sourceDoc.symbols);
-        assert(testClass.children.length > 0);
-
         const codeActionProvider = new CodeActionProvider();
+
+        const sourceActions: CodeAction[] = await codeActionProvider.provideCodeActions(
+                sourceDoc, sourceDoc.rangeAt(0, 0), { diagnostics: [], only: vscode.CodeActionKind.Source });
+        assert(sourceActions.length >= 3);
+        assert.match(sourceActions[0].title, /^(Add|Amend) Header Guard$/);
+        assert.strictEqual(sourceActions[1].title, 'Add Include');
+        assert.strictEqual(sourceActions[2].title, 'Create Matching Source File');
+
+        const testClass = getClass(sourceDoc);
+
+        const refactorActions: CodeAction[] = await codeActionProvider.provideCodeActions(
+                sourceDoc, testClass.selectionRange, { diagnostics: [], only: vscode.CodeActionKind.Refactor });
+        assert(refactorActions.length >= 4);
+        assert.strictEqual(refactorActions[0].title, `Generate Equality Operators for "${testClass.name}"`);
+        assert.strictEqual(refactorActions[1].title, `Generate Relational Operators for "${testClass.name}"`);
+        assert.strictEqual(refactorActions[2].title, `Generate Stream Output Operator for "${testClass.name}"`);
+        assert.strictEqual(refactorActions[3].title, 'Add Definitions...');
+
+        assert(testClass.children.length > 0);
 
         for (const child of testClass.children) {
             const codeActions: CodeAction[] = await codeActionProvider.provideCodeActions(
                     sourceDoc, child.selectionRange, { diagnostics: [] });
-            assert(codeActions.length > 0);
 
             const member = new CSymbol(child, sourceDoc);
             if (member.isFunctionDeclaration()) {
+                assert(codeActions.length >= 2);
                 if (member.isConstructor()) {
-                    assert.match(codeActions[0].title, /^Generate Constructor/);
+                    assert.match(codeActions[0].title, /^Generate Constructor in (".+"|matching source file)$/);
+                    assert.strictEqual(codeActions[1].title, 'Generate Constructor in this file');
                 } else {
-                    assert.match(codeActions[0].title, /^Add Definition/);
+                    assert.match(codeActions[0].title, /^Add Definition in (".+"|matching source file)$/);
+                    assert.strictEqual(codeActions[1].title, 'Add Definition in this file');
                 }
-                assert.strictEqual(codeActions.length, 5);
             } else if (member.isFunctionDefinition()) {
+                assert(codeActions.length >= 3);
                 assert.match(codeActions[0].title, /^Add Declaration/);
-                assert.match(codeActions[1].title, /^Move Definition/);
-                assert.strictEqual(codeActions.length, 6);
+                assert.match(codeActions[1].title, /^Move Definition to (".+"|matching source file)$/);
+                assert.strictEqual(codeActions[2].title, 'Move Definition below class body');
             } else if (member.isMemberVariable()) {
-                assert.match(codeActions[0].title, /^Generate Getter/);
-                assert.strictEqual(codeActions.length, 6);
+                assert(codeActions.length >= 3);
+                assert.strictEqual(codeActions[0].title, `Generate Getter and Setter for "${member.name}"`);
+                assert.strictEqual(codeActions[1].title, `Generate Getter for "${member.name}"`);
+                assert.strictEqual(codeActions[2].title, `Generate Setter for "${member.name}"`);
             }
         }
     });
