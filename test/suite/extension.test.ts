@@ -106,6 +106,21 @@ suite('Extension Test Suite', function () {
         }
     });
 
+    test('Test SourceSymbol Hierarchy', function () {
+        assert(sourceDoc.symbols);
+
+        function traverseSymbolTree(symbols: SourceSymbol[]): void {
+            symbols.forEach(symbol => {
+                symbol.children.forEach(child => {
+                    assert.strictEqual(child.parent, symbol);
+                });
+                traverseSymbolTree(symbol.children);
+            });
+        }
+
+        traverseSymbolTree(sourceDoc.symbols);
+    });
+
     test('Test Parsing Functions', function () {
         /* Since we depend on the specific error message thrown from XRegExp.matchRecursive() in
          * order to mask unbalanced delimiters, we meed to test wether the error message has
