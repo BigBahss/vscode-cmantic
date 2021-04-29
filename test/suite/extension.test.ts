@@ -2,12 +2,10 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as process from 'process';
 import * as parse from '../../src/parsing';
 import SourceDocument from '../../src/SourceDocument';
 import SourceSymbol from '../../src/SourceSymbol';
 import CSymbol from '../../src/CSymbol';
-import { promisify } from 'util';
 import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
 import {
     activeLanguageServer,
@@ -17,21 +15,8 @@ import {
     LanguageServer,
     setActiveLanguageServer
 } from '../../src/extension';
+import { getClass, re_validSymbolName, wait } from './helpers';
 
-const setTimeoutPromised = promisify(setTimeout);
-
-function wait(ms: number): Promise<void> {
-    return setTimeoutPromised(ms);
-}
-
-function getClass(symbols: SourceSymbol[]): SourceSymbol {
-    for (const symbol of symbols) {
-        if (symbol.isClass()) {
-            return symbol;
-        }
-    }
-    throw new Error('Class not found.');
-}
 
 suite('Extension Test Suite', function () {
     this.timeout(60_000);
@@ -84,9 +69,12 @@ suite('Extension Test Suite', function () {
 
         function traverseSymbolTree(symbols: SourceSymbol[]): void {
             symbols.forEach(symbol => {
+                assert.match(symbol.name, re_validSymbolName);
+
                 symbol.children.forEach(child => {
                     assert.strictEqual(child.parent, symbol);
                 });
+
                 traverseSymbolTree(symbol.children);
             });
         }
@@ -95,7 +83,7 @@ suite('Extension Test Suite', function () {
     });
 
     test('Test CodeActionProvider', async function () {
-        this.slow(200);
+        this.slow(2_500);
 
         assert(sourceDoc.symbols);
 
