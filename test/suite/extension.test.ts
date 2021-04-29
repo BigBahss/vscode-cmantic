@@ -67,6 +67,8 @@ suite('Extension Test Suite', function () {
         const expectedPath = path.join(testWorkspacePath, 'src', 'derived.cpp');
         const matchingUri = await getMatchingHeaderSource(sourceDoc.uri);
         assert.strictEqual(matchingUri?.fsPath, expectedPath);
+        const originalUri = await getMatchingHeaderSource(matchingUri);
+        assert.strictEqual(originalUri?.fsPath, sourceDoc.uri.fsPath);
     });
 
     test('Test CodeActionProvider', async function () {
