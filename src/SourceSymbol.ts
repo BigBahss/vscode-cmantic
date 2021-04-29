@@ -45,7 +45,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
                 }
             }
 
-            if (this.name.endsWith('>')) {
+            if (this.name.endsWith('>') && !this.name.endsWith('<=>')) {
                 const lastIndexOfAngleBracket = maskedText.lastIndexOf('<');
                 if (lastIndexOfAngleBracket !== -1) {
                     this.name = this.name.slice(0, lastIndexOfAngleBracket);
