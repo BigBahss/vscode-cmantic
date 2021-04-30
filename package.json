@@ -367,8 +367,8 @@
   "scripts": {
     "compile": "webpack --mode development",
     "compile-watch": "webpack --mode development --watch",
-    "pretest": "tsc --project ./",
-    "test": "npm run compile && npm run pretest && node ./out/test/runTest.js",
+    "compile-tests": "tsc --project ./",
+    "test": "node ./out/test/runTest.js",
     "lint": "eslint -c .eslintrc.js --ext .ts ./src --max-warnings=0",
     "vscode:prepublish": "npm run lint && webpack --mode production",
     "package": "vsce package"

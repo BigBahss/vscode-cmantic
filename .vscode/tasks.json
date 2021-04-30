@@ -84,7 +84,7 @@
         {
             "label": "Pretest",
             "type": "npm",
-            "script": "pretest",
+            "script": "compile-tests",
             "problemMatcher": "$tsc",
             "dependsOn": "Compile",
             "presentation": {

@@ -18,7 +18,7 @@ import { expectedLanguageServer, getClass, languageServerExtensionId, re_validSy
 
 
 suite('Extension Test Suite', function () {
-    this.timeout(process.env.DEBUG_TESTS ? 0 : 60_000);
+    this.timeout(process.env.DEBUG_TESTS ? 0 : 90_000);
 
     const rootPath = path.resolve(__dirname, '..', '..', '..');
     const testWorkspacePath = path.join(rootPath, 'test', 'workspace');
@@ -45,8 +45,9 @@ suite('Extension Test Suite', function () {
         setActiveLanguageServer();
 
         // Wait until the language server is initialized.
+        const waitTime = process.env.CI ? 3_000 : 1_500;
         do {
-            await wait(1_500);
+            await wait(waitTime);
             await sourceDoc.executeSourceSymbolProvider();
         } while (!sourceDoc.symbols);
     });
