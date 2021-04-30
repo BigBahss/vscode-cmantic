@@ -85,16 +85,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const codeActions = await Promise.all([
-            this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
-            this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
-        ]);
-
-        if (token?.isCancellationRequested) {
-            return [];
-        }
-
-        return codeActions.flat();
+        return context.only?.contains(vscode.CodeActionKind.Source)
+                ? this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
+                : this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri);
     }
 
     private async getRefactorings(

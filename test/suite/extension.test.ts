@@ -97,7 +97,7 @@ suite('Extension Test Suite', function () {
 
         const sourceActions: CodeAction[] = await codeActionProvider.provideCodeActions(
                 sourceDoc, sourceDoc.rangeAt(0, 0), { diagnostics: [], only: vscode.CodeActionKind.Source });
-        assert(sourceActions.length >= 3);
+        assert.strictEqual(sourceActions.length, 3);
         assert.match(sourceActions[0].title, /^(Add|Amend) Header Guard$/);
         assert.strictEqual(sourceActions[1].title, 'Add Include');
         assert.strictEqual(sourceActions[2].title, 'Create Matching Source File');
@@ -106,7 +106,7 @@ suite('Extension Test Suite', function () {
 
         const refactorActions: CodeAction[] = await codeActionProvider.provideCodeActions(
                 sourceDoc, testClass.selectionRange, { diagnostics: [], only: vscode.CodeActionKind.Refactor });
-        assert(refactorActions.length >= 4);
+        assert.strictEqual(refactorActions.length, 4);
         assert.strictEqual(refactorActions[0].title, `Generate Equality Operators for "${testClass.name}"`);
         assert.strictEqual(refactorActions[1].title, `Generate Relational Operators for "${testClass.name}"`);
         assert.strictEqual(refactorActions[2].title, `Generate Stream Output Operator for "${testClass.name}"`);
@@ -120,7 +120,7 @@ suite('Extension Test Suite', function () {
 
             const member = new CSymbol(child, sourceDoc);
             if (member.isFunctionDeclaration()) {
-                assert(codeActions.length >= 2);
+                assert.strictEqual(codeActions.length, 2);
                 if (member.isConstructor()) {
                     assert.match(codeActions[0].title, /^Generate Constructor in (".+"|matching source file)$/);
                     assert.strictEqual(codeActions[1].title, 'Generate Constructor in this file');
@@ -129,12 +129,12 @@ suite('Extension Test Suite', function () {
                     assert.strictEqual(codeActions[1].title, 'Add Definition in this file');
                 }
             } else if (member.isFunctionDefinition()) {
-                assert(codeActions.length >= 3);
+                assert.strictEqual(codeActions.length, 3);
                 assert.match(codeActions[0].title, /^Add Declaration/);
                 assert.match(codeActions[1].title, /^Move Definition to (".+"|matching source file)$/);
                 assert.strictEqual(codeActions[2].title, 'Move Definition below class body');
             } else if (member.isMemberVariable()) {
-                assert(codeActions.length >= 3);
+                assert.strictEqual(codeActions.length, 3);
                 assert.strictEqual(codeActions[0].title, `Generate Getter and Setter for "${member.name}"`);
                 assert.strictEqual(codeActions[1].title, `Generate Getter for "${member.name}"`);
                 assert.strictEqual(codeActions[2].title, `Generate Setter for "${member.name}"`);
