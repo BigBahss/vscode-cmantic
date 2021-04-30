@@ -27,7 +27,7 @@ async function main(): Promise<void> {
             launchArgs: [
                 testWorkspacePath,
                 '--user-data-dir',
-                path.join(__dirname, '.test_data_dir'),
+                path.join(rootPath, '.test_data_dir'),
                 ...disableExtensionsFlags()
             ],
             version: process.env.CODE_VERSION
