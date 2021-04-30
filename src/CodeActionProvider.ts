@@ -118,7 +118,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         symbol: CSymbol
     ): boolean {
         return symbol.isFunctionDeclaration()
-            && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+            && (this.addDefinitionEnabled || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideAddDeclaration(
@@ -128,7 +128,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.isFunctionDefinition()
             && (this.addDeclarationEnabled && symbol.selectionRange.contains(rangeOrSelection.start)
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideMoveDefinition(
@@ -138,7 +138,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.isFunctionDefinition()
             && ((this.moveDefinitionEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideGetterSetter(
@@ -148,7 +148,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.document.languageId === 'cpp' && symbol.isMemberVariable()
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideClassRefactorings(
@@ -156,8 +156,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         symbol: CSymbol
     ): boolean {
         return symbol.document.languageId === 'cpp'
-            && (symbol.isClassType() || symbol.parent?.isClassType() === true)
-                && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
+            && (symbol.isClassType() || !!symbol.parent?.isClassType())
+            && !!context.only?.contains(vscode.CodeActionKind.Refactor);
     }
 
     private async getAddDefinitionRefactorings(

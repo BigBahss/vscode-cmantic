@@ -104,7 +104,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isMemberVariable(): boolean {
-        return this.parent?.isClassType() === true
+        return !!this.parent?.isClassType()
             && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
