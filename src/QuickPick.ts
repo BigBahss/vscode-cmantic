@@ -7,11 +7,11 @@ const closeButton: vscode.QuickInputButton = {
 };
 
 export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
+    title: string;  // Required (Must not be empty)
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
-    title: string;
     buttons?: ReadonlyArray<vscode.QuickInputButton>;
     onDidTriggerButton?(button: vscode.QuickInputButton, quickPick: vscode.QuickPick<T>): any;
 }
@@ -20,9 +20,9 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
     items: T[], options: SingleQuickPickOptions, token?: vscode.CancellationToken
 ): Promise<T | undefined> {
     const qp = vscode.window.createQuickPick<T>();
-    qp.items = items;
-    qp.canSelectMany = false;
     setSharedQuickPickOptions(qp, options);
+    qp.canSelectMany = false;
+    qp.items = items;
 
     return new Promise(resolve => {
         const disposables: vscode.Disposable[] = [
@@ -66,9 +66,10 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
     items: T[], options: MultiQuickPickOptions<T>, token?: vscode.CancellationToken
 ): Promise<T[] | undefined> {
     const qp = vscode.window.createQuickPick<T>();
-    qp.items = items;
-    qp.canSelectMany = true;
     setSharedQuickPickOptions(qp, options);
+    qp.canSelectMany = true;
+    qp.items = items;
+    qp.selectedItems = qp.items.filter(item => item.picked);
 
     return new Promise(resolve => {
         const disposables: vscode.Disposable[] = [
@@ -108,7 +109,9 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
     });
 }
 
-function setSharedQuickPickOptions(qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions): void {
+function setSharedQuickPickOptions(
+    qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions
+): void {
     qp.matchOnDescription = !!options.matchOnDescription;
     qp.matchOnDetail = !!options.matchOnDetail;
     qp.placeholder = options.placeHolder;
