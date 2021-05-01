@@ -136,7 +136,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return (this.parent?.isClassType() && this.name === '~' + this.parent.name) || this.name.startsWith('~');
+            return this.name.startsWith('~');
         default:
             return false;
         }
