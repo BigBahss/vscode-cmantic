@@ -19,6 +19,7 @@ import { createMatchingSourceFile } from './commands/createSourceFile';
 import { addHeaderGuard } from './commands/addHeaderGuard';
 import { addInclude } from './commands/addInclude';
 import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
+import { openDocumentation } from './commands/openDocumentation';
 import { CodeActionProvider } from './CodeActionProvider';
 import { cclsId, clangdId, cpptoolsId, LanguageServer } from './common';
 
@@ -91,7 +92,8 @@ export const commands = {
     'cmantic.createMatchingSourceFile': createMatchingSourceFile,
     'cmantic.addHeaderGuard': addHeaderGuard,
     'cmantic.addInclude': addInclude,
-    'cmantic.switchHeaderSourceInWorkspace': switchHeaderSourceInWorkspace
+    'cmantic.switchHeaderSourceInWorkspace': switchHeaderSourceInWorkspace,
+    'cmantic.openDocumentation': openDocumentation
 };
 
 function registerCommands(context: vscode.ExtensionContext): void {
@@ -114,7 +116,7 @@ function registerCodeActionProvider(context: vscode.ExtensionContext): void {
         vscode.languages.registerCodeActionsProvider(
             documentSelector,
             codeActionProvider,
-            codeActionProvider.metadata
+            CodeActionProvider.metadata
         )
     );
 }

@@ -43,23 +43,45 @@ export class CodeAction extends vscode.CodeAction {
 }
 
 export class RefactorAction extends CodeAction {
+    static readonly documentation = {
+        kind: vscode.CodeActionKind.Refactor,
+        command: {
+            command: 'cmantic.openDocumentation',
+            title: 'Learn more about C-mantic refactorings',
+            arguments: [vscode.CodeActionKind.Refactor]
+        }
+    };
+
     constructor(title: string, command: string) {
         super(title, command, vscode.CodeActionKind.Refactor);
     }
 }
 
 export class SourceAction extends CodeAction {
+    static readonly documentation = {
+        kind: vscode.CodeActionKind.Source,
+        command: {
+            command: 'cmantic.openDocumentation',
+            title: 'Learn more about C-mantic source actions',
+            arguments: [vscode.CodeActionKind.Source]
+        }
+    };
+
     constructor(title: string, command: string) {
         super(title, command, vscode.CodeActionKind.Source);
     }
 }
 
 export class CodeActionProvider implements vscode.CodeActionProvider {
-    readonly metadata: vscode.CodeActionProviderMetadata = {
+    static readonly metadata: vscode.CodeActionProviderMetadata = {
         providedCodeActionKinds: [
             vscode.CodeActionKind.QuickFix,
             vscode.CodeActionKind.Refactor,
             vscode.CodeActionKind.Source
+        ],
+        documentation: [
+            RefactorAction.documentation,
+            SourceAction.documentation
         ]
     };
 
