@@ -18,7 +18,7 @@ export default class SourceFile {
     }
 
     /**
-     * Essentially promotes this SourceFile to a SourceDocument by opening the cooresponding TextDocument.
+     * Essentially promotes this SourceFile to a SourceDocument by opening the corresponding TextDocument.
      */
     async openDocument(): Promise<SourceDocument> {
         const document = await vscode.workspace.openTextDocument(this.uri);

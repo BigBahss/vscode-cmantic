@@ -59,7 +59,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Fixed a bug where `Add Declaration` and `Move Definition into class` quick-fixes weren't accessible from the `Refactor...` menu.
-- Fixed an oversight where attributes would end up in getter's and setter's return/parameter type.
+- Fixed an oversight where attributes would end up in getters and setters return/parameter type.
 - Fixed a bug in identifying ranges of member access levels when consecutive access levels are the same.
 
 ## [0.6.2] - March 14, 2021
@@ -125,7 +125,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added a setting `Cpp: Use Explicit This Pointer` to control whether generated member functions prefix class members with `this->`. (#17)
 
 ### Changed
-- Handling of the `inline` specifier has changed. Definitions generated within header files will have the `inline` specifer to prevent ODR violations. Additionally, inline functions can now be moved to source files and the `inline` specifier will be removed. Definitions moved to header files will gain the `inline` specifier.
+- Handling of the `inline` specifier has changed. Definitions generated within header files will have the `inline` specifier to prevent ODR violations. Additionally, inline functions can now be moved to source files and the `inline` specifier will be removed. Definitions moved to header files will gain the `inline` specifier.
 - Generating getters and setters for static members will now prefix the member with the class name (ClassName::staticMember).
 
 ### Fixed
@@ -177,7 +177,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - `Add Definition` will no longer reveal existing definitions if `Reveal New Definitions` is turned off in the settings.
 
 ### Fixed
-- Fixed a bug when determing the scope of a new function definition. Definitions were sometimes generated with namespaces prepended to their scope-string (namespace::class::functionName) even if the definition was being placed within the cooresponding namespace block.
+- Fixed a bug when determining the scope of a new function definition. Definitions were sometimes generated with namespaces prepended to their scope-string (namespace::class::functionName) even if the definition was being placed within the corresponding namespace block.
 - Fixed `Move Definition` not accounting for changes in scope at the target position. (#6)
 - Parsing has been improved to accurately find matching parentheses, brackets, etc.
 - Improved parsing of preprocessor directives.
@@ -236,7 +236,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 ## [0.2.1] - January 29, 2021
 ### Changed
 - `cmantic.addHeaderGuard` will now validate static text given by the user in the `C_mantic.headerGuard.defineFormat` setting by replacing illegal symbols with underscores.
-- `cmantic.createMatchingSourceFile` will now sort directory suggestions based on their similarity to the header file's directory. This means that the top directory in the list is most likely the directoy the user wants to put the new file in, and can just press enter.
+- `cmantic.createMatchingSourceFile` will now sort directory suggestions based on their similarity to the header file's directory. This means that the top directory in the list is most likely the directory the user wants to put the new file in, and can just press enter.
 - `cmantic.createMatchingSourceFile` will now look at the file extensions in the selected directory and automatically pick one when there is only one type of source file extension found.
 - Invoking the `cmantic.addHeaderGuard` command directly now checks for an existing header guard.
 - Directly invoking commands to generate accessor functions now checks for existing accessor functions.
@@ -265,7 +265,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Removed duplicate entries of `Refactor...` and `Source Action...` from appearing in the command palette.
 - Fixed issues pertaining to how the placement of new function definitions is determined.
 - Fixed `Add Definition` not recognizing `operator` overload functions.
-- Fixed `Add Definition` not placing function into a cooresponding namespace block when that block was empty.
+- Fixed `Add Definition` not placing function into a corresponding namespace block when that block was empty.
 - Various minor fixes.
 
 ## [0.1.0] - January 15, 2021

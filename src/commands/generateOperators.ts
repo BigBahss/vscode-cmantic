@@ -255,17 +255,17 @@ async function promptUserForOperands(parentClass: CSymbol, prompt: string): Prom
         }
     });
 
-    const selectedIems = await showMultiQuickPick(operandItems, {
+    const selectedItems = await showMultiQuickPick(operandItems, {
         matchOnDescription: true,
         title: prompt
     });
 
-    if (!selectedIems) {
+    if (!selectedItems) {
         return;
     }
 
     const selectedOperands: Operand[] = [];
-    selectedIems.forEach(item => selectedOperands.push(item.operand));
+    selectedItems.forEach(item => selectedOperands.push(item.operand));
 
     return selectedOperands;
 }

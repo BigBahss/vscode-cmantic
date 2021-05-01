@@ -271,5 +271,5 @@ export function searchExcludeGlobPattern(scope: vscode.ConfigurationScope): vsco
 }
 
 export function cpptoolsIntellisenseIsActive(scope?: vscode.ConfigurationScope): boolean {
-     return vscode.workspace.getConfiguration(cpptoolsKey, scope).get<string>('intelliSenseEngine') === 'Default';
+    return vscode.workspace.getConfiguration(cpptoolsKey, scope).get<string>('intelliSenseEngine') === 'Default';
 }

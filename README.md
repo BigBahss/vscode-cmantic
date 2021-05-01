@@ -40,7 +40,7 @@ The `Add Definition in matching source file` command generates an empty definiti
 
 The `Add Definition in this file` command generates an empty definition for a function declaration in the current file.
 
-`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace allignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with the setting `Curly Brace Format: Function` for C and C++, each. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
+`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions next to them. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace alignment in the case of multi-line declarations. The placement of the opening curly brace can be controlled with the setting `Curly Brace Format: Function` for C and C++, each. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
 
 You may also generate many definitions at a time by selecting `Add Definitions...` in the `Refactor...` menu. This command will find all undefined function in the file and prompt you to select which ones to add definitions for. After selecting functions you will be prompted to select which file to add the definitions to (either the same file, or the matching source file). If a matching source file doesn't already exist, you can select to create one (this invokes [Create Matching Source File](#create-matching-source-file)).
 
@@ -52,7 +52,7 @@ You may also generate many definitions at a time by selecting `Add Definitions..
 
 Selecting an undeclared function definition will suggest the following code-action 💡.
 
-The `Add Declaration` command generates a declaration for a function in its cooresponding header file, or within its class definition in the case of a member function.
+The `Add Declaration` command generates a declaration for a function in its corresponding header file, or within its class definition in the case of a member function.
 
 If the function is a class member function, then the `Add Declaration` code-action will be provided as a `Quick Fix` (blue light-bulb), since defining a member function that is not declared in the class is an error. You will also be prompted to pick an access specifier (`public`, `protected`, or `private`) for the member function, and if that access specifier doesn't already exist in the class, it will be created.
 
@@ -124,7 +124,7 @@ The `Add Include` command adds includes to the top of the file from your current
 
 ### **Switch Header/Source in Workspace**
 
-The `Switch Header/Source in Workspace` command will open and switch to the matching header/source file cooresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with the setting `Context Menu: Switch Header Source`.
+The `Switch Header/Source in Workspace` command will open and switch to the matching header/source file corresponding to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with the setting `Context Menu: Switch Header Source`.
 
 ## **Language Server**
 

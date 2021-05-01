@@ -10,9 +10,9 @@ import { ProposedPosition } from './ProposedPosition';
 import { activeLanguageServer, LanguageServer } from './extension';
 
 
-// Only matches identifiers that are not folowed by a scope resolution operator (::).
+// Only matches identifiers that are not followed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
-const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
+const re_beginningOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 
 /**
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
@@ -442,7 +442,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Retruns the member variables of this class/struct that are const or a reference.
+     * Returns the member variables of this class/struct that are const or a reference.
      */
     memberVariablesThatRequireInitialization(): CSymbol[] {
         if (!this.isClassType()) {
@@ -906,7 +906,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Finds the beginning of template statement(s) preceeding this symbol since clangd and ccls
+     * Finds the beginning of template statement(s) preceding this symbol since clangd and ccls
      * don't include template statements in provided DocumentSymbol ranges.
      * For nested namespaces (namespace unqualified::nested), this finds the beginning of the
      * unqualified namespace statement.
@@ -944,7 +944,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Only relavant to class-types and enums which can have trailing
+     * Only relevant to class-types and enums which can have trailing
      * instance declarations and initializations. Returns the position
      * past the final semi-colon of the class-type/enum definition.
      */
@@ -1031,7 +1031,7 @@ export default class CSymbol extends SourceSymbol {
         }
 
         let lastMatch: RegExpMatchArray | undefined;
-        for (const match of trimmedLeadingText.matchAll(re_beginingOfScopeString)) {
+        for (const match of trimmedLeadingText.matchAll(re_beginningOfScopeString)) {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {
