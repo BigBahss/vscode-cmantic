@@ -2,8 +2,12 @@
 All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
+### Changed
+- Improved UI elements (For instance, when generating a constructor, you may not select delegating constructor with other initializers. Invalid options will automatically uncheck themselves.)
+
 ### Fixed
-- Fixed a bug when determing if an existing header guard matches the configured settings.
+- Fixed a bug when determining if an existing header guard matches the configured settings.
+- Improved the performance of generating getters and setters. (#29)
 
 ## [0.8.0] - April 17, 2021
 ### Added
@@ -223,7 +227,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ### Fixed
 - Improved performance of `Add Definition` commands/code-actions.
-- Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens, but less often. It is unclear why.)
+- Improved `Add Definition` sometimes not scrolling to the new definition in large files. (This still happens, but less often. It is unclear why.) (#2)
 - Fixed `cmantic.addHeaderGuard` placement of `#endif` in the case that the file does not end in a newline.
 - Improved parameter parsing of `Add Definition`.
 - Fixed `Add Definition` text alignment in the case that text appearing before the parameter list is multi-line.
