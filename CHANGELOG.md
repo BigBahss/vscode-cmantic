@@ -1,9 +1,9 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.8.1] - May 1, 2021
 ### Changed
-- Improved UI elements (For instance, when generating a constructor, you may not select delegating constructor with other initializers. Invalid options will automatically uncheck themselves.)
+- Improved UI elements (For example, when generating a constructor, you may not select delegating constructor with other initializers. Invalid options will automatically uncheck themselves.)
 
 ### Fixed
 - Fixed a bug when determining if an existing header guard matches the configured settings.
