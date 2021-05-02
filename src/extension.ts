@@ -3,9 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
+import { commandHandlers } from './commands/commands';
 import { CodeActionProvider } from './CodeActionProvider';
 import { cclsId, clangdId, cpptoolsId, LanguageServer } from './common';
-import { commandHandlers } from './commands/commands';
 
 
 export const cmanticId = 'tdennis4496.cmantic';

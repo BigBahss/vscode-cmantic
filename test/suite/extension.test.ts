@@ -9,11 +9,11 @@ import CSymbol from '../../src/CSymbol';
 import { CodeAction, CodeActionProvider } from '../../src/CodeActionProvider';
 import {
     activeLanguageServer,
-    commands,
     getMatchingHeaderSource,
     LanguageServer,
     setActiveLanguageServer
 } from '../../src/extension';
+import { commandHandlers } from '../../src/commands/commands';
 import { expectedLanguageServer, getClass, languageServerExtensionId, re_validSymbolName, wait } from './helpers';
 
 
@@ -170,8 +170,8 @@ suite('Extension Test Suite', function () {
 
         contributedCommands.forEach((contributedCommand: { command: string }) => {
             assert(
-                Object.keys(commands).some(command => command === contributedCommand.command),
-                `Add '${contributedCommand.command}' to commands in 'src/extension.ts' so that it gets registered.`
+                Object.keys(commandHandlers).some(command => command === contributedCommand.command),
+                `Add '${contributedCommand.command}' to 'src/commands/commands.ts' so that it gets registered.`
             );
         });
     });
