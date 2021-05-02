@@ -12,12 +12,13 @@ import { title as operatorTitle } from './commands/generateOperators';
 import { failure as createSourceFileFailure } from './commands/createSourceFile';
 import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './commands/addHeaderGuard';
 import { getMatchingHeaderSource } from './extension';
+import { CmanticCommand, CmanticCommandId } from './commands/commands';
 
 
 export class CodeAction extends vscode.CodeAction {
-    command: vscode.Command;
+    command: CmanticCommand;
 
-    constructor(title: string, command: string, kind?: vscode.CodeActionKind) {
+    constructor(title: string, command: CmanticCommandId, kind?: vscode.CodeActionKind) {
         super(title, kind);
         this.title = title;
         this.command = { title: title, command: command };
@@ -29,7 +30,7 @@ export class CodeAction extends vscode.CodeAction {
         this.command.title = title;
     }
 
-    setCommand(command: string): void {
+    setCommand(command: CmanticCommandId): void {
         this.command.command = command;
     }
 
@@ -42,8 +43,13 @@ export class CodeAction extends vscode.CodeAction {
     }
 }
 
+interface CodeActionDocumentation {
+    kind: vscode.CodeActionKind;
+    command: CmanticCommand;
+}
+
 export class RefactorAction extends CodeAction {
-    static readonly documentation = {
+    static readonly documentation: CodeActionDocumentation = {
         kind: vscode.CodeActionKind.Refactor,
         command: {
             command: 'cmantic.openDocumentation',
@@ -52,13 +58,13 @@ export class RefactorAction extends CodeAction {
         }
     };
 
-    constructor(title: string, command: string) {
+    constructor(title: string, command: CmanticCommandId) {
         super(title, command, vscode.CodeActionKind.Refactor);
     }
 }
 
 export class SourceAction extends CodeAction {
-    static readonly documentation = {
+    static readonly documentation: CodeActionDocumentation = {
         kind: vscode.CodeActionKind.Source,
         command: {
             command: 'cmantic.openDocumentation',
@@ -67,7 +73,7 @@ export class SourceAction extends CodeAction {
         }
     };
 
-    constructor(title: string, command: string) {
+    constructor(title: string, command: CmanticCommandId) {
         super(title, command, vscode.CodeActionKind.Source);
     }
 }

@@ -3,25 +3,9 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
-import {
-    addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions, addDefinition
-} from './commands/addDefinition';
-import { addDeclaration } from './commands/addDeclaration';
-import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './commands/moveDefinition';
-import {
-    generateGetterSetter, generateGetter, generateSetter,
-    generateGetterSetterFor, generateGetterFor, generateSetterFor
-} from './commands/generateGetterSetter';
-import {
-    generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator
-} from './commands/generateOperators';
-import { createMatchingSourceFile } from './commands/createSourceFile';
-import { addHeaderGuard } from './commands/addHeaderGuard';
-import { addInclude } from './commands/addInclude';
-import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
-import { openDocumentation } from './commands/openDocumentation';
 import { CodeActionProvider } from './CodeActionProvider';
 import { cclsId, clangdId, cpptoolsId, LanguageServer } from './common';
+import { commandHandlers } from './commands/commands';
 
 
 export const cmanticId = 'tdennis4496.cmantic';
@@ -72,32 +56,8 @@ export function setActiveLanguageServer(): void {
     }
 }
 
-export const commands = {
-    'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
-    'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
-    'cmantic.addDefinitions': addDefinitions,
-    'cmantic.addDefinition': addDefinition,
-    'cmantic.addDeclaration': addDeclaration,
-    'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
-    'cmantic.moveDefinitionIntoOrOutOfClass': moveDefinitionIntoOrOutOfClass,
-    'cmantic.generateGetterSetter': generateGetterSetter,
-    'cmantic.generateGetter': generateGetter,
-    'cmantic.generateSetter': generateSetter,
-    'cmantic.generateGetterSetterFor': generateGetterSetterFor,
-    'cmantic.generateGetterFor': generateGetterFor,
-    'cmantic.generateSetterFor': generateSetterFor,
-    'cmantic.generateEqualityOperators': generateEqualityOperators,
-    'cmantic.generateRelationalOperators': generateRelationalOperators,
-    'cmantic.generateStreamOutputOperator': generateStreamOutputOperator,
-    'cmantic.createMatchingSourceFile': createMatchingSourceFile,
-    'cmantic.addHeaderGuard': addHeaderGuard,
-    'cmantic.addInclude': addInclude,
-    'cmantic.switchHeaderSourceInWorkspace': switchHeaderSourceInWorkspace,
-    'cmantic.openDocumentation': openDocumentation
-};
-
 function registerCommands(context: vscode.ExtensionContext): void {
-    Object.entries(commands).forEach(([command, handler]) => {
+    Object.entries(commandHandlers).forEach(([command, handler]) => {
         context.subscriptions.push(vscode.commands.registerCommand(command, handler));
     });
 }
