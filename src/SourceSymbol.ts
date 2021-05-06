@@ -22,18 +22,20 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
 
         if (symbol instanceof SourceSymbol) {
             // This was called from CSymbol's constructor, so short-circuit.
+            this.detail = symbol.detail;
             this.signature = symbol.signature;
             this.parent = symbol.parent;
             this.children = symbol.children;
             return;
         }
 
-        this.signature = symbol.name;
+        this.detail = symbol.name;
         this.parent = parent;
 
         this.name = symbol.name;
         if (activeLanguageServer() === LanguageServer.cpptools) {
             // cpptools puts function signatures and template arguments in the name property.
+            this.signature = symbol.name;
             let maskedText = parse.maskAngleBrackets(this.name);
             if (this.isFunction()) {
                 maskedText = parse.maskParentheses(maskedText);
@@ -43,12 +45,15 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
                 }
             }
 
-            if (this.name.endsWith('>')) {
+            if (this.name.endsWith('>') && !this.name.endsWith('<=>')) {
                 const lastIndexOfAngleBracket = maskedText.lastIndexOf('<');
                 if (lastIndexOfAngleBracket !== -1) {
                     this.name = this.name.slice(0, lastIndexOfAngleBracket);
                 }
             }
+            this.detail = this.name;
+        } else {
+            this.signature = symbol.detail;
         }
 
         const lastIndexOfScopeResolution = this.name.lastIndexOf('::');
@@ -57,19 +62,18 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         }
 
         if (activeLanguageServer() === LanguageServer.ccls) {
-            // ccls puts function signatures in the detail property.
-            this.signature = symbol.detail;
-            // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
+            if (symbol.detail.includes(this.name + '::' + this.name)) {
+                this.detail = this.name + '::' + this.name;
+            }
+
             if (symbol.kind === vscode.SymbolKind.Property) {
+                // ccls recognizes static member functions as properties, so we give it a more appropriate SymbolKind.
                 this.kind = vscode.SymbolKind.Method;
             }
-        } else if (parent?.isClassType()) {
-            this.signature = parent.name + '::' + this.signature;
         }
 
-        this.children = [];
         symbol.children.sort(util.sortByRange);
-        symbol.children.forEach(child => this.children.push(new SourceSymbol(child, uri, this)));
+        this.children = symbol.children.map(child => new SourceSymbol(child, uri, this));
     }
 
     async findDefinition(): Promise<vscode.Location | undefined> {
@@ -100,7 +104,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
     }
 
     isMemberVariable(): boolean {
-        return this.parent?.isClassType() === true
+        return !!this.parent?.isClassType()
             && (this.kind === vscode.SymbolKind.Field || this.kind === vscode.SymbolKind.Property);
     }
 
@@ -121,7 +125,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
             return (this.parent?.isClassType() && this.name === this.parent.name)
-                || this.signature.includes(this.name + '::' + this.name);
+                || this.detail === this.name + '::' + this.name;
         default:
             return false;
         }
@@ -132,8 +136,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
         case vscode.SymbolKind.Constructor:
         case vscode.SymbolKind.Method:
         case vscode.SymbolKind.Function:
-            return (this.parent?.isClassType() && this.name === '~' + this.parent.name)
-                || /(?<name>[\w_][\w\d_]*)::~\k<name>/.test(this.signature);
+            return this.name.startsWith('~');
         default:
             return false;
         }
@@ -166,7 +169,7 @@ export default class SourceSymbol extends vscode.DocumentSymbol {
 
     /**
      * This is a fuzzy test to see if the symbol might be a typedef or type-alias. This tells us that it
-     * is worth it to open the document cooresponding to this.uri to resolve the typedef/type-alias.
+     * is worth it to open the document corresponding to this.uri to resolve the typedef/type-alias.
      */
     mightBeTypedefOrTypeAlias(): boolean {
         return this.kind === vscode.SymbolKind.Interface    // cpptools

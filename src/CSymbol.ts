@@ -10,9 +10,9 @@ import { ProposedPosition } from './ProposedPosition';
 import { activeLanguageServer, LanguageServer } from './extension';
 
 
-// Only matches identifiers that are not folowed by a scope resolution operator (::).
+// Only matches identifiers that are not followed by a scope resolution operator (::).
 const re_scopeResolvedIdentifier = /[\w_][\w\d_]*\b(?!\s*::)/;
-const re_beginingOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
+const re_beginningOfScopeString = /(?<!::\s*|[\w\d_])[\w_][\w\d_]*(?=\s*::)/g;
 
 /**
  * Extends SourceSymbol by adding a document property that gives more semantic-awareness over SourceSymbol.
@@ -442,7 +442,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Retruns the member variables of this class/struct that are const or a reference.
+     * Returns the member variables of this class/struct that are const or a reference.
      */
     memberVariablesThatRequireInitialization(): CSymbol[] {
         if (!this.isClassType()) {
@@ -708,6 +708,25 @@ export default class CSymbol extends SourceSymbol {
     }
 
     async isPrimitive(resolveTypes: boolean): Promise<boolean> {
+        const resolveThisType = async (offset: number): Promise<boolean> => {
+            const locations = await this.document.findDefinitions(this.document.positionAt(offset));
+
+            if (locations.length > 0) {
+                const typeFile = new SourceFile(locations[0].uri);
+                const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
+
+                if (typeSymbol?.isEnum()) {
+                    return true;
+                } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
+                    const typeDoc = await typeFile.openDocument();
+                    const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
+                    return typeCSymbol.isPrimitive(true);
+                }
+            }
+
+            return false;
+        };
+
         if (this.isVariable()) {
             const leadingText = this.parsableLeadingText;
             if (parse.matchesPrimitiveType(leadingText)) {
@@ -719,7 +738,7 @@ export default class CSymbol extends SourceSymbol {
             const type = leadingText.replace(/\b(static|const|constexpr|inline|mutable)\b/g, parse.masker);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
+                return resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypedef()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -733,7 +752,7 @@ export default class CSymbol extends SourceSymbol {
             const maskedText = this.parsableText.replace(/\b(typedef|const)\b/g, parse.masker);
             const index = maskedText.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
+                return resolveThisType(this.startOffset() + index);
             }
         } else if (this.isTypeAlias()) {
             if (parse.matchesPrimitiveType(this.parsableText)) {
@@ -752,26 +771,7 @@ export default class CSymbol extends SourceSymbol {
             const type = this.parsableText.substring(indexOfEquals + 1);
             const index = type.search(re_scopeResolvedIdentifier);
             if (index !== -1) {
-                return this.resolveThisType(this.startOffset() + index);
-            }
-        }
-
-        return false;
-    }
-
-    private async resolveThisType(offset: number): Promise<boolean> {
-        const locations = await this.document.findDefinitions(this.document.positionAt(offset));
-
-        if (locations.length > 0) {
-            const typeFile = new SourceFile(locations[0].uri);
-            const typeSymbol = await typeFile.getSymbol(locations[0].range.start);
-
-            if (typeSymbol?.isEnum()) {
-                return true;
-            } else if (typeSymbol?.mightBeTypedefOrTypeAlias()) {
-                const typeDoc = await typeFile.openDocument();
-                const typeCSymbol = new CSymbol(typeSymbol, typeDoc);
-                return typeCSymbol.isPrimitive(true);
+                return resolveThisType(this.startOffset() + index);
             }
         }
 
@@ -906,7 +906,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Finds the beginning of template statement(s) preceeding this symbol since clangd and ccls
+     * Finds the beginning of template statement(s) preceding this symbol since clangd and ccls
      * don't include template statements in provided DocumentSymbol ranges.
      * For nested namespaces (namespace unqualified::nested), this finds the beginning of the
      * unqualified namespace statement.
@@ -944,7 +944,7 @@ export default class CSymbol extends SourceSymbol {
     }
 
     /**
-     * Only relavant to class-types and enums which can have trailing
+     * Only relevant to class-types and enums which can have trailing
      * instance declarations and initializations. Returns the position
      * past the final semi-colon of the class-type/enum definition.
      */
@@ -1031,7 +1031,7 @@ export default class CSymbol extends SourceSymbol {
         }
 
         let lastMatch: RegExpMatchArray | undefined;
-        for (const match of trimmedLeadingText.matchAll(re_beginingOfScopeString)) {
+        for (const match of trimmedLeadingText.matchAll(re_beginningOfScopeString)) {
             lastMatch = match;
         }
         if (lastMatch?.index === undefined) {

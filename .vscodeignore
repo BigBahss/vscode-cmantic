@@ -1,6 +1,7 @@
 .github
 .vscode
 .vscode-test
+.test_data_dir
 out
 src
 test

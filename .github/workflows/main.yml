@@ -29,13 +29,17 @@ jobs:
       with:
         node-version: 10
 
-    - name: npm install
+    - name: NPM Install
       run: npm install
 
     - name: ESLint
+      if: matrix.code-version == 'stable'
       run: npm run lint
 
-    - name: npm test
+    - name: Compile
+      run: npm run compile && npm run compile-tests
+
+    - name: Run Tests
       run: npm test
       env:
         CI: true

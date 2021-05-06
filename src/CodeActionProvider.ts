@@ -12,12 +12,13 @@ import { title as operatorTitle } from './commands/generateOperators';
 import { failure as createSourceFileFailure } from './commands/createSourceFile';
 import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './commands/addHeaderGuard';
 import { getMatchingHeaderSource } from './extension';
+import { CmanticCommand, CmanticCommandId } from './commands/commands';
 
 
 export class CodeAction extends vscode.CodeAction {
-    command: vscode.Command;
+    command: CmanticCommand;
 
-    constructor(title: string, command: string, kind?: vscode.CodeActionKind) {
+    constructor(title: string, command: CmanticCommandId, kind?: vscode.CodeActionKind) {
         super(title, kind);
         this.title = title;
         this.command = { title: title, command: command };
@@ -29,7 +30,7 @@ export class CodeAction extends vscode.CodeAction {
         this.command.title = title;
     }
 
-    setCommand(command: string): void {
+    setCommand(command: CmanticCommandId): void {
         this.command.command = command;
     }
 
@@ -42,24 +43,51 @@ export class CodeAction extends vscode.CodeAction {
     }
 }
 
+interface CodeActionDocumentation {
+    kind: vscode.CodeActionKind;
+    command: CmanticCommand;
+}
+
 export class RefactorAction extends CodeAction {
-    constructor(title: string, command: string) {
+    static readonly documentation: CodeActionDocumentation = {
+        kind: vscode.CodeActionKind.Refactor,
+        command: {
+            command: 'cmantic.openDocumentation',
+            title: 'Learn more about C-mantic refactorings',
+            arguments: [vscode.CodeActionKind.Refactor]
+        }
+    };
+
+    constructor(title: string, command: CmanticCommandId) {
         super(title, command, vscode.CodeActionKind.Refactor);
     }
 }
 
 export class SourceAction extends CodeAction {
-    constructor(title: string, command: string) {
+    static readonly documentation: CodeActionDocumentation = {
+        kind: vscode.CodeActionKind.Source,
+        command: {
+            command: 'cmantic.openDocumentation',
+            title: 'Learn more about C-mantic source actions',
+            arguments: [vscode.CodeActionKind.Source]
+        }
+    };
+
+    constructor(title: string, command: CmanticCommandId) {
         super(title, command, vscode.CodeActionKind.Source);
     }
 }
 
 export class CodeActionProvider implements vscode.CodeActionProvider {
-    readonly metadata: vscode.CodeActionProviderMetadata = {
+    static readonly metadata: vscode.CodeActionProviderMetadata = {
         providedCodeActionKinds: [
             vscode.CodeActionKind.QuickFix,
             vscode.CodeActionKind.Refactor,
             vscode.CodeActionKind.Source
+        ],
+        documentation: [
+            RefactorAction.documentation,
+            SourceAction.documentation
         ]
     };
 
@@ -85,16 +113,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        const codeActions = await Promise.all([
-            this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
-            this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
-        ]);
-
-        if (token?.isCancellationRequested) {
-            return [];
-        }
-
-        return codeActions.flat();
+        return context.only?.contains(vscode.CodeActionKind.Source)
+                ? this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
+                : this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri);
     }
 
     private async getRefactorings(
@@ -125,7 +146,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         symbol: CSymbol
     ): boolean {
         return symbol.isFunctionDeclaration()
-            && (this.addDefinitionEnabled || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+            && (this.addDefinitionEnabled || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideAddDeclaration(
@@ -135,7 +156,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.isFunctionDefinition()
             && (this.addDeclarationEnabled && symbol.selectionRange.contains(rangeOrSelection.start)
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideMoveDefinition(
@@ -145,7 +166,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.isFunctionDefinition()
             && ((this.moveDefinitionEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideGetterSetter(
@@ -155,7 +176,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
     ): boolean {
         return symbol.document.languageId === 'cpp' && symbol.isMemberVariable()
             && ((this.generateGetterSetterEnabled && symbol.selectionRange.contains(rangeOrSelection.start))
-                || context.only?.contains(vscode.CodeActionKind.Refactor) === true);
+                || !!context.only?.contains(vscode.CodeActionKind.Refactor));
     }
 
     private shouldProvideClassRefactorings(
@@ -163,8 +184,8 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         symbol: CSymbol
     ): boolean {
         return symbol.document.languageId === 'cpp'
-            && (symbol.isClassType() || symbol.parent?.isClassType() === true)
-                && context.only?.contains(vscode.CodeActionKind.Refactor) === true;
+            && (symbol.isClassType() || !!symbol.parent?.isClassType())
+            && !!context.only?.contains(vscode.CodeActionKind.Refactor);
     }
 
     private async getAddDefinitionRefactorings(

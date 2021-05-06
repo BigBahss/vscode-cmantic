@@ -1,5 +1,12 @@
+---
+# Feel free to add content and custom Front Matter to this file.
+# To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
+
+layout: home
+---
+
 <h1 align="center">
-  <img src="./images/cmantic-small.png" width="128">
+  <img src="https://github.com/BigBahss/vscode-cmantic/raw/master/images/cmantic-small.png" width="128">
   <br>
   <b>C-mantic</b>
 </h1>
@@ -32,7 +39,7 @@ If you find a bug or would like to request a new feature, please open an [Issue]
 
 ### **Add Definition**
 
-![Add Definition](./images/add_definition.gif)
+![Add Definition](https://github.com/BigBahss/vscode-cmantic/raw/master/images/add_definition.gif)
 
 Selecting an undefined function declaration will suggest the following code-actions 💡.
 
@@ -68,7 +75,7 @@ The `Move Definition into/out-of class body` command will move a member function
 
 ### **Generate Getters and Setters**
 
-![Generate Accessors](./images/generate_accessors.gif)
+![Generate Accessors](https://github.com/BigBahss/vscode-cmantic/raw/master/images/generate_accessors.gif)
 
 Selecting the name of a member variable will suggest the following code-actions 💡.
 

@@ -1,14 +1,14 @@
 // See https://go.microsoft.com/fwlink/?LinkId=733558
 // for the documentation about the tasks.json format
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "webpack-watch",
-			"label": "webpack-watch",
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile Watch",
+            "type": "npm",
+            "script": "compile-watch",
             "problemMatcher": [
-				{
+                {
                     "owner": "typescript",
                     "source": "ts",
                     "applyTo": "closedDocuments",
@@ -38,22 +38,22 @@
                         }
                     }
                 }
-			],
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never"
-			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
-		},
-		{
-			"type": "npm",
-			"script": "webpack",
-            "label": "webpack",
+            ],
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Compile",
+            "type": "npm",
+            "script": "compile",
             "problemMatcher": [
-				{
+                {
                     "owner": "typescript",
                     "source": "ts",
                     "applyTo": "closedDocuments",
@@ -74,35 +74,102 @@
                         }
                     ]
                 }
-			],
-			"presentation": {
-				"reveal": "never",
-				"revealProblems": "onProblem"
-			},
-			"group": "build"
-		},
-		{
-			"type": "npm",
-			"script": "compile",
-            "label": "pretest",
+            ],
+            "presentation": {
+                "reveal": "never",
+                "revealProblems": "onProblem"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Pretest",
+            "type": "npm",
+            "script": "compile-tests",
             "problemMatcher": "$tsc",
-			"dependsOn": "webpack",
-			"presentation": {
-				"reveal": "never",
-				"revealProblems": "onProblem"
-			},
+            "dependsOn": "Compile",
+            "presentation": {
+                "reveal": "never",
+                "revealProblems": "onProblem"
+            },
+            "group": "build"
+        },
+        {
+            "label": "Test (cpptools)",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "${workspaceFolder}/out/test/runTest.js",
+            ],
+            "options": {
+                "env": {
+                    "LANGUAGE_SERVER": "cpptools"
+                }
+            },
+            "dependsOn": "Pretest",
+            "presentation": {
+                "reveal": "always"
+            },
             "group": "test"
-		},
-		{
-			"type": "npm",
-			"script": "lint",
-			"label": "eslint",
-			"problemMatcher": "$eslint-stylish",
-			"presentation": {
-				"reveal": "never",
-				"revealProblems": "onProblem"
-			},
+        },
+        {
+            "label": "Test (clangd)",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "${workspaceFolder}/out/test/runTest.js",
+            ],
+            "options": {
+                "env": {
+                    "LANGUAGE_SERVER": "clangd"
+                }
+            },
+            "dependsOn": "Pretest",
+            "presentation": {
+                "reveal": "always"
+            },
             "group": "test"
-		}
-	]
+        },
+        {
+            "label": "Test (ccls)",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "${workspaceFolder}/out/test/runTest.js",
+            ],
+            "options": {
+                "env": {
+                    "LANGUAGE_SERVER": "ccls"
+                }
+            },
+            "dependsOn": "Pretest",
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "test"
+        },
+        {
+            "label": "Test (all)",
+            "dependsOn": [
+                "Test (cpptools)",
+                "Test (clangd)",
+                "Test (ccls)"
+            ],
+            "dependsOrder": "sequence",
+            "presentation": {
+                "reveal": "always"
+            },
+            "group": "test"
+        },
+        {
+            "label": "ESLint",
+            "type": "npm",
+            "script": "lint",
+            "problemMatcher": "$eslint-stylish",
+            "presentation": {
+                "reveal": "never",
+                "revealProblems": "onProblem"
+            },
+            "group": "test"
+        }
+    ]
 }

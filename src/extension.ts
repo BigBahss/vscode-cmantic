@@ -3,29 +3,12 @@ import * as cfg from './configuration';
 import * as util from './utility';
 import Logger from './Logger';
 import HeaderSourceCache from './HeaderSourceCache';
-import {
-    addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions, addDefinition
-} from './commands/addDefinition';
-import { addDeclaration } from './commands/addDeclaration';
-import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './commands/moveDefinition';
-import {
-    generateGetterSetter, generateGetter, generateSetter,
-    generateGetterSetterFor, generateGetterFor, generateSetterFor
-} from './commands/generateGetterSetter';
-import {
-    generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator
-} from './commands/generateOperators';
-import { createMatchingSourceFile } from './commands/createSourceFile';
-import { addHeaderGuard } from './commands/addHeaderGuard';
-import { addInclude } from './commands/addInclude';
-import { switchHeaderSourceInWorkspace } from './commands/switchHeaderSource';
-import { CodeActionProvider } from './codeActions';
+import { commandHandlers } from './commands/commands';
+import { CodeActionProvider } from './CodeActionProvider';
+import { cclsId, clangdId, cpptoolsId, LanguageServer } from './common';
 
 
-export const extensionId = 'tdennis4496.cmantic';
-export const cpptoolsId = 'ms-vscode.cpptools';
-export const clangdId = 'llvm-vs-code-extensions.vscode-clangd';
-export const cclsId = 'ccls-project.ccls';
+export const cmanticId = 'tdennis4496.cmantic';
 
 export const logger = new Logger('C-mantic');
 
@@ -50,12 +33,7 @@ export function getMatchingHeaderSource(uri: vscode.Uri): Promise<vscode.Uri | u
     return headerSourceCache.get(uri);
 }
 
-export enum LanguageServer {
-    unknown,
-    cpptools,
-    clangd,
-    ccls
-}
+export { LanguageServer };
 
 let languageServer = LanguageServer.unknown;
 
@@ -63,39 +41,29 @@ export function activeLanguageServer(): LanguageServer {
     return languageServer;
 }
 
-export const commands = {
-    'cmantic.addDefinitionInSourceFile': addDefinitionInSourceFile,
-    'cmantic.addDefinitionInCurrentFile': addDefinitionInCurrentFile,
-    'cmantic.addDefinitions': addDefinitions,
-    'cmantic.addDefinition': addDefinition,
-    'cmantic.addDeclaration': addDeclaration,
-    'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
-    'cmantic.moveDefinitionIntoOrOutOfClass': moveDefinitionIntoOrOutOfClass,
-    'cmantic.generateGetterSetter': generateGetterSetter,
-    'cmantic.generateGetter': generateGetter,
-    'cmantic.generateSetter': generateSetter,
-    'cmantic.generateGetterSetterFor': generateGetterSetterFor,
-    'cmantic.generateGetterFor': generateGetterFor,
-    'cmantic.generateSetterFor': generateSetterFor,
-    'cmantic.generateEqualityOperators': generateEqualityOperators,
-    'cmantic.generateRelationalOperators': generateRelationalOperators,
-    'cmantic.generateStreamOutputOperator': generateStreamOutputOperator,
-    'cmantic.createMatchingSourceFile': createMatchingSourceFile,
-    'cmantic.addHeaderGuard': addHeaderGuard,
-    'cmantic.addInclude': addInclude,
-    'cmantic.switchHeaderSourceInWorkspace': switchHeaderSourceInWorkspace
-};
+export function setActiveLanguageServer(): void {
+    if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
+        languageServer = LanguageServer.cpptools;
+        logger.logInfo(`Language server detected as ${cpptoolsId}.`);
+    } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
+        languageServer = LanguageServer.clangd;
+        logger.logInfo(`Language server detected as ${clangdId}.`);
+    } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
+        languageServer = LanguageServer.ccls;
+        logger.logInfo(`Language server detected as ${cclsId}.`);
+    } else {
+        languageServer = LanguageServer.unknown;
+    }
+}
 
 function registerCommands(context: vscode.ExtensionContext): void {
-    Object.entries(commands).forEach(([command, handler]) => {
+    Object.entries(commandHandlers).forEach(([command, handler]) => {
         context.subscriptions.push(vscode.commands.registerCommand(command, handler));
     });
 }
 
 async function cacheOpenDocuments(): Promise<void> {
-    const p_cached: Promise<void>[] = [];
-    vscode.workspace.textDocuments.forEach(document => p_cached.push(onDidOpenTextDocument(document)));
-    await Promise.all(p_cached);
+    await Promise.all(vscode.workspace.textDocuments.map(document => onDidOpenTextDocument(document)));
 }
 
 function registerCodeActionProvider(context: vscode.ExtensionContext): void {
@@ -108,7 +76,7 @@ function registerCodeActionProvider(context: vscode.ExtensionContext): void {
         vscode.languages.registerCodeActionsProvider(
             documentSelector,
             codeActionProvider,
-            codeActionProvider.metadata
+            CodeActionProvider.metadata
         )
     );
 }
@@ -132,15 +100,15 @@ async function onDidOpenTextDocument(document: vscode.TextDocument): Promise<voi
 }
 
 async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
-    const p_cached: Promise<void>[] = [];
-    event.files.forEach(uri => {
-        const ext = util.fileExtension(uri.fsPath);
-        if (uri.scheme === 'file'
-                && (cfg.sourceExtensions(uri).includes(ext) || cfg.headerExtensions(uri).includes(ext))) {
-            p_cached.push(headerSourceCache.add(uri));
-        }
-    });
-    await Promise.all(p_cached);
+    await Promise.all(
+        event.files.map(uri => {
+            const ext = util.fileExtension(uri.fsPath);
+            if (uri.scheme === 'file'
+                    && (cfg.sourceExtensions(uri).includes(ext) || cfg.headerExtensions(uri).includes(ext))) {
+                return headerSourceCache.add(uri);
+            }
+        })
+    );
 }
 
 function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
@@ -169,21 +137,6 @@ function pollExtensionsToSetLanguageServer(): void {
     }, 1000);
 }
 
-function setActiveLanguageServer(): void {
-    if (vscode.extensions.getExtension(cpptoolsId)?.isActive && cfg.cpptoolsIntellisenseIsActive()) {
-        languageServer = LanguageServer.cpptools;
-        logger.logInfo(`Language server detected as ${cpptoolsId}.`);
-    } else if (vscode.extensions.getExtension(clangdId)?.isActive) {
-        languageServer = LanguageServer.clangd;
-        logger.logInfo(`Language server detected as ${clangdId}.`);
-    } else if (vscode.extensions.getExtension(cclsId)?.isActive) {
-        languageServer = LanguageServer.ccls;
-        logger.logInfo(`Language server detected as ${cclsId}.`);
-    } else {
-        languageServer = LanguageServer.unknown;
-    }
-}
-
 const re_semver = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
 const updateMessage =
@@ -194,7 +147,7 @@ const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/b
 const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/CHANGELOG.md');
 
 async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
-	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON?.version;
+	const currentVersion = vscode.extensions.getExtension(cmanticId)?.packageJSON?.version;
     if (typeof currentVersion !== 'string' || !re_semver.test(currentVersion)) {
         return;
     }
