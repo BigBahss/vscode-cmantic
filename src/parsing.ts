@@ -178,14 +178,18 @@ export function getIndentationRegExp(symbol: CSymbol): RegExp {
     return new RegExp('^' + indentation, 'gm');
 }
 
-export function stripDefaultValues(parameters: string): string {
+function maskParameters(parameters: string): string {
     // Mask anything that might contain commas or equals-signs.
-    let maskedParameters = maskNonSourceText(parameters);
-    maskedParameters = maskParentheses(maskedParameters);
-    maskedParameters = maskAngleBrackets(maskedParameters);
-    maskedParameters = maskBraces(maskedParameters);
-    maskedParameters = maskBrackets(maskedParameters);
-    maskedParameters = maskComparisonOperators(maskedParameters);
+    parameters = maskNonSourceText(parameters);
+    parameters = maskParentheses(parameters);
+    parameters = maskAngleBrackets(parameters);
+    parameters = maskBraces(parameters);
+    parameters = maskBrackets(parameters);
+    return maskComparisonOperators(parameters);
+}
+
+export function stripDefaultValues(parameters: string): string {
+    const maskedParameters = maskParameters(parameters);
 
     const splitParameters = maskedParameters.split(',');
     let strippedParameters = '';
@@ -199,10 +203,30 @@ export function stripDefaultValues(parameters: string): string {
         charPos += parameter.length + 1;
     }
 
-    return strippedParameters.substring(0, strippedParameters.length - 1);
+    return strippedParameters.slice(0, -1);
 }
 
-const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
+export function parseParameterTypes(parameters: string): string[] {
+    const maskedParameters = maskParameters(parameters);
+
+    const parameterTypes = [];
+    for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]*(?==|,|$)/g)) {
+        if (match.index) {
+            const parameter = parameters.slice(match.index, match.index + match[0].length).trim().replace(/\s+/g, ' ');
+            const nameMatch = parameter.match(/[\w_][\w\d_]*$/);
+            if (nameMatch?.index !== undefined && nameMatch[0] !== 'const' && nameMatch[0] !== 'volatile') {
+                parameterTypes.push(parameter.slice(0, nameMatch.index).trimEnd());
+            } else {
+                parameterTypes.push(parameter);
+            }
+        }
+    }
+
+    return parameterTypes;
+}
+
+const re_primitiveTypes =
+        /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 
 export function matchesPrimitiveType(text: string): boolean {
     return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);

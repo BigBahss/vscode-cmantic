@@ -467,7 +467,6 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
                         }
                         if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
                             moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                            moveDefinitionIntoOrOutOfClass.isPreferred = true;
                             moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
                         }
                     } else {
@@ -489,7 +488,6 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
                     }
                     if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                        moveDefinitionIntoOrOutOfClass.isPreferred = true;
                         moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
                     }
                 } else {

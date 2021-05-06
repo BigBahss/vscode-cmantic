@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
+import FunctionSignature from '../FunctionSignature';
+import { logger } from '../extension';
 
 
 export async function updateSignature(
@@ -8,5 +10,26 @@ export async function updateSignature(
     sourceDoc: SourceDocument,
     linkedLocation: vscode.Location
 ): Promise<boolean | undefined> {
-    return;
+    const linkedDoc = linkedLocation.uri.fsPath === sourceDoc.uri.fsPath
+            ? sourceDoc
+            : await SourceDocument.open(linkedLocation.uri);
+    const linkedSymbol = await linkedDoc.getSymbol(linkedLocation.range.start);
+
+    if (functionSymbol.isFunctionDeclaration()) {
+        if (!linkedSymbol?.isFunctionDefinition() || linkedSymbol.name !== functionSymbol.name) {
+            logger.alertError('The linked definition could not be found.');
+            return;
+        }
+
+        const currentSignature = FunctionSignature.parse(functionSymbol);
+        const linkedSignature = FunctionSignature.parse(linkedSymbol);
+    } else {
+        if (!linkedSymbol?.isFunctionDeclaration() || linkedSymbol.name !== functionSymbol.name) {
+            logger.alertError('The linked declaration could not be found.');
+            return;
+        }
+
+        const currentSignature = FunctionSignature.parse(functionSymbol);
+        const linkedSignature = FunctionSignature.parse(linkedSymbol);
+    }
 }
