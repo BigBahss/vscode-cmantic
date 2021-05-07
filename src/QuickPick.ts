@@ -6,20 +6,27 @@ const closeButton: vscode.QuickInputButton = {
     tooltip: 'Close (Escape)'
 };
 
-export interface SingleQuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
+export interface QuickPickOptions<T extends vscode.QuickPickItem = vscode.QuickPickItem> {
     title: string;  // Required (Must not be empty)
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
     value?: string;
-    onDidChangeValue?(value: string, quickPick: vscode.QuickPick<T>): Promise<any>;
+    onDidChangeValue?(value: string, quickPick: vscode.QuickPick<T>): any;
     buttons?: ReadonlyArray<vscode.QuickInputButton>;
     onDidTriggerButton?(button: vscode.QuickInputButton, quickPick: vscode.QuickPick<T>): any;
+    onWillAccept?(quickPick: vscode.QuickPick<T>): boolean;
+}
+
+export interface SingleQuickPickOptions<
+    T extends vscode.QuickPickItem = vscode.QuickPickItem
+> extends QuickPickOptions<T> {
+    onDidChangeSelection?(item: T | undefined, quickPick: vscode.QuickPick<T>): any;
 }
 
 export function showSingleQuickPick<T extends vscode.QuickPickItem>(
-    items: T[], options: SingleQuickPickOptions, token?: vscode.CancellationToken
+    items: T[], options: SingleQuickPickOptions<T>, token?: vscode.CancellationToken
 ): Promise<T | undefined> {
     const qp = vscode.window.createQuickPick<T>();
     setSharedQuickPickOptions(qp, options);
@@ -30,14 +37,20 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
         const disposables: vscode.Disposable[] = [
             qp,
             qp.onDidAccept(() => {
-                resolve(qp.activeItems[0]);
-                qp.hide();
+                const accepted = options.onWillAccept ? options.onWillAccept(qp) : true;
+                if (accepted) {
+                    resolve(qp.selectedItems[0]);
+                    qp.hide();
+                }
             }),
             qp.onDidHide(() => {
                 disposables.forEach(disposable => disposable.dispose());
                 resolve(undefined);
             }),
             qp.onDidTriggerButton(button => {
+                if (options.onDidTriggerButton) {
+                    options.onDidTriggerButton(button, qp);
+                }
                 if (button === closeButton) {
                     qp.hide();
                 }
@@ -45,14 +58,14 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
         ];
 
         if (options.onDidChangeValue) {
-            disposables.push(qp.onDidChangeValue(async (value) => {
-                options.onDidChangeValue!(qp.value, qp);
+            disposables.push(qp.onDidChangeValue(value => {
+                options.onDidChangeValue!(value, qp);
             }));
         }
 
-        if (options.onDidTriggerButton) {
-            disposables.push(qp.onDidTriggerButton(button => {
-                options.onDidTriggerButton!(button, qp);
+        if (options.onDidChangeSelection) {
+            disposables.push(qp.onDidChangeSelection(items => {
+                options.onDidChangeSelection!(items[0], qp);
             }));
         }
 
@@ -67,7 +80,7 @@ export function showSingleQuickPick<T extends vscode.QuickPickItem>(
 
 export interface MultiQuickPickOptions<
     T extends vscode.QuickPickItem = vscode.QuickPickItem
-> extends SingleQuickPickOptions {
+> extends QuickPickOptions<T> {
     onDidChangeSelection?(items: T[], quickPick: vscode.QuickPick<T>): any;
 }
 
@@ -84,14 +97,20 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
         const disposables: vscode.Disposable[] = [
             qp,
             qp.onDidAccept(() => {
-                resolve(qp.selectedItems.slice());
-                qp.hide();
+                const accepted = options.onWillAccept ? options.onWillAccept(qp) : true;
+                if (accepted) {
+                    resolve(qp.selectedItems.slice());
+                    qp.hide();
+                }
             }),
             qp.onDidHide(() => {
                 disposables.forEach(disposable => disposable.dispose());
                 resolve(undefined);
             }),
             qp.onDidTriggerButton(button => {
+                if (options.onDidTriggerButton) {
+                    options.onDidTriggerButton(button, qp);
+                }
                 if (button === closeButton) {
                     qp.hide();
                 }
@@ -101,12 +120,6 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
         if (options.onDidChangeValue) {
             disposables.push(qp.onDidChangeValue(value => {
                 options.onDidChangeValue!(value, qp);
-            }));
-        }
-
-        if (options.onDidTriggerButton) {
-            disposables.push(qp.onDidTriggerButton(button => {
-                options.onDidTriggerButton!(button, qp);
             }));
         }
 
@@ -125,8 +138,8 @@ export function showMultiQuickPick<T extends vscode.QuickPickItem>(
     });
 }
 
-function setSharedQuickPickOptions(
-    qp: vscode.QuickPick<any>, options: SingleQuickPickOptions | MultiQuickPickOptions
+function setSharedQuickPickOptions<T extends vscode.QuickPickItem>(
+    qp: vscode.QuickPick<T>, options: QuickPickOptions<T>
 ): void {
     qp.matchOnDescription = !!options.matchOnDescription;
     qp.matchOnDetail = !!options.matchOnDetail;
