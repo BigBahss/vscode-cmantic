@@ -104,7 +104,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         return true;
     }
 
-    const p_userInput = showSingleQuickPick<IncludeItem>([], {
+    const p_userAcceptedInput = showSingleQuickPick<IncludeItem>([], {
         title: 'Enter an include statement',
         value: includeText,
         ignoreFocusOut: true,
@@ -115,11 +115,10 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
     const currentPosition = getCurrentPositionFromEditor(editor);
     const newIncludePosition = sourceDoc.findPositionForNewInclude(currentPosition);
 
-    const userInput = await p_userInput;
+    const userAcceptedInput = await p_userAcceptedInput;
     const line = pos ? sourceDoc.lineAt(pos) : undefined;
     if (line) {
-        if (userInput) {
-            includeText += userInput.insertText;
+        if (userAcceptedInput) {
             if (re_validIncludeStatement.test(includeText)) {
                 return editor.edit(edit => edit.replace(line.range, includeText), editOptions);
             } else {
