@@ -39,10 +39,10 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         if (!pos) {
             if (value.endsWith('"')) {
                 pos = newIncludePosition.project;
-                await editor!.edit(edit => edit.insert(newIncludePosition.project, eol), editOptions);
+                await editor!.edit(edit => edit.insert(pos!, eol), editOptions);
             } else if (value.endsWith('<')) {
                 pos = newIncludePosition.system;
-                await editor!.edit(edit => edit.insert(newIncludePosition.system, eol), editOptions);
+                await editor!.edit(edit => edit.insert(pos!, eol), editOptions);
             } else {
                 return;
             }
@@ -55,7 +55,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         line = sourceDoc!.lineAt(pos);
 
         const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
-                'vscode.executeCompletionItemProvider', sourceDoc!.uri, line.range.end, undefined, 100);
+                'vscode.executeCompletionItemProvider', sourceDoc!.uri, line.range.end);
 
         const includeItems: IncludeItem[] = [];
         for (const item of (completions?.items.slice(0, 128) ?? []) as IncludeItem[]) {
@@ -66,6 +66,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
                 item.label = '$(folder) ' + item.insertText;
                 break;
             case vscode.CompletionItemKind.File:
+            case vscode.CompletionItemKind.Unit:
             case vscode.CompletionItemKind.Module:
             case undefined:
                 if (sourceDoc!.includedFiles.length <= 32
