@@ -20,29 +20,30 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         sourceDoc = new SourceDocument(editor.document);
     }
 
-    let pos: vscode.Position | undefined;
+    let includePosition: vscode.Position | undefined;
     let includeText = '#include ';
-    let path = '';
+    let currentPath = '';
     const eol = sourceDoc.endOfLine;
     const editOptions = { undoStopBefore: false, undoStopAfter: false };
 
     async function onDidChangeValue(value: string, quickPick: vscode.QuickPick<IncludeItem>): Promise<void> {
-        if (pos && value.length < includeText.length && (includeText.endsWith('"') || includeText.endsWith('<'))) {
-            const line = sourceDoc!.lineAt(pos);
-            pos = undefined;
+        if (includePosition && value.length < includeText.length
+                && (includeText.endsWith('"') || includeText.endsWith('<'))) {
+            const line = sourceDoc!.lineAt(includePosition);
+            includePosition = undefined;
             includeText = value;
             quickPick.items = [];
             await editor!.edit(edit => edit.delete(line.rangeIncludingLineBreak), editOptions);
             return;
         }
 
-        if (!pos) {
+        if (!includePosition) {
             if (value.endsWith('"')) {
-                pos = newIncludePosition.project;
-                await editor!.edit(edit => edit.insert(pos!, eol), editOptions);
+                includePosition = newIncludePositions.project;
+                await editor!.edit(edit => edit.insert(includePosition!, eol), editOptions);
             } else if (value.endsWith('<')) {
-                pos = newIncludePosition.system;
-                await editor!.edit(edit => edit.insert(pos!, eol), editOptions);
+                includePosition = newIncludePositions.system;
+                await editor!.edit(edit => edit.insert(includePosition!, eol), editOptions);
             } else {
                 return;
             }
@@ -50,39 +51,11 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
             includeText = value;
         }
 
-        let line = sourceDoc!.lineAt(pos);
+        let line = sourceDoc!.lineAt(includePosition);
         await editor!.edit(edit => edit.replace(line.range, value), editOptions);
-        line = sourceDoc!.lineAt(pos);
+        line = sourceDoc!.lineAt(includePosition);
 
-        const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
-                'vscode.executeCompletionItemProvider', sourceDoc!.uri, line.range.end);
-
-        const includeItems: IncludeItem[] = [];
-        for (const item of (completions?.items.slice(0, 128) ?? []) as IncludeItem[]) {
-            item.insertText = item.insertText instanceof vscode.SnippetString
-                    ? item.insertText.value : (item.insertText ?? item.label);
-            switch (item.kind) {
-            case vscode.CompletionItemKind.Folder:
-                item.label = '$(folder) ' + item.insertText;
-                break;
-            case vscode.CompletionItemKind.File:
-            case vscode.CompletionItemKind.Unit:
-            case vscode.CompletionItemKind.Module:
-            case undefined:
-                if (sourceDoc!.includedFiles.length <= 32
-                        && sourceDoc!.includedFiles.includes(path + item.insertText.slice(0, -1))) {
-                    continue;
-                }
-                item.label = '$(file) ' + item.insertText;
-                break;
-            default:
-                continue;
-            }
-            item.detail = undefined;
-            item.alwaysShow = true;
-            includeItems.push(item);
-        }
-        quickPick.items = includeItems;
+        quickPick.items = await getIncludeCompletions(sourceDoc!, line.range.end, currentPath);
     }
 
     function onWillAccept(quickPick: vscode.QuickPick<IncludeItem>): boolean {
@@ -93,7 +66,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
 
         const item = quickPick.selectedItems[0];
         if (item) {
-            path += item.insertText;
+            currentPath += item.insertText;
             includeText += item.insertText;
             if (item.kind === vscode.CompletionItemKind.Folder || (item.insertText as string)?.endsWith('/')) {
                 quickPick.value = includeText;
@@ -114,11 +87,11 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
     });
 
     const currentPosition = getCurrentPositionFromEditor(editor);
-    const newIncludePosition = sourceDoc.findPositionForNewInclude(currentPosition);
+    const newIncludePositions = sourceDoc.findPositionForNewInclude(currentPosition);
 
     const userAcceptedInput = await p_userAcceptedInput;
-    const line = pos ? sourceDoc.lineAt(pos) : undefined;
-    if (line) {
+    if (includePosition) {
+        const line = sourceDoc.lineAt(includePosition);
         if (userAcceptedInput) {
             if (re_validIncludeStatement.test(includeText)) {
                 return editor.edit(edit => edit.replace(line.range, includeText), editOptions);
@@ -128,6 +101,41 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         }
         await editor.edit(edit => edit.delete(line.rangeIncludingLineBreak), editOptions);
     }
+}
+
+async function getIncludeCompletions(
+    sourceDoc: SourceDocument, position: vscode.Position, currentPath: string
+): Promise<IncludeItem[]> {
+    const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
+            'vscode.executeCompletionItemProvider', sourceDoc.uri, position);
+
+    const includeItems: IncludeItem[] = [];
+    for (const item of (completions?.items.slice(0, 128) ?? []) as IncludeItem[]) {
+        item.insertText = item.insertText instanceof vscode.SnippetString
+                ? item.insertText.value : (item.insertText ?? item.label);
+        switch (item.kind) {
+        case vscode.CompletionItemKind.Folder:
+            item.label = '$(folder) ' + item.insertText;
+            break;
+        case vscode.CompletionItemKind.File:
+        case vscode.CompletionItemKind.Unit:
+        case vscode.CompletionItemKind.Module:
+        case undefined:
+            if (sourceDoc.includedFiles.length <= 32
+                    && sourceDoc.includedFiles.includes(currentPath + item.insertText.slice(0, -1))) {
+                continue;
+            }
+            item.label = '$(file) ' + item.insertText;
+            break;
+        default:
+            continue;
+        }
+        item.detail = undefined;
+        item.alwaysShow = true;
+        includeItems.push(item);
+    }
+
+    return includeItems;
 }
 
 function getCurrentPositionFromEditor(editor: vscode.TextEditor): vscode.Position | undefined {
