@@ -7,7 +7,7 @@ import CSymbol from './CSymbol';
 export default class FunctionSignature {
     name: string;
     returnType: string = '';
-    parameters: string[] = [];
+    parameterTypes: string[] = [];
     isNoexcept: boolean = false;
     isConst: boolean = false;
     isVolatile: boolean = false;
@@ -38,7 +38,7 @@ export default class FunctionSignature {
 
         const signature = new FunctionSignature(symbol.name);
 
-        signature.parameters = parse.parseParameterTypes(declaration.slice(paramStartIndex, paramEndIndex));
+        signature.parameterTypes = parse.parseParameterTypes(declaration.slice(paramStartIndex, paramEndIndex));
 
         const trailingText = maskedDeclaration.slice(paramEndIndex);
         signature.isNoexcept = /\bnoexcept\b/.test(trailingText);
@@ -61,7 +61,7 @@ export default class FunctionSignature {
     }
 
     equals(other: FunctionSignature): boolean {
-        return util.arraysAreEqual(this.parameters, other.parameters)
+        return util.arraysAreEqual(this.parameterTypes, other.parameterTypes)
             && this.returnType === other.returnType
             && this.isNoexcept === other.isNoexcept
             && this.isConst === other.isConst

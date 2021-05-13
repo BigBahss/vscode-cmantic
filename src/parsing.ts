@@ -134,6 +134,10 @@ export function maskComparisonOperators(text: string): string {
     return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }
 
+/**
+ * Removes all whitespace that does not exist between 2 adjacent word boundaries,
+ * and makes all remaining whitespace single spaced.
+ */
 export function normalize(text: string): string {
     return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');
 }
@@ -209,13 +213,19 @@ export function stripDefaultValues(parameters: string): string {
 export function parseParameterTypes(parameters: string): string[] {
     const maskedParameters = maskParameters(parameters);
 
-    const parameterTypes = [];
+    const parameterTypes: string[] = [];
     for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]*(?==|,|$)/g)) {
-        if (match.index) {
-            const parameter = parameters.slice(match.index, match.index + match[0].length).trim().replace(/\s+/g, ' ');
-            const nameMatch = parameter.match(/[\w_][\w\d_]*$/);
-            if (nameMatch?.index !== undefined && nameMatch[0] !== 'const' && nameMatch[0] !== 'volatile') {
-                parameterTypes.push(parameter.slice(0, nameMatch.index).trimEnd());
+        if (match.index !== undefined) {
+            const parameter = parameters.slice(match.index, match.index + match[0].length).trim();
+            const nameMatch = parameter.match(/(?<=.+)\b[\w_][\w\d_]*$/);
+            if (nameMatch) {
+                const parameterType = parameter.slice(0, -nameMatch[0].length);
+                if (nameMatch[0] !== 'const' && nameMatch[0] !== 'volatile'
+                        && !/^(const|volatile)(\s+(const|volatile))?\s*$/.test(parameterType)) {
+                    parameterTypes.push(parameterType);
+                } else {
+                    parameterTypes.push(parameter);
+                }
             } else {
                 parameterTypes.push(parameter);
             }
