@@ -135,8 +135,8 @@ export function maskComparisonOperators(text: string): string {
 }
 
 /**
- * Removes all whitespace that does not exist between 2 adjacent word boundaries,
- * and makes all remaining whitespace single spaced.
+ * Removes all whitespace except for whitespace that exists between 2 adjacent word boundaries,
+ * and normalizes that whitespace to be single spaces.
  */
 export function normalize(text: string): string {
     return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');

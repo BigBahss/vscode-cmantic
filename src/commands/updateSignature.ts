@@ -21,15 +21,15 @@ export async function updateSignature(
             return;
         }
 
-        const currentSignature = FunctionSignature.parse(functionSymbol);
-        const linkedSignature = FunctionSignature.parse(linkedSymbol);
+        const currentSignature = new FunctionSignature(functionSymbol);
+        const linkedSignature = new FunctionSignature(linkedSymbol);
     } else {
         if (!linkedSymbol?.isFunctionDeclaration() || linkedSymbol.name !== functionSymbol.name) {
             logger.alertError('The linked declaration could not be found.');
             return;
         }
 
-        const currentSignature = FunctionSignature.parse(functionSymbol);
-        const linkedSignature = FunctionSignature.parse(linkedSymbol);
+        const currentSignature = new FunctionSignature(functionSymbol);
+        const linkedSignature = new FunctionSignature(linkedSymbol);
     }
 }

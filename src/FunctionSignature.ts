@@ -5,72 +5,65 @@ import CSymbol from './CSymbol';
 
 
 export default class FunctionSignature {
-    name: string;
-    returnType: string = '';
-    parameterTypes: string[] = [];
-    isNoexcept: boolean = false;
-    isConst: boolean = false;
-    isVolatile: boolean = false;
-    isConstexpr: boolean = false;
-    isConsteval: boolean = false;
+    readonly name: string = '';
+    readonly returnType: string = '';
+    readonly parameterTypes: string[] = [];
+    readonly isNoexcept: boolean = false;
+    readonly isConst: boolean = false;
+    readonly isVolatile: boolean = false;
+    readonly isConstexpr: boolean = false;
+    readonly isConsteval: boolean = false;
 
     private _normalizedReturnType: string | undefined;
     private _normalizedParameterTypes: string[] | undefined;
 
     get normalizedReturnType(): string {
         return this._normalizedReturnType
-            ?? (this._normalizedReturnType = parse.normalize(this.returnType.trim()));
+            ?? (this._normalizedReturnType = parse.normalize(this.returnType));
     }
 
     get normalizedParameterTypes(): string[] {
         return this._normalizedParameterTypes
-            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => parse.normalize(type.trim())));
+            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => parse.normalize(type)));
     }
 
-    private constructor(name: string) {
-        this.name = name;
-    }
-
-    static parse(symbol: CSymbol): FunctionSignature | undefined {
-        if (!symbol.isFunction()) {
+    constructor(functionSymbol: CSymbol) {
+        if (!functionSymbol.isFunction()) {
             return;
         }
 
-        const doc = symbol.document;
-        const declarationStart = symbol.declarationStart();
+        const doc = functionSymbol.document;
+        const declarationStart = functionSymbol.declarationStart();
         const declarationStartOffset = doc.offsetAt(declarationStart);
-        const declaration = doc.getText(new vscode.Range(declarationStart, symbol.declarationEnd()));
+        const declaration = doc.getText(new vscode.Range(declarationStart, functionSymbol.declarationEnd()));
         const maskedDeclaration = parse.maskParentheses(parse.maskNonSourceText(declaration));
 
-        const nameEndIndex = doc.offsetAt(symbol.selectionRange.end) - declarationStartOffset;
-        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex) + 1;
+        const nameEndIndex = doc.offsetAt(functionSymbol.selectionRange.end) - declarationStartOffset;
+        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
         const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
             return;
         }
 
-        const signature = new FunctionSignature(symbol.name);
-
-        signature.parameterTypes = parse.parseParameterTypes(declaration.slice(paramStartIndex, paramEndIndex));
+        this.name = functionSymbol.name;
+        this.parameterTypes = parse.parseParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
 
         const trailingText = maskedDeclaration.slice(paramEndIndex);
-        signature.isNoexcept = /\bnoexcept\b/.test(trailingText);
-        signature.isConst = /\bconst\b/.test(trailingText);
-        signature.isVolatile = /\bvolatile\b/.test(trailingText);
-        signature.isConstexpr = symbol.isConstexpr();
-        signature.isConsteval = symbol.isConsteval();
+        this.isNoexcept = /\bnoexcept\b/.test(trailingText);
+        this.isConst = /\bconst\b/.test(trailingText);
+        this.isVolatile = /\bvolatile\b/.test(trailingText);
+        this.isConstexpr = functionSymbol.isConstexpr();
+        this.isConsteval = functionSymbol.isConsteval();
 
         const trailingReturnMatch = trailingText.match(/(?<=->\s*).+(\s*$)/);
         if (trailingReturnMatch) {
-            signature.returnType = trailingReturnMatch[0];
+            this.returnType = trailingReturnMatch[0];
         } else {
-            const returnEndIndex = doc.offsetAt(symbol.scopeStringStart()) - declarationStartOffset;
+            const returnEndIndex = doc.offsetAt(functionSymbol.scopeStringStart()) - declarationStartOffset;
             const leadingText = declaration.slice(0, returnEndIndex);
-            signature.returnType = leadingText.replace(
+            this.returnType = leadingText.replace(
                     /\b(virtual|static|explicit|friend|inline|constexpr|consteval)\b\s*/g, '').trim();
         }
-
-        return signature;
     }
 
     equals(other: FunctionSignature): boolean {
@@ -78,6 +71,8 @@ export default class FunctionSignature {
             && this.normalizedReturnType === other.normalizedReturnType
             && this.isNoexcept === other.isNoexcept
             && this.isConst === other.isConst
-            && this.isVolatile === other.isVolatile;
+            && this.isVolatile === other.isVolatile
+            && this.isConstexpr === other.isConstexpr
+            && this.isConsteval === other.isConsteval;
     }
 }
