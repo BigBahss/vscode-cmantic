@@ -14,6 +14,19 @@ export default class FunctionSignature {
     isConstexpr: boolean = false;
     isConsteval: boolean = false;
 
+    private _normalizedReturnType: string | undefined;
+    private _normalizedParameterTypes: string[] | undefined;
+
+    get normalizedReturnType(): string {
+        return this._normalizedReturnType
+            ?? (this._normalizedReturnType = parse.normalize(this.returnType.trim()));
+    }
+
+    get normalizedParameterTypes(): string[] {
+        return this._normalizedParameterTypes
+            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => parse.normalize(type.trim())));
+    }
+
     private constructor(name: string) {
         this.name = name;
     }
@@ -61,8 +74,8 @@ export default class FunctionSignature {
     }
 
     equals(other: FunctionSignature): boolean {
-        return util.arraysAreEqual(this.parameterTypes, other.parameterTypes)
-            && this.returnType === other.returnType
+        return util.arraysAreEqual(this.normalizedParameterTypes, other.normalizedParameterTypes)
+            && this.normalizedReturnType === other.normalizedReturnType
             && this.isNoexcept === other.isNoexcept
             && this.isConst === other.isConst
             && this.isVolatile === other.isVolatile;
