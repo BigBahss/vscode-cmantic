@@ -5,6 +5,7 @@ import CSymbol from './CSymbol';
 
 
 export default class FunctionSignature {
+    name: string;
     returnType: string = '';
     parameters: string[] = [];
     isNoexcept: boolean = false;
@@ -13,7 +14,9 @@ export default class FunctionSignature {
     isConstexpr: boolean = false;
     isConsteval: boolean = false;
 
-    private constructor() { }
+    private constructor(name: string) {
+        this.name = name;
+    }
 
     static parse(symbol: CSymbol): FunctionSignature | undefined {
         if (!symbol.isFunction()) {
@@ -33,7 +36,7 @@ export default class FunctionSignature {
             return;
         }
 
-        const signature = new FunctionSignature();
+        const signature = new FunctionSignature(symbol.name);
 
         signature.parameters = parse.parseParameterTypes(declaration.slice(paramStartIndex, paramEndIndex));
 
