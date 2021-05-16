@@ -55,6 +55,10 @@ export default class FunctionSignature {
         this.isConstexpr = functionSymbol.isConstexpr();
         this.isConsteval = functionSymbol.isConsteval();
 
+        if (functionSymbol.isConstructor() || functionSymbol.isDestructor()) {
+            return;
+        }
+
         const trailingReturnMatch = trailingText.match(/(?<=->\s*).+(\s*$)/);
         if (trailingReturnMatch) {
             this.returnType = trailingReturnMatch[0];
