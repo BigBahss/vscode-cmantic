@@ -210,7 +210,7 @@ export function stripDefaultValues(parameters: string): string {
     return strippedParameters.slice(0, -1);
 }
 
-export function parseParameterTypes(parameters: string): string[] {
+export function getParameterTypes(parameters: string): string[] {
     const maskedParameters = maskParameters(parameters);
 
     const parameterTypes: string[] = [];
@@ -233,6 +233,27 @@ export function parseParameterTypes(parameters: string): string[] {
     }
 
     return parameterTypes;
+}
+
+export function getLeadingReturnType(leadingText: string): string {
+    const maskedLeadingText = maskAngleBrackets(maskNonSourceText(leadingText));
+
+    const identifierMatches: RegExpMatchArray[] = [];
+    for (const match of maskedLeadingText.matchAll(/\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*/g)) {
+        identifierMatches.push(match);
+    }
+
+    let startOfType: number | undefined;
+    for (let i = identifierMatches.length - 1; i >= 0; --i) {
+        if ((startOfType === undefined
+                && identifierMatches[i][0] !== 'const' && identifierMatches[i][0] !== 'volatile')
+            || (startOfType !== undefined
+                && (identifierMatches[i][0] === 'const' || identifierMatches[i][0] === 'volatile'))) {
+            startOfType = identifierMatches[i].index;
+        }
+    }
+
+    return leadingText.slice(startOfType);
 }
 
 const re_primitiveTypes =

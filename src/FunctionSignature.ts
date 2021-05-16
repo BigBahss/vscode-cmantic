@@ -46,7 +46,7 @@ export default class FunctionSignature {
         }
 
         this.name = functionSymbol.name;
-        this.parameterTypes = parse.parseParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
+        this.parameterTypes = parse.getParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
 
         const trailingText = maskedDeclaration.slice(paramEndIndex);
         this.isNoexcept = /\bnoexcept\b/.test(trailingText);
@@ -60,9 +60,7 @@ export default class FunctionSignature {
             this.returnType = trailingReturnMatch[0];
         } else {
             const returnEndIndex = doc.offsetAt(functionSymbol.scopeStringStart()) - declarationStartOffset;
-            const leadingText = declaration.slice(0, returnEndIndex);
-            this.returnType = leadingText.replace(
-                    /\b(virtual|static|explicit|friend|inline|constexpr|consteval)\b\s*/g, '').trim();
+            this.returnType = parse.getLeadingReturnType(declaration.slice(0, returnEndIndex));
         }
     }
 
