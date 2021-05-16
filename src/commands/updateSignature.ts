@@ -20,16 +20,21 @@ export async function updateSignature(
             logger.alertError('The linked definition could not be found.');
             return;
         }
-
-        const currentSignature = new FunctionSignature(currentFunction);
-        const linkedSignature = new FunctionSignature(linkedFunction);
     } else {
         if (!linkedFunction?.isFunctionDeclaration() || linkedFunction.name !== currentFunction.name) {
             logger.alertError('The linked declaration could not be found.');
             return;
         }
-
-        const currentSignature = new FunctionSignature(currentFunction);
-        const linkedSignature = new FunctionSignature(linkedFunction);
     }
+
+    const currentSignature = new FunctionSignature(currentFunction);
+    const linkedSignature = new FunctionSignature(linkedFunction);
+
+    const workspaceEdit = new vscode.WorkspaceEdit();
+
+    if (currentSignature.normalizedReturnType !== linkedSignature.normalizedReturnType) {
+        workspaceEdit.replace(linkedDoc.uri, linkedSignature.returnTypeRange!, currentSignature.returnType);
+    }
+
+    return vscode.workspace.applyEdit(workspaceEdit);
 }

@@ -7,6 +7,7 @@ import CSymbol from './CSymbol';
 export default class FunctionSignature {
     readonly name: string = '';
     readonly returnType: string = '';
+    readonly returnTypeRange?: vscode.Range;
     readonly parameterTypes: string[] = [];
     readonly isNoexcept: boolean = false;
     readonly isConst: boolean = false;
@@ -60,11 +61,19 @@ export default class FunctionSignature {
         }
 
         const trailingReturnMatch = trailingText.match(/(?<=->\s*).+(\s*$)/);
-        if (trailingReturnMatch) {
+        if (trailingReturnMatch?.index !== undefined) {
             this.returnType = trailingReturnMatch[0];
+            const returnStartOffset = declarationStartOffset + paramEndIndex + trailingReturnMatch.index;
+            const returnStart = doc.positionAt(returnStartOffset);
+            const returnEnd = doc.positionAt(returnStartOffset + trailingReturnMatch[0].length);
+            this.returnTypeRange = new vscode.Range(returnStart, returnEnd);
         } else {
-            const returnEndIndex = doc.offsetAt(functionSymbol.scopeStringStart()) - declarationStartOffset;
+            const returnEnd = functionSymbol.scopeStringStart();
+            const returnEndOffset = doc.offsetAt(returnEnd);
+            const returnEndIndex = returnEndOffset - declarationStartOffset;
             this.returnType = parse.getLeadingReturnType(declaration.slice(0, returnEndIndex));
+            const returnStart = doc.positionAt(returnEndOffset - this.returnType.length);
+            this.returnTypeRange = new vscode.Range(returnStart, returnEnd);
         }
     }
 
