@@ -214,8 +214,8 @@ export function getParameterTypes(parameters: string): string[] {
     const maskedParameters = maskParameters(parameters);
 
     const parameterTypes: string[] = [];
-    for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]*(?==|,|$)/g)) {
-        if (match.index !== undefined) {
+    for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]+(?==|,|$)/g)) {
+        if (match.index !== undefined && match[0].trim().length !== 0) {
             const parameter = parameters.slice(match.index, match.index + match[0].length).trim();
             const nameMatch = parameter.match(/(?<=.+)\b[\w_][\w\d_]*$/);
             if (nameMatch) {
