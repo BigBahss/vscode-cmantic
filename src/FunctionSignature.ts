@@ -4,19 +4,24 @@ import * as parse from './parsing';
 import CSymbol from './CSymbol';
 
 
+export type RefQualifier = '' | '&' | '&&';
+
 export default class FunctionSignature {
     readonly name: string = '';
     readonly returnType: string = '';
     readonly returnTypeRange?: vscode.Range;
     readonly parameterTypes: string[] = [];
-    readonly isNoexcept: boolean = false;
-    readonly isConst: boolean = false;
-    readonly isVolatile: boolean = false;
+    readonly trailingSpecifierRange?: vscode.Range;
     readonly isConstexpr: boolean = false;
     readonly isConsteval: boolean = false;
+    readonly isConst: boolean = false;
+    readonly isVolatile: boolean = false;
+    readonly refQualifier: RefQualifier = '';
+    readonly noexcept: string = '';
 
     private _normalizedReturnType: string | undefined;
     private _normalizedParameterTypes: string[] | undefined;
+    private _normalizedNoexcept: string | undefined;
 
     get normalizedReturnType(): string {
         return this._normalizedReturnType
@@ -28,6 +33,11 @@ export default class FunctionSignature {
             ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => parse.normalize(type)));
     }
 
+    get normalizedNoexcept(): string {
+        return this._normalizedNoexcept
+            ?? (this._normalizedNoexcept = parse.normalize(this.noexcept));
+    }
+
     constructor(functionSymbol: CSymbol) {
         if (!functionSymbol.isFunction()) {
             return;
@@ -36,7 +46,8 @@ export default class FunctionSignature {
         const doc = functionSymbol.document;
         const declarationStart = functionSymbol.declarationStart();
         const declarationStartOffset = doc.offsetAt(declarationStart);
-        const declaration = doc.getText(new vscode.Range(declarationStart, functionSymbol.declarationEnd()));
+        const declarationEnd = functionSymbol.declarationEnd();
+        const declaration = doc.getText(new vscode.Range(declarationStart, declarationEnd));
         const maskedDeclaration = parse.maskParentheses(parse.maskNonSourceText(declaration));
 
         const nameEndIndex = doc.offsetAt(functionSymbol.selectionRange.end) - declarationStartOffset;
@@ -49,25 +60,39 @@ export default class FunctionSignature {
         this.name = functionSymbol.name;
         this.parameterTypes = parse.getParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
 
-        const trailingText = maskedDeclaration.slice(paramEndIndex);
-        this.isNoexcept = /\bnoexcept\b/.test(trailingText);
-        this.isConst = /\bconst\b/.test(trailingText);
-        this.isVolatile = /\bvolatile\b/.test(trailingText);
         this.isConstexpr = functionSymbol.isConstexpr();
         this.isConsteval = functionSymbol.isConsteval();
+
+        const trailingText = declaration.slice(paramEndIndex + 1);
+        const maskedTrailingText = maskedDeclaration.slice(paramEndIndex + 1);
+        const noexceptMatch = maskedTrailingText.match(/\bnoexcept\b(\s*\(\s*\))?/);
+        if (noexceptMatch?.index !== undefined) {
+            this.noexcept = trailingText.slice(noexceptMatch.index, noexceptMatch.index + noexceptMatch[0].length);
+        }
+
+        const trailingSpecifierStart = doc.positionAt(declarationStartOffset + paramEndIndex + 1);
+        this.trailingSpecifierRange = new vscode.Range(trailingSpecifierStart, declarationEnd);
 
         if (functionSymbol.isConstructor() || functionSymbol.isDestructor()) {
             return;
         }
 
-        const trailingReturnMatch = trailingText.match(/(?<=->\s*).+(\s*$)/);
+        this.isConst = /\bconst\b/.test(maskedTrailingText);
+        this.isVolatile = /\bvolatile\b/.test(maskedTrailingText);
+
+        const trailingReturnMatch = maskedTrailingText.match(/(->\s*)(.+)(?=\s*$)/);
         if (trailingReturnMatch?.index !== undefined) {
-            this.returnType = trailingReturnMatch[0];
-            const returnStartOffset = declarationStartOffset + paramEndIndex + trailingReturnMatch.index;
+            this.refQualifier = getRefQualifier(maskedTrailingText.slice(0, trailingReturnMatch.index));
+            const trailingSpecifierEndOffset = declarationStartOffset + paramEndIndex + 1 + trailingReturnMatch.index;
+            const trailingSpecifierEnd = doc.positionAt(trailingSpecifierEndOffset);
+            this.trailingSpecifierRange = new vscode.Range(trailingSpecifierStart, trailingSpecifierEnd);
+            this.returnType = trailingText.slice(trailingReturnMatch.index + trailingReturnMatch[1].length).trimEnd();
+            const returnStartOffset = trailingSpecifierEndOffset + trailingReturnMatch[1].length;
             const returnStart = doc.positionAt(returnStartOffset);
-            const returnEnd = doc.positionAt(returnStartOffset + trailingReturnMatch[0].length);
+            const returnEnd = doc.positionAt(returnStartOffset + this.returnType.length);
             this.returnTypeRange = new vscode.Range(returnStart, returnEnd);
         } else {
+            this.refQualifier = getRefQualifier(maskedTrailingText);
             const returnEnd = functionSymbol.scopeStringStart();
             const returnEndOffset = doc.offsetAt(returnEnd);
             const returnEndIndex = returnEndOffset - declarationStartOffset;
@@ -80,10 +105,21 @@ export default class FunctionSignature {
     equals(other: FunctionSignature): boolean {
         return util.arraysAreEqual(this.normalizedParameterTypes, other.normalizedParameterTypes)
             && this.normalizedReturnType === other.normalizedReturnType
-            && this.isNoexcept === other.isNoexcept
+            && this.isConstexpr === other.isConstexpr
+            && this.isConsteval === other.isConsteval
             && this.isConst === other.isConst
             && this.isVolatile === other.isVolatile
-            && this.isConstexpr === other.isConstexpr
-            && this.isConsteval === other.isConsteval;
+            && this.refQualifier === other.refQualifier
+            && this.normalizedNoexcept === other.normalizedNoexcept;
+    }
+}
+
+function getRefQualifier(maskedTrailingSpecifiers: string): RefQualifier {
+    if (maskedTrailingSpecifiers.includes('&&')) {
+        return '&&';
+    } else if (maskedTrailingSpecifiers.includes('&')) {
+        return '&';
+    } else {
+        return '';
     }
 }
