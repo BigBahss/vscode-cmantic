@@ -49,7 +49,7 @@ function updateReturnType(
         const returnType = !linkedSignature.hasTrailingReturnType && /[\w\d_]$/.test(linkedSignature.returnType)
                 ? linkedSignature.returnType + ' '
                 : linkedSignature.returnType;
-        workspaceEdit.replace(linkedDoc.uri, linkedSignature.returnTypeRange!, returnType);
+        workspaceEdit.replace(linkedDoc.uri, linkedSignature.returnTypeRange, returnType);
     }
 }
 
@@ -60,7 +60,7 @@ function updateSpecifiers(
     workspaceEdit: vscode.WorkspaceEdit
 ): void {
     const declaration = parse.maskComments(linkedDoc.getText(linkedSignature.range), true);
-    const startOffset = linkedDoc.offsetAt(linkedSignature.range!.start);
+    const startOffset = linkedDoc.offsetAt(linkedSignature.range.start);
 
     function removeLeadingSpecifier(re_specifier: RegExp): void {
         const match = declaration.match(re_specifier);
@@ -71,13 +71,13 @@ function updateSpecifiers(
     }
 
     if (currentSignature.isConstexpr && !linkedSignature.isConstexpr) {
-        workspaceEdit.insert(linkedDoc.uri, linkedSignature.range!.start, 'constexpr ');
+        workspaceEdit.insert(linkedDoc.uri, linkedSignature.range.start, 'constexpr ');
     } else if (!currentSignature.isConstexpr && linkedSignature.isConstexpr) {
         removeLeadingSpecifier(/\bconstexpr\b[ \t]*/);
     }
 
     if (currentSignature.isConsteval && !linkedSignature.isConsteval) {
-        workspaceEdit.insert(linkedDoc.uri, linkedSignature.range!.start, 'consteval ');
+        workspaceEdit.insert(linkedDoc.uri, linkedSignature.range.start, 'consteval ');
     } else if (!currentSignature.isConsteval && linkedSignature.isConsteval) {
         removeLeadingSpecifier(/\bconsteval\b[ \t]*/);
     }

@@ -7,13 +7,13 @@ import CSymbol from './CSymbol';
 export type RefQualifier = '' | '&' | '&&';
 
 export default class FunctionSignature {
-    readonly range?: vscode.Range;
+    readonly range: vscode.Range;
     readonly name: string = '';
     readonly returnType: string = '';
-    readonly returnTypeRange?: vscode.Range;
+    readonly returnTypeRange: vscode.Range;
     readonly parameterTypes: string[] = [];
-    readonly parametersRange?: vscode.Range;
-    readonly trailingSpecifierRange?: vscode.Range;
+    readonly parametersRange: vscode.Range;
+    readonly trailingSpecifierRange: vscode.Range;
     readonly isConstexpr: boolean = false;
     readonly isConsteval: boolean = false;
     readonly isConst: boolean = false;
@@ -46,7 +46,7 @@ export default class FunctionSignature {
 
     constructor(functionSymbol: CSymbol) {
         if (!functionSymbol.isFunction()) {
-            return;
+            throw new Error('Cannot construct FunctionSignature from non-function.');
         }
 
         const doc = functionSymbol.document;
@@ -61,7 +61,7 @@ export default class FunctionSignature {
         const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
         const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
-            return;
+            throw new Error('Function parameters not found for FunctionSignature.');
         }
 
         this.name = functionSymbol.name;
@@ -84,6 +84,7 @@ export default class FunctionSignature {
         this.trailingSpecifierRange = new vscode.Range(trailingSpecifierStart, declarationEnd);
 
         if (functionSymbol.isConstructor() || functionSymbol.isDestructor()) {
+            this.returnTypeRange = functionSymbol.selectionRange;
             return;
         }
 
