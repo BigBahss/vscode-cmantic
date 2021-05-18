@@ -256,13 +256,15 @@ export function getLeadingReturnType(leadingText: string): string {
     return leadingText.slice(startOfType);
 }
 
+const re_trailingReturnTypeFragments =
+        /\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*(\s*<\s*>)?(\s*\(\s*\)){0,2}|&{1,2}|\*{1,}/g;
 const re_constVolatileRefPtr = /^(const|volatile|&{1,2}|\*{1,})$/;
 
 export function getTrailingReturnType(trailingText: string): string {
-    const maskedTrailingText = maskAngleBrackets(maskNonSourceText(trailingText));
+    const maskedTrailingText = maskAngleBrackets(maskParentheses(maskNonSourceText(trailingText)));
 
     let endOfType: number | undefined;
-    for (const match of maskedTrailingText.matchAll(/\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*|&{1,2}|\*{1,}/g)) {
+    for (const match of maskedTrailingText.matchAll(re_trailingReturnTypeFragments)) {
         if ((endOfType === undefined && !re_constVolatileRefPtr.test(match[0]))
                 || (endOfType !== undefined && re_constVolatileRefPtr.test(match[0]))) {
             endOfType = match.index !== undefined ? match.index + match[0].length : undefined;
