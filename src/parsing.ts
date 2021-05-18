@@ -256,6 +256,22 @@ export function getLeadingReturnType(leadingText: string): string {
     return leadingText.slice(startOfType);
 }
 
+const re_constVolatileRefPtr = /^(const|volatile|&{1,2}|\*{1,})$/;
+
+export function getTrailingReturnType(trailingText: string): string {
+    const maskedTrailingText = maskAngleBrackets(maskNonSourceText(trailingText));
+
+    let endOfType: number | undefined;
+    for (const match of maskedTrailingText.matchAll(/\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*|&{1,2}|\*{1,}/g)) {
+        if ((endOfType === undefined && !re_constVolatileRefPtr.test(match[0]))
+                || (endOfType !== undefined && re_constVolatileRefPtr.test(match[0]))) {
+            endOfType = match.index !== undefined ? match.index + match[0].length : undefined;
+        }
+    }
+
+    return trailingText.slice(0, endOfType);
+}
+
 const re_primitiveTypes =
         /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 

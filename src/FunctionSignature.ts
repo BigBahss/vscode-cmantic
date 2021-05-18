@@ -94,7 +94,8 @@ export default class FunctionSignature {
             const trailingSpecifierEndOffset = declarationStartOffset + paramEndIndex + 1 + trailingReturnMatch.index;
             const trailingSpecifierEnd = doc.positionAt(trailingSpecifierEndOffset);
             this.trailingSpecifierRange = new vscode.Range(trailingSpecifierStart, trailingSpecifierEnd);
-            this.returnType = trailingText.slice(trailingReturnMatch.index + trailingReturnMatch[1].length).trimEnd();
+            const trailingReturnText = trailingText.slice(trailingReturnMatch.index + trailingReturnMatch[1].length);
+            this.returnType = parse.getTrailingReturnType(trailingReturnText);
             const returnStartOffset = trailingSpecifierEndOffset + trailingReturnMatch[1].length;
             const returnStart = doc.positionAt(returnStartOffset);
             const returnEnd = doc.positionAt(returnStartOffset + this.returnType.length);
