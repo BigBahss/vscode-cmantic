@@ -11,6 +11,7 @@ export default class FunctionSignature {
     readonly returnType: string = '';
     readonly returnTypeRange?: vscode.Range;
     readonly parameterTypes: string[] = [];
+    readonly parametersRange?: vscode.Range;
     readonly trailingSpecifierRange?: vscode.Range;
     readonly isConstexpr: boolean = false;
     readonly isConsteval: boolean = false;
@@ -38,6 +39,10 @@ export default class FunctionSignature {
             ?? (this._normalizedNoexcept = parse.normalize(this.noexcept));
     }
 
+    get hasTrailingReturnType(): boolean {
+        return !!this.parametersRange && !!this.returnTypeRange?.start.isAfter(this.parametersRange.end);
+    }
+
     constructor(functionSymbol: CSymbol) {
         if (!functionSymbol.isFunction()) {
             return;
@@ -59,6 +64,9 @@ export default class FunctionSignature {
 
         this.name = functionSymbol.name;
         this.parameterTypes = parse.getParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
+        const parametersStart = doc.positionAt(declarationStartOffset + paramStartIndex + 1);
+        const parametersEnd = doc.positionAt(declarationStartOffset + paramEndIndex);
+        this.parametersRange = new vscode.Range(parametersStart, parametersEnd);
 
         this.isConstexpr = functionSymbol.isConstexpr();
         this.isConsteval = functionSymbol.isConsteval();

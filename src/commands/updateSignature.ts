@@ -32,9 +32,22 @@ export async function updateSignature(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
 
-    if (currentSignature.normalizedReturnType !== linkedSignature.normalizedReturnType) {
-        workspaceEdit.replace(linkedDoc.uri, linkedSignature.returnTypeRange!, currentSignature.returnType);
-    }
+    updateReturnType(currentSignature, linkedSignature, linkedDoc.uri, workspaceEdit);
 
     return vscode.workspace.applyEdit(workspaceEdit);
 }
+
+function updateReturnType(
+    currentSignature: FunctionSignature,
+    linkedSignature: FunctionSignature,
+    linkedUri: vscode.Uri,
+    workspaceEdit: vscode.WorkspaceEdit
+): void {
+    if (currentSignature.normalizedReturnType !== linkedSignature.normalizedReturnType) {
+        const returnType = !linkedSignature.hasTrailingReturnType && /[\w\d_]$/.test(linkedSignature.returnType)
+                ? linkedSignature.returnType + ' '
+                : linkedSignature.returnType;
+        workspaceEdit.replace(linkedUri, linkedSignature.returnTypeRange!, returnType);
+    }
+}
+
