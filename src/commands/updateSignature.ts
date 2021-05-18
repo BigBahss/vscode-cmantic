@@ -46,9 +46,11 @@ function updateReturnType(
     workspaceEdit: vscode.WorkspaceEdit
 ): void {
     if (currentSignature.normalizedReturnType !== linkedSignature.normalizedReturnType) {
-        const returnType = !linkedSignature.hasTrailingReturnType && /[\w\d_]$/.test(linkedSignature.returnType)
-                ? linkedSignature.returnType + ' '
-                : linkedSignature.returnType;
+        const nextCharEnd = linkedSignature.returnTypeRange.end.translate(0, 1);
+        const nextChar = linkedDoc.getText(new vscode.Range(linkedSignature.returnTypeRange.end, nextCharEnd));
+        const returnType = /[\w\d_]$/.test(currentSignature.returnType) && /^[\w\d_]$/.test(nextChar)
+                ? currentSignature.returnType + ' '
+                : currentSignature.returnType;
         workspaceEdit.replace(linkedDoc.uri, linkedSignature.returnTypeRange, returnType);
     }
 }
