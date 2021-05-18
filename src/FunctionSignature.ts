@@ -7,6 +7,7 @@ import CSymbol from './CSymbol';
 export type RefQualifier = '' | '&' | '&&';
 
 export default class FunctionSignature {
+    readonly range?: vscode.Range;
     readonly name: string = '';
     readonly returnType: string = '';
     readonly returnTypeRange?: vscode.Range;
@@ -52,7 +53,8 @@ export default class FunctionSignature {
         const declarationStart = functionSymbol.declarationStart();
         const declarationStartOffset = doc.offsetAt(declarationStart);
         const declarationEnd = functionSymbol.declarationEnd();
-        const declaration = doc.getText(new vscode.Range(declarationStart, declarationEnd));
+        this.range = new vscode.Range(declarationStart, declarationEnd);
+        const declaration = doc.getText(this.range);
         const maskedDeclaration = parse.maskParentheses(parse.maskNonSourceText(declaration));
 
         const nameEndIndex = doc.offsetAt(functionSymbol.selectionRange.end) - declarationStartOffset;
