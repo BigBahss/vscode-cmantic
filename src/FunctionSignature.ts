@@ -11,7 +11,7 @@ export default class FunctionSignature {
     readonly name: string = '';
     readonly returnType: string = '';
     readonly returnTypeRange: vscode.Range;
-    readonly parameterTypes: string[] = [];
+    readonly parameterTypes: ReadonlyArray<string> = [];
     readonly parametersRange: vscode.Range;
     readonly trailingSpecifierRange: vscode.Range;
     readonly isConstexpr: boolean = false;
@@ -22,31 +22,31 @@ export default class FunctionSignature {
     readonly noexcept: string = '';
 
     private _normalizedReturnType: string | undefined;
-    private _normalizedParameterTypes: string[] | undefined;
+    private _normalizedParameterTypes: ReadonlyArray<string> | undefined;
     private _normalizedNoexcept: string | undefined;
 
     get normalizedReturnType(): string {
         return this._normalizedReturnType
-            ?? (this._normalizedReturnType = parse.normalize(this.returnType));
+            ?? (this._normalizedReturnType = normalize(this.returnType));
     }
 
-    get normalizedParameterTypes(): string[] {
+    get normalizedParameterTypes(): ReadonlyArray<string> {
         return this._normalizedParameterTypes
-            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => parse.normalize(type)));
+            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => normalize(type)));
     }
 
     get normalizedNoexcept(): string {
         return this._normalizedNoexcept
-            ?? (this._normalizedNoexcept = parse.normalize(this.noexcept));
+            ?? (this._normalizedNoexcept = normalize(this.noexcept));
     }
 
     get hasTrailingReturnType(): boolean {
-        return !!this.parametersRange && !!this.returnTypeRange?.start.isAfter(this.parametersRange.end);
+        return this.returnTypeRange.start.isAfter(this.parametersRange.end);
     }
 
     constructor(functionSymbol: CSymbol) {
         if (!functionSymbol.isFunction()) {
-            throw new Error('Cannot construct FunctionSignature from non-function.');
+            throw new Error(`FunctionSignature: Cannot construct from non-function symbol "${functionSymbol.name}".`);
         }
 
         const doc = functionSymbol.document;
@@ -61,7 +61,7 @@ export default class FunctionSignature {
         const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
         const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
-            throw new Error('Function parameters not found for FunctionSignature.');
+            throw new Error(`FunctionSignature: Cannot find parameters for function "${functionSymbol.name}".`);
         }
 
         this.name = functionSymbol.name;
@@ -91,7 +91,7 @@ export default class FunctionSignature {
         this.isConst = /\bconst\b/.test(maskedTrailingText);
         this.isVolatile = /\bvolatile\b/.test(maskedTrailingText);
 
-        const trailingReturnMatch = maskedTrailingText.match(/(->\s*)(.+)(?=\s*$)/);
+        const trailingReturnMatch = maskedTrailingText.match(/(->\s*)(.+)(?=\s*$)/s);
         if (trailingReturnMatch?.index !== undefined) {
             this.refQualifier = getRefQualifier(maskedTrailingText.slice(0, trailingReturnMatch.index));
             const trailingSpecifierEndOffset = declarationStartOffset + paramEndIndex + 1 + trailingReturnMatch.index;
@@ -134,4 +134,10 @@ function getRefQualifier(maskedTrailingSpecifiers: string): RefQualifier {
     } else {
         return '';
     }
+}
+
+function normalize(sourceText: string): string {
+    sourceText = parse.removeAttributes(parse.removeComments(sourceText));
+    sourceText = sourceText.replace(/\b(const|volatile)\b/g, '');
+    return parse.normalizeWhitespace(sourceText);
 }

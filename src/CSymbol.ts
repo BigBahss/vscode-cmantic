@@ -309,7 +309,7 @@ export default class CSymbol extends SourceSymbol {
         for (const match of maskedScopeString.matchAll(/[\w_][\w\d_]*(\s*<\s*>)?/g)) {
             if (match.index !== undefined) {
                 const scope = scopeString.slice(match.index, match.index + match[0].length);
-                this._namedScopes.push(parse.normalize(scope));
+                this._namedScopes.push(parse.normalizeWhitespace(scope));
             }
         }
 
@@ -575,7 +575,7 @@ export default class CSymbol extends SourceSymbol {
 
     templatedName(normalize?: boolean): string {
         const templateName = this.name + this.templateParameters();
-        return normalize ? parse.normalize(templateName) : templateName;
+        return normalize ? parse.normalizeWhitespace(templateName) : templateName;
     }
 
     /**

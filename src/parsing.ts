@@ -107,11 +107,11 @@ function replaceAttributes(text: string, keepEnclosingChars: boolean = true, rep
     return text.replace(/\[\[.*\]\]/g, replacer);
 }
 
-export function maskNonSourceText(text: string): string {
+export function maskNonSourceText(text: string, keepAttributeBrackets: boolean = true): string {
     text = maskComments(text, false);
     text = maskRawStringLiterals(text);
     text = maskQuotes(text);
-    return maskAttributes(text);
+    return maskAttributes(text, keepAttributeBrackets);
 }
 
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
@@ -138,7 +138,7 @@ export function maskComparisonOperators(text: string): string {
  * Removes all whitespace except for whitespace that exists between 2 adjacent word boundaries,
  * and normalizes that whitespace to be single spaces.
  */
-export function normalize(text: string): string {
+export function normalizeWhitespace(text: string): string {
     return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');
 }
 
@@ -182,18 +182,14 @@ export function getIndentationRegExp(symbol: CSymbol): RegExp {
     return new RegExp('^' + indentation, 'gm');
 }
 
-function maskParameters(parameters: string): string {
-    // Mask anything that might contain commas or equals-signs.
-    parameters = maskNonSourceText(parameters);
-    parameters = maskParentheses(parameters);
-    parameters = maskAngleBrackets(parameters);
-    parameters = maskBraces(parameters);
-    parameters = maskBrackets(parameters);
-    return maskComparisonOperators(parameters);
-}
-
 export function stripDefaultValues(parameters: string): string {
-    const maskedParameters = maskParameters(parameters);
+    // Mask anything that might contain commas or equals-signs.
+    let maskedParameters = maskNonSourceText(parameters);
+    maskedParameters = maskParentheses(maskedParameters);
+    maskedParameters = maskAngleBrackets(maskedParameters);
+    maskedParameters = maskBraces(maskedParameters);
+    maskedParameters = maskBrackets(maskedParameters);
+    maskedParameters = maskComparisonOperators(maskedParameters);
 
     const splitParameters = maskedParameters.split(',');
     let strippedParameters = '';
@@ -211,24 +207,46 @@ export function stripDefaultValues(parameters: string): string {
 }
 
 export function getParameterTypes(parameters: string): string[] {
-    const maskedParameters = maskParameters(parameters);
+    parameters = maskNonSourceText(parameters, false);
+    // Mask anything that might contain commas or equals-signs.
+    let maskedParameters = maskParentheses(parameters);
+    maskedParameters = maskAngleBrackets(maskedParameters);
+    maskedParameters = maskBraces(maskedParameters);
+    maskedParameters = maskBrackets(maskedParameters);
+    maskedParameters = maskComparisonOperators(maskedParameters);
 
     const parameterTypes: string[] = [];
     for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]+(?==|,|$)/g)) {
-        if (match.index !== undefined && match[0].trim().length !== 0) {
-            const parameter = parameters.slice(match.index, match.index + match[0].length).trim();
-            const nameMatch = parameter.match(/(?<=.+)\b[\w_][\w\d_]*$/);
+        if (match.index !== undefined && !/^\s*$/.test(match[0])) {
+            const maskedParameter = match[0].trimEnd();
+            const parameter = parameters.slice(match.index, match.index + maskedParameter.length);
+
+            const nameMatch = maskedParameter.match(/(?<=.+)(\b[\w_][\w\d_]*)(\s*\[\s*\])*$/s);
             if (nameMatch) {
-                const parameterType = parameter.slice(0, -nameMatch[0].length);
-                if (nameMatch[0] !== 'const' && nameMatch[0] !== 'volatile'
+                const parameterType = parameter.slice(0, -nameMatch[0].length).trimStart();
+                if (parameterType.length !== 0 && nameMatch[1] !== 'const' && nameMatch[1] !== 'volatile'
                         && !/^(const|volatile)(\s+(const|volatile))?\s*$/.test(parameterType)) {
-                    parameterTypes.push(parameterType);
-                } else {
-                    parameterTypes.push(parameter);
+                    parameterTypes.push(parameterType + (nameMatch[2] ? parameter.slice(-nameMatch[2].length) : ''));
+
+                    continue;
                 }
             } else {
-                parameterTypes.push(parameter);
+                const nestedDeclaratorIndex = maskedParameter.search(/\(\s*\)(\s*\(\s*\)|(\s*\[\s*\])+)$/);
+                if (nestedDeclaratorIndex !== -1) {
+                    const deepestRightParen = parameter.indexOf(')', nestedDeclaratorIndex);
+                    if (deepestRightParen !== -1) {
+                        const trimmedParameter = parameter.slice(0, deepestRightParen);
+                        const parameterType = trimmedParameter.replace(/\b[\w_][\w\d_]*(?=\s*$)/, match => {
+                            return (match !== 'const' && match !== 'volatile') ? '' : match;
+                        }) + parameter.slice(deepestRightParen);
+                        parameterTypes.push(parameterType.trimStart());
+
+                        continue;
+                    }
+                }
             }
+
+            parameterTypes.push(parameter.trimStart());
         }
     }
 
