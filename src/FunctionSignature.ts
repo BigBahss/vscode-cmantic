@@ -2,24 +2,25 @@ import * as vscode from 'vscode';
 import * as util from './utility';
 import * as parse from './parsing';
 import CSymbol from './CSymbol';
+import { ParameterList, parseParameterList } from './ParameterList';
 
 
 export type RefQualifier = '' | '&' | '&&';
 
 export default class FunctionSignature {
     readonly range: vscode.Range;
-    readonly name: string = '';
-    readonly returnType: string = '';
+    readonly name: string;
+    readonly returnType: string;
     readonly returnTypeRange: vscode.Range;
-    readonly parameterTypes: ReadonlyArray<string> = [];
+    readonly parameters: ParameterList;
     readonly parametersRange: vscode.Range;
     readonly trailingSpecifierRange: vscode.Range;
-    readonly isConstexpr: boolean = false;
-    readonly isConsteval: boolean = false;
-    readonly isConst: boolean = false;
-    readonly isVolatile: boolean = false;
-    readonly refQualifier: RefQualifier = '';
-    readonly noexcept: string = '';
+    readonly isConstexpr: boolean;
+    readonly isConsteval: boolean;
+    readonly isConst: boolean;
+    readonly isVolatile: boolean;
+    readonly refQualifier: RefQualifier;
+    readonly noexcept: string;
 
     private _normalizedReturnType: string | undefined;
     private _normalizedParameterTypes: ReadonlyArray<string> | undefined;
@@ -32,7 +33,7 @@ export default class FunctionSignature {
 
     get normalizedParameterTypes(): ReadonlyArray<string> {
         return this._normalizedParameterTypes
-            ?? (this._normalizedParameterTypes = this.parameterTypes.map(type => normalize(type)));
+            ?? (this._normalizedParameterTypes = this.parameters.map(parameter => normalize(parameter.type)));
     }
 
     get normalizedNoexcept(): string {
@@ -65,8 +66,10 @@ export default class FunctionSignature {
         }
 
         this.name = functionSymbol.name;
-        this.parameterTypes = parse.getParameterTypes(declaration.slice(paramStartIndex + 1, paramEndIndex));
-        const parametersStart = doc.positionAt(declarationStartOffset + paramStartIndex + 1);
+        const rawParameters = declaration.slice(paramStartIndex + 1, paramEndIndex);
+        const paramStartOffset = declarationStartOffset + paramStartIndex + 1;
+        this.parameters = parseParameterList(rawParameters, paramStartOffset, doc);
+        const parametersStart = doc.positionAt(paramStartOffset);
         const parametersEnd = doc.positionAt(declarationStartOffset + paramEndIndex);
         this.parametersRange = new vscode.Range(parametersStart, parametersEnd);
 
@@ -76,15 +79,19 @@ export default class FunctionSignature {
         const trailingText = declaration.slice(paramEndIndex + 1);
         const maskedTrailingText = maskedDeclaration.slice(paramEndIndex + 1);
         const noexceptMatch = maskedTrailingText.match(/\bnoexcept\b(\s*\(\s*\))?/);
-        if (noexceptMatch?.index !== undefined) {
-            this.noexcept = trailingText.slice(noexceptMatch.index, noexceptMatch.index + noexceptMatch[0].length);
-        }
+        this.noexcept = noexceptMatch?.index !== undefined
+                ? trailingText.slice(noexceptMatch.index, noexceptMatch.index + noexceptMatch[0].length)
+                : '';
 
         const trailingSpecifierStart = doc.positionAt(declarationStartOffset + paramEndIndex + 1);
         this.trailingSpecifierRange = new vscode.Range(trailingSpecifierStart, declarationEnd);
 
         if (functionSymbol.isConstructor() || functionSymbol.isDestructor()) {
+            this.returnType = '';
             this.returnTypeRange = functionSymbol.selectionRange;
+            this.isConst = false;
+            this.isVolatile = false;
+            this.refQualifier = '';
             return;
         }
 
@@ -137,7 +144,7 @@ function getRefQualifier(maskedTrailingSpecifiers: string): RefQualifier {
 }
 
 function normalize(sourceText: string): string {
-    sourceText = parse.removeAttributes(parse.removeComments(sourceText));
-    sourceText = sourceText.replace(/\b(const|volatile)\b/g, '');
+    sourceText = parse.removeComments(sourceText);
+    sourceText = parse.removeAttributes(sourceText);
     return parse.normalizeWhitespace(sourceText);
 }
