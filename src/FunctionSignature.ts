@@ -8,6 +8,7 @@ import { ParameterList, parseParameterList } from './ParameterList';
 export type RefQualifier = '' | '&' | '&&';
 
 export default class FunctionSignature {
+    readonly uri: vscode.Uri;
     readonly range: vscode.Range;
     readonly name: string;
     readonly returnType: string;
@@ -45,6 +46,7 @@ export default class FunctionSignature {
         }
 
         const doc = functionSymbol.document;
+        this.uri = doc.uri;
         const declarationStart = functionSymbol.declarationStart();
         const declarationStartOffset = doc.offsetAt(declarationStart);
         const declarationEnd = functionSymbol.declarationEnd();
