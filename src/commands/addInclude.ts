@@ -22,7 +22,6 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
 
     let includePosition: vscode.Position | undefined;
     let includeText = '#include ';
-    let currentPath = '';
     const eol = sourceDoc.endOfLine;
     const editOptions = { undoStopBefore: false, undoStopAfter: false };
 
@@ -55,7 +54,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
         await editor!.edit(edit => edit.replace(line.range, value), editOptions);
         line = sourceDoc!.lineAt(includePosition);
 
-        quickPick.items = await getIncludeCompletions(sourceDoc!, line.range.end, currentPath);
+        quickPick.items = await getIncludeCompletions(sourceDoc!, line.range.end);
     }
 
     function onWillAccept(quickPick: vscode.QuickPick<IncludeItem>): boolean {
@@ -66,7 +65,6 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
 
         const item = quickPick.selectedItems[0];
         if (item) {
-            currentPath += item.insertText;
             includeText += item.insertText;
             if (item.kind === vscode.CompletionItemKind.Folder || (item.insertText as string)?.endsWith('/')) {
                 quickPick.value = includeText;
@@ -103,14 +101,12 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
     }
 }
 
-async function getIncludeCompletions(
-    sourceDoc: SourceDocument, position: vscode.Position, currentPath: string
-): Promise<IncludeItem[]> {
+async function getIncludeCompletions(sourceDoc: SourceDocument, position: vscode.Position): Promise<IncludeItem[]> {
     const completions = await vscode.commands.executeCommand<vscode.CompletionList>(
             'vscode.executeCompletionItemProvider', sourceDoc.uri, position);
 
     const includeItems: IncludeItem[] = [];
-    for (const item of (completions?.items.slice(0, 128) ?? []) as IncludeItem[]) {
+    for (const item of (completions?.items ?? []) as IncludeItem[]) {
         item.insertText = item.insertText instanceof vscode.SnippetString
                 ? item.insertText.value : (item.insertText ?? item.label);
         switch (item.kind) {
@@ -121,10 +117,6 @@ async function getIncludeCompletions(
         case vscode.CompletionItemKind.Unit:
         case vscode.CompletionItemKind.Module:
         case undefined:
-            if (sourceDoc.includedFiles.length <= 32
-                    && sourceDoc.includedFiles.includes(currentPath + item.insertText.slice(0, -1))) {
-                continue;
-            }
             item.label = '$(file) ' + item.insertText;
             break;
         default:
