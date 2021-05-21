@@ -23,22 +23,16 @@ export default class FunctionSignature {
     readonly noexcept: string;
 
     private _normalizedReturnType: string | undefined;
-    private _normalizedParameterTypes: ReadonlyArray<string> | undefined;
     private _normalizedNoexcept: string | undefined;
 
     get normalizedReturnType(): string {
         return this._normalizedReturnType
-            ?? (this._normalizedReturnType = normalize(this.returnType));
-    }
-
-    get normalizedParameterTypes(): ReadonlyArray<string> {
-        return this._normalizedParameterTypes
-            ?? (this._normalizedParameterTypes = this.parameters.map(parameter => normalize(parameter.type)));
+            ?? (this._normalizedReturnType = parse.normalizeSourceText(this.returnType));
     }
 
     get normalizedNoexcept(): string {
         return this._normalizedNoexcept
-            ?? (this._normalizedNoexcept = normalize(this.noexcept));
+            ?? (this._normalizedNoexcept = parse.normalizeSourceText(this.noexcept));
     }
 
     get hasTrailingReturnType(): boolean {
@@ -122,7 +116,7 @@ export default class FunctionSignature {
     }
 
     equals(other: FunctionSignature): boolean {
-        return util.arraysAreEqual(this.normalizedParameterTypes, other.normalizedParameterTypes)
+        return this.parameters.typesEquals(other.parameters)
             && this.normalizedReturnType === other.normalizedReturnType
             && this.isConstexpr === other.isConstexpr
             && this.isConsteval === other.isConsteval
@@ -141,10 +135,4 @@ function getRefQualifier(maskedTrailingSpecifiers: string): RefQualifier {
     } else {
         return '';
     }
-}
-
-function normalize(sourceText: string): string {
-    sourceText = parse.removeComments(sourceText);
-    sourceText = parse.removeAttributes(sourceText);
-    return parse.normalizeWhitespace(sourceText);
 }

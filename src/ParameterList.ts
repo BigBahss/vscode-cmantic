@@ -5,12 +5,15 @@ import * as parse from './parsing';
 export interface Parameter {
     readonly raw: string;
     readonly type: string;
+    readonly normalizedType: string;
     readonly name: string;
     readonly defaultValue: string;
     readonly range: vscode.Range;
 }
 
-export type ParameterList = ReadonlyArray<Parameter>;
+export interface ParameterList extends ReadonlyArray<Parameter> {
+    typesEquals(other: ParameterList): boolean;
+}
 
 export function parseParameterList(
     parameters: string, startOffset: number, document: vscode.TextDocument
@@ -23,12 +26,13 @@ export function parseParameterList(
     maskedParameters = parse.maskBrackets(maskedParameters);
     maskedParameters = parse.maskComparisonOperators(maskedParameters);
 
-    const parameterList: Parameter[] = [];
-    for (const match of maskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)\s*(?=,|$)/g)) {
+    const parameterList = new _ParameterList();
+    for (const match of maskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)(?=,|$)/g)) {
         if (match.index !== undefined && !/^\s*$/.test(match[2])) {
             const index = match.index + match[1].length;
-            const parameter = parameters.slice(index, index + match[2].length);
-            parameterList.push(parseParameter(parameter, match[2], startOffset + index, document));
+            const maskedParameter = match[2].trimEnd();
+            const parameter = parameters.slice(index, index + maskedParameter.length);
+            parameterList.push(parseParameter(parameter, maskedParameter, startOffset + index, document));
         }
     }
 
@@ -47,18 +51,18 @@ function parseParameter(
     const end = document.positionAt(rawParameter.length + startOffset);
     const range = new vscode.Range(start, end);
 
-    const nameMatch = maskedParameter.match(/(?<=.+)(\b[\w_][\w\d_]*)(\s*\[\s*\])*$/s);
+    const nameMatch = maskedParameter.match(/(?<=.+)\s*(\b[\w_][\w\d_]*)(\s*\[\s*\])*$/s);
     if (nameMatch) {
-        const parameterType = parameter.slice(0, -nameMatch[0].length).trim();
+        const parameterType = parameter.slice(0, -nameMatch[0].length);
         if (parameterType.length !== 0 && nameMatch[1] !== 'const' && nameMatch[1] !== 'volatile'
                 && !/^(const|volatile)(\s+(const|volatile))?\s*$/.test(parameterType)) {
-            return {
-                raw: rawParameter.trim(),
-                type: parameterType + (nameMatch[2] ? parameter.slice(-nameMatch[2].length) : ''),
-                name: nameMatch[1],
-                defaultValue: defaultValue,
-                range: range
-            };
+            return new _Parameter(
+                rawParameter,
+                parameterType + (nameMatch[2] ? parameter.slice(-nameMatch[2].length) : ''),
+                nameMatch[1],
+                defaultValue,
+                range
+            );
         }
     } else {
         const nestedDeclaratorIndex = maskedParameter.search(/\(\s*\)(\s*\(\s*\)|(\s*\[\s*\])+)$/);
@@ -72,23 +76,57 @@ function parseParameter(
                     const parameterType = trimmedParameter.slice(0, nestedNameMatch.index)
                             + trimmedParameter.slice(nestedNameMatch.index + nestedNameMatch[0].length)
                             + parameter.slice(deepestRightParen);
-                    return {
-                        raw: rawParameter.trim(),
-                        type: parameterType.trim(),
-                        name: nestedNameMatch[0],
-                        defaultValue: defaultValue,
-                        range: range
-                    };
+                    return new _Parameter(
+                        rawParameter,
+                        parameterType,
+                        nestedNameMatch[0],
+                        defaultValue,
+                        range
+                    );
                 }
             }
         }
     }
 
-    return {
-        raw: rawParameter.trim(),
-        type: parameter.trim(),
-        name: '',
-        defaultValue: defaultValue,
-        range: range
-    };
+    return new _Parameter(
+        rawParameter,
+        parameter,
+        '',
+        defaultValue,
+        range
+    );
+}
+
+class _ParameterList extends Array<Parameter> implements ParameterList {
+    constructor(...parameters: Parameter[]) {
+        super(...parameters);
+    }
+
+    typesEquals(other: ParameterList): boolean {
+        if (this.length !== other.length) {
+            return false;
+        }
+        for (let i = 0; i < this.length; ++i) {
+            if (this[i].normalizedType !== other[i].normalizedType) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+class _Parameter implements Parameter {
+    private _normalizedType: string | undefined;
+
+    get normalizedType(): string {
+        return this._normalizedType ?? (this._normalizedType = parse.normalizeSourceText(this.type));
+    }
+
+    constructor(
+        readonly raw: string,
+        readonly type: string,
+        readonly name: string,
+        readonly defaultValue: string,
+        readonly range: vscode.Range
+    ) { }
 }

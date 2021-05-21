@@ -142,6 +142,12 @@ export function normalizeWhitespace(text: string): string {
     return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');
 }
 
+export function normalizeSourceText(sourceText: string): string {
+    sourceText = removeComments(sourceText);
+    sourceText = removeAttributes(sourceText);
+    return normalizeWhitespace(sourceText);
+}
+
 /**
  * DocumentSymbol.range doesn't always include the final semi-colon, so this finds the end of the last semi-colon.
  */
