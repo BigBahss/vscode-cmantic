@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
+## [Unreleased]
+### Added
+- Added completion suggestions to `Add Include`.
+
 ## [0.8.1] - May 1, 2021
 ### Changed
 - Improved UI elements (For example, when generating a constructor, you may not select delegating constructor with other initializers. Invalid options will automatically uncheck themselves.)
