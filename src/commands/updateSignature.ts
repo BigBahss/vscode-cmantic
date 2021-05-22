@@ -4,6 +4,7 @@ import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
 import FunctionSignature from '../FunctionSignature';
 import { logger } from '../extension';
+import { ParameterList } from '../ParameterList';
 
 
 export async function updateSignature(
@@ -34,8 +35,8 @@ export async function updateSignature(
 
     const workspaceEdit = new vscode.WorkspaceEdit();
 
+    updateParameters(currentSig, previousSig, sourceDoc, linkedSig, linkedDoc, workspaceEdit);
     updateReturnType(currentSig, linkedSig, linkedDoc, workspaceEdit);
-    updateParameters(currentSig, previousSig, linkedSig, linkedDoc, workspaceEdit);
     updateSpecifiers(currentSig, linkedSig, linkedDoc, workspaceEdit);
 
     return vscode.workspace.applyEdit(workspaceEdit);
@@ -60,13 +61,33 @@ function updateReturnType(
 function updateParameters(
     currentSig: FunctionSignature,
     previousSig: FunctionSignature,
+    sourceDoc: SourceDocument,
     linkedSig: FunctionSignature,
     linkedDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit
 ): void {
-    if (currentSig.parameters.typesAreEqual(previousSig.parameters)) {
+    if (currentSig.parameters.typesAreEqual(previousSig.parameters) || hasDefaultValues(linkedSig.parameters)) {
         return;
     }
+
+    let parameters = hasDefaultValues(currentSig.parameters)
+            ? parse.stripDefaultValues(sourceDoc.getText(currentSig.parameters.range))
+            : sourceDoc.getText(currentSig.parameters.range);
+
+    if (parameters.includes('\n ')) {
+        const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
+        if (diff > 0) {
+            parameters = parameters.replace(/\n/g, '\n' + ' '.repeat(diff));
+        } else if (diff < 0) {
+            parameters = parameters.replace(new RegExp('\\n' + ' '.repeat(-diff), 'g'), '\n');
+        }
+    }
+
+    workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parameters);
+}
+
+function hasDefaultValues(parameters: ParameterList): boolean {
+    return parameters.some(parameter => parameter.defaultValue.length !== 0);
 }
 
 function updateSpecifiers(
