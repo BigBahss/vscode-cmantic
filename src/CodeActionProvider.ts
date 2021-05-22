@@ -107,7 +107,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     private moveDefinitionEnabled!: boolean;
     private generateGetterSetterEnabled!: boolean;
 
-    private lastSignature?: FunctionSignature;
+    private previousSig?: FunctionSignature;
     private currentFunction?: LinkedLocation;
     private changedFunction?: LinkedLocation;
 
@@ -171,7 +171,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     resolveCodeAction(codeAction: CodeAction): CodeAction {
         if (codeAction.command.command === 'cmantic.updateSignature') {
             this.changedFunction = undefined;
-            this.lastSignature = undefined;
+            this.previousSig = undefined;
         }
         return codeAction;
     }
@@ -187,9 +187,9 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
             this.currentFunction = undefined;
         }
 
-        if (symbol?.isFunction() && !this.lastSignature?.range.intersection(symbol.selectionRange)
-                && (this.lastSignature?.uri.fsPath === symbol.uri.fsPath || !this.lastSignature)) {
-            this.lastSignature = new FunctionSignature(symbol);
+        if (symbol?.isFunction() && !this.previousSig?.range.intersection(symbol.selectionRange)
+                && (this.previousSig?.uri.fsPath === symbol.uri.fsPath || !this.previousSig)) {
+            this.previousSig = new FunctionSignature(symbol);
         }
     }
 
@@ -270,7 +270,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         symbol: CSymbol,
         sourceDoc: SourceDocument
     ): Promise<RefactorAction | undefined> {
-        if (!this.changedFunction || !this.lastSignature) {
+        if (!this.changedFunction || !this.previousSig) {
             return;
         }
 
@@ -283,8 +283,8 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         let title: string;
         if (symbol.isFunctionDeclaration()) {
             if (await symbol.findDefinition()) {
-                const currentSignature = new FunctionSignature(symbol);
-                if (currentSignature.equals(this.lastSignature)) {
+                const currentSig = new FunctionSignature(symbol);
+                if (currentSig.isEqual(this.previousSig)) {
                     this.changedFunction = undefined;
                     return;
                 }
@@ -292,8 +292,8 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
             title = 'Update Function Definition';
         } else if (symbol.isFunctionDefinition()) {
             if (await symbol.findDeclaration()) {
-                const currentSignature = new FunctionSignature(symbol);
-                if (currentSignature.equals(this.lastSignature)) {
+                const currentSig = new FunctionSignature(symbol);
+                if (currentSig.isEqual(this.previousSig)) {
                     this.changedFunction = undefined;
                     return;
                 }
@@ -304,7 +304,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         }
 
         const updateSignature = new RefactorAction(title, 'cmantic.updateSignature');
-        updateSignature.setArguments(symbol, sourceDoc, this.changedFunction.linkedLocation);
+        updateSignature.setArguments(symbol, this.previousSig, sourceDoc, this.changedFunction.linkedLocation);
 
         if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
             updateSignature.kind = vscode.CodeActionKind.QuickFix;

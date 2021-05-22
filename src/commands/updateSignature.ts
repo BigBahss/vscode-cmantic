@@ -8,6 +8,7 @@ import { logger } from '../extension';
 
 export async function updateSignature(
     currentFunction: CSymbol,
+    previousSig: FunctionSignature,
     sourceDoc: SourceDocument,
     linkedLocation: vscode.Location
 ): Promise<boolean | undefined> {
@@ -34,7 +35,7 @@ export async function updateSignature(
     const workspaceEdit = new vscode.WorkspaceEdit();
 
     updateReturnType(currentSig, linkedSig, linkedDoc, workspaceEdit);
-    updateParameters(currentSig, linkedSig, linkedDoc, workspaceEdit);
+    updateParameters(currentSig, previousSig, linkedSig, linkedDoc, workspaceEdit);
     updateSpecifiers(currentSig, linkedSig, linkedDoc, workspaceEdit);
 
     return vscode.workspace.applyEdit(workspaceEdit);
@@ -58,11 +59,12 @@ function updateReturnType(
 
 function updateParameters(
     currentSig: FunctionSignature,
+    previousSig: FunctionSignature,
     linkedSig: FunctionSignature,
     linkedDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit
 ): void {
-    if (currentSig.parameters.typesEquals(linkedSig.parameters)) {
+    if (currentSig.parameters.typesAreEqual(previousSig.parameters)) {
         return;
     }
 }

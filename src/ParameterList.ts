@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as parse from './parsing';
+import * as util from './utility';
 
 
 export interface Parameter {
@@ -9,16 +10,19 @@ export interface Parameter {
     readonly name: string;
     readonly defaultValue: string;
     readonly range: vscode.Range;
+    isEqual(other: Parameter): boolean;
 }
 
 export interface ParameterList extends ReadonlyArray<Parameter> {
-    typesEquals(other: ParameterList): boolean;
+    readonly range: vscode.Range;
+    isEqual(other: ParameterList): boolean;
+    isReordered(other: ParameterList): boolean;
+    typesAreEqual(other: ParameterList): boolean;
+    typesAreReordered(other: ParameterList): boolean;
 }
 
-export function parseParameterList(
-    parameters: string, startOffset: number, document: vscode.TextDocument
-): ParameterList {
-    parameters = parse.maskNonSourceText(parameters, false);
+export function parseParameterList(document: vscode.TextDocument, range: vscode.Range): ParameterList {
+    const parameters = parse.maskNonSourceText(document.getText(range), false);
     // Mask anything that might contain commas or equals-signs.
     let maskedParameters = parse.maskParentheses(parameters);
     maskedParameters = parse.maskAngleBrackets(maskedParameters);
@@ -26,7 +30,9 @@ export function parseParameterList(
     maskedParameters = parse.maskBrackets(maskedParameters);
     maskedParameters = parse.maskComparisonOperators(maskedParameters);
 
-    const parameterList = new _ParameterList();
+    const startOffset = document.offsetAt(range.start);
+
+    const parameterList = new _ParameterList(range);
     for (const match of maskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)(?=,|$)/g)) {
         if (match.index !== undefined && !/^\s*$/.test(match[2])) {
             const index = match.index + match[1].length;
@@ -98,25 +104,50 @@ function parseParameter(
 }
 
 class _ParameterList extends Array<Parameter> implements ParameterList {
-    constructor(...parameters: Parameter[]) {
-        super(...parameters);
+    readonly range: vscode.Range;
+
+    constructor(range: vscode.Range) {
+        super();
+        this.range = range;
     }
 
-    typesEquals(other: ParameterList): boolean {
-        if (this.length !== other.length) {
+    isEqual(other: ParameterList): boolean {
+        return util.arraysAreEqual(this, other, (a, b) => a.isEqual(b));
+    }
+
+    isReordered(other: ParameterList): boolean {
+        if (this.length !== other.length || this.isEqual(other)) {
             return false;
         }
-        for (let i = 0; i < this.length; ++i) {
-            if (this[i].normalizedType !== other[i].normalizedType) {
-                return false;
-            }
+
+        const sorted = this.slice().sort(compareParameterTypes);
+        const otherSorted = other.slice().sort(compareParameterTypes);
+
+        return util.arraysAreEqual(sorted, otherSorted, (a, b) => a.isEqual(b));
+    }
+
+    typesAreEqual(other: ParameterList): boolean {
+        return util.arraysAreEqual(this, other, (a, b) => a.normalizedType === b.normalizedType);
+    }
+
+    typesAreReordered(other: ParameterList): boolean {
+        if (this.length !== other.length || this.typesAreEqual(other)) {
+            return false;
         }
-        return true;
+
+        const sortedTypes = this.map(parameter => parameter.normalizedType).sort();
+        const otherSortedTypes = other.map(parameter => parameter.normalizedType).sort();
+
+        return util.arraysAreEqual(sortedTypes, otherSortedTypes);
     }
 }
 
+function compareParameterTypes(a: Parameter, b: Parameter): number {
+    return a.normalizedType < b.normalizedType ? -1 : (a.normalizedType > b.normalizedType ? 1 : 0);
+}
+
 class _Parameter implements Parameter {
-    private _normalizedType: string | undefined;
+    private _normalizedType?: string;
 
     get normalizedType(): string {
         return this._normalizedType ?? (this._normalizedType = parse.normalizeSourceText(this.type));
@@ -129,4 +160,8 @@ class _Parameter implements Parameter {
         readonly defaultValue: string,
         readonly range: vscode.Range
     ) { }
+
+    isEqual(other: Parameter): boolean {
+        return this.normalizedType === other.normalizedType && this.name === other.name;
+    }
 }
