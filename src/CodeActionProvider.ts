@@ -107,9 +107,10 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     private moveDefinitionEnabled!: boolean;
     private generateGetterSetterEnabled!: boolean;
 
-    private previousSig?: FunctionSignature;
     private currentFunction?: LinkedLocation;
+    private currentSig?: FunctionSignature;
     private changedFunction?: LinkedLocation;
+    private previousSig?: FunctionSignature;
 
     private readonly disposables: vscode.Disposable[];
 
@@ -128,6 +129,9 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
                         if (change.range.intersection(this.currentFunction.range)) {
                             this.currentFunction.range = this.currentFunction.range.union(change.range);
                             this.changedFunction = this.currentFunction;
+                            if (!this.previousSig?.range.intersection(this.changedFunction.range)) {
+                                this.previousSig = this.currentSig;
+                            }
                         }
                     }
                 }
@@ -179,17 +183,22 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     private async updateTrackedFunction(symbol: CSymbol | undefined): Promise<void> {
         if (symbol?.isFunctionDeclaration()) {
             const definitionLocation = await symbol.findDefinition();
-            this.currentFunction = definitionLocation ? new LinkedLocation(symbol, definitionLocation) : undefined;
+            if (definitionLocation) {
+                this.currentFunction = new LinkedLocation(symbol, definitionLocation);
+            }
         } else if (symbol?.isFunctionDefinition()) {
             const declarationLocation = await symbol.findDeclaration();
-            this.currentFunction = declarationLocation ? new LinkedLocation(symbol, declarationLocation) : undefined;
+            if (declarationLocation) {
+                this.currentFunction = new LinkedLocation(symbol, declarationLocation);
+            }
         } else {
-            this.currentFunction = undefined;
+            return;
         }
 
-        if (symbol?.isFunction() && !this.previousSig?.range.intersection(symbol.selectionRange)
-                && (this.previousSig?.uri.fsPath === symbol.uri.fsPath || !this.previousSig)) {
-            this.previousSig = new FunctionSignature(symbol);
+        try {
+            this.currentSig = new FunctionSignature(symbol);
+        } catch (e) {
+            return;
         }
     }
 
@@ -281,25 +290,24 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         this.changedFunction.range = range;
 
         let title: string;
+        let p_linkedLocation: Promise<vscode.Location | undefined>;
         if (symbol.isFunctionDeclaration()) {
-            if (await symbol.findDefinition()) {
-                const currentSig = new FunctionSignature(symbol);
-                if (currentSig.isEqual(this.previousSig)) {
-                    this.changedFunction = undefined;
-                    return;
-                }
-            }
             title = 'Update Function Definition';
+            p_linkedLocation = symbol.findDefinition();
         } else if (symbol.isFunctionDefinition()) {
-            if (await symbol.findDeclaration()) {
-                const currentSig = new FunctionSignature(symbol);
-                if (currentSig.isEqual(this.previousSig)) {
-                    this.changedFunction = undefined;
-                    return;
-                }
-            }
             title = 'Update Function Declaration';
+            p_linkedLocation = symbol.findDeclaration();
         } else {
+            return;
+        }
+
+        try {
+            this.currentSig = new FunctionSignature(symbol);
+        } catch (e) {
+            return;
+        }
+
+        if (await p_linkedLocation && this.currentSig.isEqual(this.previousSig)) {
             return;
         }
 

@@ -50,7 +50,7 @@ function updateReturnType(
     if (currentSig.normalizedReturnType !== linkedSig.normalizedReturnType) {
         const nextCharEnd = linkedSig.returnTypeRange.end.translate(0, 1);
         const nextChar = linkedDoc.getText(new vscode.Range(linkedSig.returnTypeRange.end, nextCharEnd));
-        const newReturnType = /[\w\d_]$/.test(currentSig.returnType) && /^[\w\d_]/.test(nextChar)
+        const newReturnType = /^[\w\d_]/.test(nextChar) && /[\w\d_][^\w\d_\s]*$/.test(currentSig.returnType)
                 ? currentSig.returnType + ' '
                 : currentSig.returnType;
         workspaceEdit.replace(linkedDoc.uri, linkedSig.returnTypeRange, newReturnType);

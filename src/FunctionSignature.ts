@@ -60,9 +60,9 @@ export default class FunctionSignature {
         const declaration = sourceDoc.getText(this.range);
         const maskedDeclaration = parse.maskParentheses(parse.maskNonSourceText(declaration));
 
-        const nameEndIndex = sourceDoc.offsetAt(functionSymbol.selectionRange.end) - declarationStartOffset;
-        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
-        const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
+        const nameStartIndex = sourceDoc.offsetAt(functionSymbol.selectionRange.start) - declarationStartOffset;
+        const paramStartIndex = maskedDeclaration.indexOf('(', nameStartIndex);
+        const paramEndIndex = maskedDeclaration.indexOf(')', nameStartIndex);
         if (paramStartIndex === -1 || paramEndIndex === -1) {
             throw new Error(`FunctionSignature: Cannot find parameters for function "${functionSymbol.name}".`);
         }
