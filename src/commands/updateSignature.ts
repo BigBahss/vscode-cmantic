@@ -4,7 +4,7 @@ import SourceDocument from '../SourceDocument';
 import CSymbol from '../CSymbol';
 import FunctionSignature from '../FunctionSignature';
 import { logger } from '../extension';
-import { ParameterList } from '../ParameterList';
+import { Parameter, ParameterList } from '../ParameterList';
 
 
 export async function updateSignature(
@@ -42,6 +42,75 @@ export async function updateSignature(
     return vscode.workspace.applyEdit(workspaceEdit);
 }
 
+function updateParameters(
+    currentSig: FunctionSignature,
+    previousSig: FunctionSignature,
+    sourceDoc: SourceDocument,
+    linkedSig: FunctionSignature,
+    linkedDoc: SourceDocument,
+    workspaceEdit: vscode.WorkspaceEdit
+): void {
+    if (currentSig.parameters.typesAreEqual(previousSig.parameters)) {
+        return;
+    }
+
+    const rawParameters = sourceDoc.getText(currentSig.parameters.range);
+
+    if (hasDefaultValues(linkedSig.parameters)) {
+        const parameters: string[] = currentSig.parameters.map(parameter => {
+            return parameter.text + getDefaultInitializer(parameter, linkedSig.parameters);
+        });
+
+        let parametersText = '';
+        if (rawParameters.includes('\n ')) {
+            const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
+            const eol = linkedDoc.endOfLine;
+            let lastPos: vscode.Position | undefined;
+            for (let i = 0; i < parameters.length; ++i) {
+                if (!lastPos) {
+                    lastPos = currentSig.parameters[i].range.end;
+                } else if (currentSig.parameters[i].range.start.line > lastPos.line) {
+                    parametersText += ',' + eol + ' '.repeat(currentSig.parameters[i].range.start.character + diff);
+                } else {
+                    parametersText += ', ';
+                }
+                parametersText += parameters[i];
+                lastPos = currentSig.parameters[i].range.end;
+            }
+        } else {
+            parametersText = parameters.join(', ');
+        }
+
+        workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
+    } else {
+        let parametersText = hasDefaultValues(currentSig.parameters)
+                ? parse.stripDefaultValues(rawParameters)
+                : sourceDoc.getText(currentSig.parameters.range);
+
+        if (parametersText.includes('\n ')) {
+            const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
+            if (diff > 0) {
+                parametersText = parametersText.replace(/\n/g, '\n' + ' '.repeat(diff));
+            } else if (diff < 0) {
+                parametersText = parametersText.replace(new RegExp('\\n' + ' '.repeat(-diff), 'g'), '\n');
+            }
+        }
+
+        workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
+    }
+}
+
+function hasDefaultValues(parameters: ParameterList): boolean {
+    return parameters.some(parameter => parameter.defaultValue.length !== 0);
+}
+
+function getDefaultInitializer(parameter: Parameter, linkedParameters: ParameterList): string {
+    const linkedParameter = parameter.name.length !== 0
+            ? linkedParameters.find(linkedParam => linkedParam.name === parameter.name)
+            : linkedParameters.find(linkedParam => linkedParam.normalizedType === parameter.normalizedType);
+    return linkedParameter?.defaultValue ? ' = ' + linkedParameter.defaultValue : '';
+}
+
 function updateReturnType(
     currentSig: FunctionSignature,
     linkedSig: FunctionSignature,
@@ -56,38 +125,6 @@ function updateReturnType(
                 : currentSig.returnType;
         workspaceEdit.replace(linkedDoc.uri, linkedSig.returnTypeRange, newReturnType);
     }
-}
-
-function updateParameters(
-    currentSig: FunctionSignature,
-    previousSig: FunctionSignature,
-    sourceDoc: SourceDocument,
-    linkedSig: FunctionSignature,
-    linkedDoc: SourceDocument,
-    workspaceEdit: vscode.WorkspaceEdit
-): void {
-    if (currentSig.parameters.typesAreEqual(previousSig.parameters) || hasDefaultValues(linkedSig.parameters)) {
-        return;
-    }
-
-    let parameters = hasDefaultValues(currentSig.parameters)
-            ? parse.stripDefaultValues(sourceDoc.getText(currentSig.parameters.range))
-            : sourceDoc.getText(currentSig.parameters.range);
-
-    if (parameters.includes('\n ')) {
-        const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
-        if (diff > 0) {
-            parameters = parameters.replace(/\n/g, '\n' + ' '.repeat(diff));
-        } else if (diff < 0) {
-            parameters = parameters.replace(new RegExp('\\n' + ' '.repeat(-diff), 'g'), '\n');
-        }
-    }
-
-    workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parameters);
-}
-
-function hasDefaultValues(parameters: ParameterList): boolean {
-    return parameters.some(parameter => parameter.defaultValue.length !== 0);
 }
 
 function updateSpecifiers(

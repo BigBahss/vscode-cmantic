@@ -4,7 +4,7 @@ import * as util from './utility';
 
 
 export interface Parameter {
-    readonly raw: string;
+    readonly text: string;
     readonly type: string;
     readonly normalizedType: string;
     readonly name: string;
@@ -154,7 +154,7 @@ class _Parameter implements Parameter {
     }
 
     constructor(
-        readonly raw: string,
+        readonly text: string,
         readonly type: string,
         readonly name: string,
         readonly defaultValue: string,
