@@ -33,7 +33,7 @@ export function parseParameterList(document: vscode.TextDocument, range: vscode.
 
     const startOffset = document.offsetAt(range.start);
 
-    const variadicParamStartIndex = maskedParameters.search(/,?\s*...\s*$/);
+    const variadicParamStartIndex = maskedParameters.search(/,?\s*\.\.\.\s*$/);
     if (variadicParamStartIndex !== -1) {
         maskedParameters = maskedParameters.slice(0, variadicParamStartIndex);
     }
