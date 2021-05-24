@@ -11,6 +11,7 @@ export interface Parameter {
     readonly defaultValue: string;
     readonly range: vscode.Range;
     isEqual(other: Parameter): boolean;
+    withName(name?: string): string;
 }
 
 export interface ParameterList extends ReadonlyArray<Parameter> {
@@ -65,6 +66,7 @@ function parseParameter(
             return new _Parameter(
                 rawParameter,
                 parameterType + (nameMatch[2] ? parameter.slice(-nameMatch[2].length) : ''),
+                parameterType.length,
                 nameMatch[1],
                 defaultValue,
                 range
@@ -85,7 +87,17 @@ function parseParameter(
                     return new _Parameter(
                         rawParameter,
                         parameterType,
+                        nestedNameMatch.index,
                         nestedNameMatch[0],
+                        defaultValue,
+                        range
+                    );
+                } else {
+                    return new _Parameter(
+                        rawParameter,
+                        parameter,
+                        deepestRightParen,
+                        '',
                         defaultValue,
                         range
                     );
@@ -94,9 +106,12 @@ function parseParameter(
         }
     }
 
+    const arrayIndex = parameter.search(/\[\s*\](\s*\[\s*\])*/);
+
     return new _Parameter(
         rawParameter,
         parameter,
+        arrayIndex !== -1 ? arrayIndex : parameter.length,
         '',
         defaultValue,
         range
@@ -156,6 +171,7 @@ class _Parameter implements Parameter {
     constructor(
         readonly text: string,
         readonly type: string,
+        readonly indexOfName: number,
         readonly name: string,
         readonly defaultValue: string,
         readonly range: vscode.Range
@@ -163,5 +179,12 @@ class _Parameter implements Parameter {
 
     isEqual(other: Parameter): boolean {
         return this.normalizedType === other.normalizedType && this.name === other.name;
+    }
+
+    withName(name: string = this.name): string {
+        const typeSnippet = this.type.slice(0, this.indexOfName);
+        return /[\w\d_][^\w\d_\s]*$/.test(typeSnippet) && name.length !== 0
+                ? typeSnippet + ' ' + name + this.type.slice(this.indexOfName)
+                : typeSnippet + name + this.type.slice(this.indexOfName);
     }
 }

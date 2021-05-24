@@ -54,18 +54,39 @@ function updateParameters(
         return;
     }
 
-    const rawParameters = sourceDoc.getText(currentSig.parameters.range);
+    if (someAreMissingNames(currentSig.parameters) && linkedSig.parameters.length !== 0 && linkedSig.isDefinition) {
+        let parametersText = '';
+        const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
+        const eol = linkedDoc.endOfLine;
+        let lastPos: vscode.Position | undefined;
+
+        for (const parameter of currentSig.parameters) {
+            if (!lastPos) {
+                lastPos = parameter.range.end;
+            } else if (parameter.range.start.line > lastPos.line) {
+                parametersText += ',' + eol + ' '.repeat(parameter.range.start.character + diff);
+            } else {
+                parametersText += ', ';
+            }
+            parametersText += constructParameter(parameter, linkedSig.parameters);
+            lastPos = parameter.range.end;
+        }
+
+        workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
+        return;
+    }
 
     if (hasDefaultValues(linkedSig.parameters)) {
-        const parameters: string[] = currentSig.parameters.map(parameter => {
+        const parameters = currentSig.parameters.map(parameter => {
             return parameter.text + getDefaultInitializer(parameter, linkedSig.parameters);
         });
 
         let parametersText = '';
-        if (rawParameters.includes('\n ')) {
+        if (currentSig.parameters.range.start.line !== currentSig.parameters.range.end.line) {
             const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
             const eol = linkedDoc.endOfLine;
             let lastPos: vscode.Position | undefined;
+
             for (let i = 0; i < parameters.length; ++i) {
                 if (!lastPos) {
                     lastPos = currentSig.parameters[i].range.end;
@@ -82,32 +103,50 @@ function updateParameters(
         }
 
         workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
-    } else {
-        let parametersText = hasDefaultValues(currentSig.parameters)
-                ? parse.stripDefaultValues(rawParameters)
-                : sourceDoc.getText(currentSig.parameters.range);
-
-        if (parametersText.includes('\n ')) {
-            const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
-            if (diff > 0) {
-                parametersText = parametersText.replace(/\n/g, '\n' + ' '.repeat(diff));
-            } else if (diff < 0) {
-                parametersText = parametersText.replace(new RegExp('\\n' + ' '.repeat(-diff), 'g'), '\n');
-            }
-        }
-
-        workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
+        return;
     }
+
+    let parametersText = hasDefaultValues(currentSig.parameters)
+            ? parse.stripDefaultValues(sourceDoc.getText(currentSig.parameters.range))
+            : sourceDoc.getText(currentSig.parameters.range);
+
+    if (currentSig.parameters.range.start.line !== currentSig.parameters.range.end.line) {
+        const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
+        if (diff > 0) {
+            parametersText = parametersText.replace(/\n/g, '\n' + ' '.repeat(diff));
+        } else if (diff < 0) {
+            parametersText = parametersText.replace(new RegExp('\\n' + ' '.repeat(-diff), 'g'), '\n');
+        }
+    }
+
+    workspaceEdit.replace(linkedDoc.uri, linkedSig.parameters.range, parametersText);
+}
+
+function someAreMissingNames(parameters: ParameterList): boolean {
+    return parameters.some(parameter => parameter.name.length === 0);
 }
 
 function hasDefaultValues(parameters: ParameterList): boolean {
     return parameters.some(parameter => parameter.defaultValue.length !== 0);
 }
 
+function constructParameter(parameter: Parameter, linkedParameters: ParameterList): string {
+    if (parameter.name.length !== 0) {
+        return parameter.withName();
+    }
+
+    const name = linkedParameters.find(linkedParameter => {
+        return linkedParameter.normalizedType === parameter.normalizedType;
+    })?.name ?? '';
+
+    return parameter.withName(name);
+}
+
 function getDefaultInitializer(parameter: Parameter, linkedParameters: ParameterList): string {
     const linkedParameter = parameter.name.length !== 0
             ? linkedParameters.find(linkedParam => linkedParam.name === parameter.name)
             : linkedParameters.find(linkedParam => linkedParam.normalizedType === parameter.normalizedType);
+
     return linkedParameter?.defaultValue ? ' = ' + linkedParameter.defaultValue : '';
 }
 
@@ -117,14 +156,17 @@ function updateReturnType(
     linkedDoc: SourceDocument,
     workspaceEdit: vscode.WorkspaceEdit
 ): void {
-    if (currentSig.normalizedReturnType !== linkedSig.normalizedReturnType) {
-        const nextCharEnd = linkedSig.returnTypeRange.end.translate(0, 1);
-        const nextChar = linkedDoc.getText(new vscode.Range(linkedSig.returnTypeRange.end, nextCharEnd));
-        const newReturnType = /^[\w\d_]/.test(nextChar) && /[\w\d_][^\w\d_\s]*$/.test(currentSig.returnType)
-                ? currentSig.returnType + ' '
-                : currentSig.returnType;
-        workspaceEdit.replace(linkedDoc.uri, linkedSig.returnTypeRange, newReturnType);
+    if (currentSig.normalizedReturnType === linkedSig.normalizedReturnType) {
+        return;
     }
+
+    const nextCharEnd = linkedSig.returnTypeRange.end.translate(0, 1);
+    const nextChar = linkedDoc.getText(new vscode.Range(linkedSig.returnTypeRange.end, nextCharEnd));
+    const newReturnType = /^[\w\d_]/.test(nextChar) && /[\w\d_][^\w\d_\s]*$/.test(currentSig.returnType)
+            ? currentSig.returnType + ' '
+            : currentSig.returnType;
+
+    workspaceEdit.replace(linkedDoc.uri, linkedSig.returnTypeRange, newReturnType);
 }
 
 function updateSpecifiers(
@@ -141,6 +183,7 @@ function updateSpecifiers(
         if (match?.index !== undefined) {
             const matchOffset = startOffset + match.index;
             const range = linkedDoc.rangeAt(matchOffset, matchOffset + match[0].length);
+
             workspaceEdit.replace(linkedDoc.uri, range, '');
         }
     }
