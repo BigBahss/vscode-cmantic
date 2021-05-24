@@ -33,6 +33,11 @@ export function parseParameterList(document: vscode.TextDocument, range: vscode.
 
     const startOffset = document.offsetAt(range.start);
 
+    const variadicParamStartIndex = maskedParameters.search(/,?\s*...\s*$/);
+    if (variadicParamStartIndex !== -1) {
+        maskedParameters = maskedParameters.slice(0, variadicParamStartIndex);
+    }
+
     const parameterList = new _ParameterList(range);
     for (const match of maskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)(?=,|$)/g)) {
         if (match.index !== undefined && !/^\s*$/.test(match[2])) {
@@ -41,6 +46,13 @@ export function parseParameterList(document: vscode.TextDocument, range: vscode.
             const parameter = parameters.slice(index, index + maskedParameter.length);
             parameterList.push(parseParameter(parameter, maskedParameter, startOffset + index, document));
         }
+    }
+
+    if (variadicParamStartIndex !== -1) {
+        const index = maskedParameters.lastIndexOf('...');
+        const variadicStart = document.positionAt(startOffset + index);
+        const variadicRange = new vscode.Range(variadicStart, variadicStart.translate(0, 3));
+        parameterList.push(new _Parameter('...', '...', 0, '', '', variadicRange));
     }
 
     return parameterList;
