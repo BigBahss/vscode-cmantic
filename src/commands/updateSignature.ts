@@ -82,7 +82,7 @@ function updateParameters(
         });
 
         let parametersText = '';
-        if (currentSig.parameters.range.start.line !== currentSig.parameters.range.end.line) {
+        if (!currentSig.parameters.range.isSingleLine) {
             const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
             const eol = linkedDoc.endOfLine;
             let lastPos: vscode.Position | undefined;
@@ -110,7 +110,7 @@ function updateParameters(
             ? parse.stripDefaultValues(sourceDoc.getText(currentSig.parameters.range))
             : sourceDoc.getText(currentSig.parameters.range);
 
-    if (currentSig.parameters.range.start.line !== currentSig.parameters.range.end.line) {
+    if (!currentSig.parameters.range.isSingleLine) {
         const diff = linkedSig.parameters.range.start.character - currentSig.parameters.range.start.character;
         if (diff > 0) {
             parametersText = parametersText.replace(/\n/g, '\n' + ' '.repeat(diff));

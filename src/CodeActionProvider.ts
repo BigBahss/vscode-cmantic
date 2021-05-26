@@ -126,13 +126,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
             vscode.workspace.onDidChangeTextDocument(event => {
                 if (event.document.uri.fsPath === this.currentFunction?.uri.fsPath) {
                     for (const change of event.contentChanges) {
-                        if (change.range.intersection(this.currentFunction.range)) {
-                            this.currentFunction.range = this.currentFunction.range.union(change.range);
-                            this.changedFunction = this.currentFunction;
-                            if (!this.previousSig?.range.intersection(this.changedFunction.range)) {
-                                this.previousSig = this.currentSig;
-                            }
-                        }
+                        this.handleChangesToFunctionSignature(change);
                     }
                 }
             })
@@ -144,6 +138,26 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         this.addDeclarationEnabled = cfg.enableAddDeclaration();
         this.moveDefinitionEnabled = cfg.enableMoveDefinition();
         this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+    }
+
+    private handleChangesToFunctionSignature(change: vscode.TextDocumentContentChangeEvent): void {
+        if (!this.currentFunction) {
+            return;
+        }
+
+        if (change.range.contains(this.currentFunction.range)) {
+            this.currentFunction = undefined;
+            this.currentSig = undefined;
+            return;
+        }
+
+        if (change.range.intersection(this.currentFunction.range)) {
+            this.currentFunction.range = this.currentFunction.range.union(change.range);
+            this.changedFunction = this.currentFunction;
+            if (!this.previousSig?.range.intersection(this.changedFunction.range)) {
+                this.previousSig = this.currentSig;
+            }
+        }
     }
 
     async provideCodeActions(
@@ -180,7 +194,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         return codeAction;
     }
 
-    private async updateTrackedFunction(symbol: CSymbol | undefined): Promise<void> {
+    private async updateTrackedFunction(symbol?: CSymbol): Promise<void> {
         if (symbol?.isFunctionDeclaration()) {
             const definitionLocation = await symbol.findDefinition();
             if (definitionLocation) {
@@ -307,7 +321,8 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
             return;
         }
 
-        if (await p_linkedLocation && this.currentSig.isEqual(this.previousSig)) {
+        if (this.currentSig.name !== this.previousSig.name
+                || (await p_linkedLocation && this.currentSig.isEqual(this.previousSig))) {
             return;
         }
 
