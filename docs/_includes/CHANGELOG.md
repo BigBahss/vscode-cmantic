@@ -3,6 +3,7 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 
 ## [Unreleased]
 ### Added
+- Added `Update Function Signature` code-action. After changing a function signature, this code-action will be provided to update that function's declaration or definition.
 - Added completion suggestions to `Add Include`.
 
 ## [0.8.1] - May 1, 2021
