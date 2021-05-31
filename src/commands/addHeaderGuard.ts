@@ -67,6 +67,11 @@ export function headerGuardMatchesConfiguredStyle(headerDoc: SourceDocument): bo
         return false;
     }
 
+    if ((headerGuardStyle === cfg.HeaderGuardStyle.PragmaOnce && headerDoc.headerGuardDefine)
+            || (headerGuardStyle === cfg.HeaderGuardStyle.Define && headerDoc.hasPragmaOnce)) {
+        return false;
+    }
+
     return true;
 }
 

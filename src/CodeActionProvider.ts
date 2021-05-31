@@ -43,6 +43,10 @@ export class CodeAction extends vscode.CodeAction {
     disable(reason: string): void {
         this.disabled = { reason: reason };
     }
+
+    get isEnabled(): boolean {
+        return this.disabled !== undefined;
+    }
 }
 
 interface CodeActionDocumentation {
@@ -116,7 +120,9 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
 
     constructor() {
         super(() => this.disposables.forEach(disposable => disposable.dispose()));
+
         this.updateEnabledCodeActions();
+
         this.disposables = [
             vscode.workspace.onDidChangeConfiguration(event => {
                 if (event.affectsConfiguration(cfg.extensionKey)) {
@@ -140,6 +146,41 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
     }
 
+    async provideCodeActions(
+        document: vscode.TextDocument,
+        rangeOrSelection: vscode.Range | vscode.Selection,
+        context: vscode.CodeActionContext,
+        token?: vscode.CancellationToken
+    ): Promise<CodeAction[]> {
+        const sourceDoc = new SourceDocument(document);
+
+        const [matchingUri, symbol] = await Promise.all([
+            getMatchingHeaderSource(sourceDoc.uri),
+            sourceDoc.getSymbol(rangeOrSelection.start)
+        ]);
+
+        if (token?.isCancellationRequested) {
+            return [];
+        }
+
+        const codeActions = await Promise.all([
+            this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
+            this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
+        ]);
+
+        setImmediate(() => this.updateTrackedFunction(symbol));
+
+        return codeActions.flat();
+    }
+
+    resolveCodeAction(codeAction: CodeAction): CodeAction {
+        if (codeAction.command.command === 'cmantic.updateSignature') {
+            this.changedFunction = undefined;
+            this.previousSig = undefined;
+        }
+        return codeAction;
+    }
+
     private handleChangesToFunctionSignature(change: vscode.TextDocumentContentChangeEvent): void {
         if (!this.currentFunction) {
             return;
@@ -158,40 +199,6 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
                 this.previousSig = this.currentSig;
             }
         }
-    }
-
-    async provideCodeActions(
-        document: vscode.TextDocument,
-        rangeOrSelection: vscode.Range | vscode.Selection,
-        context: vscode.CodeActionContext,
-        token?: vscode.CancellationToken
-    ): Promise<CodeAction[]> {
-        const sourceDoc = new SourceDocument(document);
-
-        const [matchingUri, symbol] = await Promise.all([
-            getMatchingHeaderSource(sourceDoc.uri),
-            sourceDoc.getSymbol(rangeOrSelection.start)
-        ]);
-
-        if (token?.isCancellationRequested) {
-            return [];
-        }
-
-        const codeActions = context.only?.contains(vscode.CodeActionKind.Source)
-                ? await this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
-                : await this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri);
-
-        setImmediate(() => this.updateTrackedFunction(symbol));
-
-        return codeActions;
-    }
-
-    resolveCodeAction(codeAction: CodeAction): CodeAction {
-        if (codeAction.command.command === 'cmantic.updateSignature') {
-            this.changedFunction = undefined;
-            this.previousSig = undefined;
-        }
-        return codeAction;
     }
 
     private async updateTrackedFunction(symbol?: CSymbol): Promise<void> {
@@ -223,7 +230,9 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
     ): Promise<RefactorAction[]> {
-        if (!symbol) {
+        if (context.only?.contains(vscode.CodeActionKind.Source)) {
+            return [];
+        } else if (!symbol) {
             return this.getFileRefactorings(context, sourceDoc, matchingUri);
         }
 
@@ -663,20 +672,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         matchingUri?: vscode.Uri
     ): Promise<SourceAction[]> {
         const addHeaderGuard = new SourceAction('Add Header Guard', 'cmantic.addHeaderGuard');
-        const addInclude = new SourceAction('Add Include', 'cmantic.addInclude');
-        const createMatchingSourceFile = new SourceAction(
-                'Create Matching Source File', 'cmantic.createMatchingSourceFile');
-
         addHeaderGuard.setArguments(sourceDoc);
-        addInclude.setArguments(sourceDoc);
-        createMatchingSourceFile.setArguments(sourceDoc);
-
-        if (!sourceDoc.isHeader()) {
-            addHeaderGuard.disable(addHeaderGuardFailure.notHeaderFile);
-            createMatchingSourceFile.disable(createSourceFileFailure.notHeaderFile);
-        } else if (matchingUri) {
-            createMatchingSourceFile.disable(createSourceFileFailure.sourceFileExists);
-        }
 
         if (sourceDoc.hasHeaderGuard) {
             addHeaderGuard.setTitle('Amend Header Guard');
@@ -691,6 +687,24 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
                     }
                 }
             }
+        }
+
+        if (!context.only?.contains(vscode.CodeActionKind.Source)) {
+            return addHeaderGuard.kind === vscode.CodeActionKind.QuickFix ? [addHeaderGuard] : [];
+        }
+
+        const addInclude = new SourceAction('Add Include', 'cmantic.addInclude');
+        const createMatchingSourceFile = new SourceAction(
+                'Create Matching Source File', 'cmantic.createMatchingSourceFile');
+
+        addInclude.setArguments(sourceDoc);
+        createMatchingSourceFile.setArguments(sourceDoc);
+
+        if (!sourceDoc.isHeader()) {
+            addHeaderGuard.disable(addHeaderGuardFailure.notHeaderFile);
+            createMatchingSourceFile.disable(createSourceFileFailure.notHeaderFile);
+        } else if (matchingUri) {
+            createMatchingSourceFile.disable(createSourceFileFailure.sourceFileExists);
         }
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];

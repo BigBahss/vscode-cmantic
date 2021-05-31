@@ -6,6 +6,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added `Update Function Signature` code-action. After changing a function signature, this code-action will be provided to update that function's declaration or definition.
 - Added completion suggestions to `Add Include`.
 
+### Changed
+- Fixed another bug when determining if an existing header guard matches the configured settings.
+
 ## [0.8.1] - May 1, 2021
 ### Changed
 - Improved UI elements (For example, when generating a constructor, you may not select delegating constructor with other initializers. Invalid options will automatically uncheck themselves.)
