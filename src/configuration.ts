@@ -47,17 +47,17 @@ const defaultAccessorDefinitionLocation = DefinitionLocation.Inline;
 const defaultResolveTypes = false;
 const defaultRevealNewDefinition = true;
 const defaultAlwaysMoveComments = true;
-const defaultEnableCodeAction = true;
+const defaultCodeActionEnable = true;
 const defaultCaseStyle = CaseStyle.camelCase;
 const defaultBracedInitialization = false;
 const defaultExplicitThisPointer = false;
 const defaultFriendComparisonOperators = false;
 
-export const extensionKey = 'C_mantic';
+export const cmanticKey = 'C_mantic';
 export const cpptoolsKey = 'C_Cpp';
 
 function configuration(scope?: vscode.ConfigurationScope): vscode.WorkspaceConfiguration {
-    return vscode.workspace.getConfiguration(extensionKey, scope);
+    return vscode.workspace.getConfiguration(cmanticKey, scope);
 }
 
 export function alertLevel(): AlertLevel {
@@ -74,20 +74,24 @@ export function alertLevel(): AlertLevel {
     }
 }
 
-export function enableAddDefinition(): boolean {
-    return configuration().get<boolean>('codeActions.enableAddDefinition', defaultEnableCodeAction);
+export function addDefinitionEnabled(): boolean {
+    return configuration().get<boolean>('codeActions.enableAddDefinition', defaultCodeActionEnable);
 }
 
-export function enableAddDeclaration(): boolean {
-    return configuration().get<boolean>('codeActions.enableAddDeclaration', defaultEnableCodeAction);
+export function addDeclarationEnabled(): boolean {
+    return configuration().get<boolean>('codeActions.enableAddDeclaration', defaultCodeActionEnable);
 }
 
-export function enableMoveDefinition(): boolean {
-    return configuration().get<boolean>('codeActions.enableMoveDefinition', defaultEnableCodeAction);
+export function moveDefinitionEnabled(): boolean {
+    return configuration().get<boolean>('codeActions.enableMoveDefinition', defaultCodeActionEnable);
 }
 
-export function enableGenerateGetterSetter(): boolean {
-    return configuration().get<boolean>('codeActions.enableGenerateGetterSetter', defaultEnableCodeAction);
+export function generateGetterSetterEnabled(): boolean {
+    return configuration().get<boolean>('codeActions.enableGenerateGetterSetter', defaultCodeActionEnable);
+}
+
+export function updateSignatureEnabled(): boolean {
+    return configuration().get<boolean>('codeActions.enableUpdateFunctionSignature', defaultCodeActionEnable);
 }
 
 export function headerExtensions(scope: vscode.ConfigurationScope): string[] {

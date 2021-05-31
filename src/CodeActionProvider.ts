@@ -110,6 +110,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     private addDeclarationEnabled!: boolean;
     private moveDefinitionEnabled!: boolean;
     private generateGetterSetterEnabled!: boolean;
+    private updateSignatureEnabled!: boolean;
 
     private currentFunction?: LinkedLocation;
     private currentSig?: FunctionSignature;
@@ -125,7 +126,7 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
 
         this.disposables = [
             vscode.workspace.onDidChangeConfiguration(event => {
-                if (event.affectsConfiguration(cfg.extensionKey)) {
+                if (event.affectsConfiguration(cfg.cmanticKey)) {
                     this.updateEnabledCodeActions();
                 }
             }),
@@ -140,10 +141,18 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
     }
 
     updateEnabledCodeActions(): void {
-        this.addDefinitionEnabled = cfg.enableAddDefinition();
-        this.addDeclarationEnabled = cfg.enableAddDeclaration();
-        this.moveDefinitionEnabled = cfg.enableMoveDefinition();
-        this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+        this.addDefinitionEnabled = cfg.addDefinitionEnabled();
+        this.addDeclarationEnabled = cfg.addDeclarationEnabled();
+        this.moveDefinitionEnabled = cfg.moveDefinitionEnabled();
+        this.generateGetterSetterEnabled = cfg.generateGetterSetterEnabled();
+        this.updateSignatureEnabled = cfg.updateSignatureEnabled();
+
+        if (!this.updateSignatureEnabled) {
+            this.currentFunction = undefined;
+            this.currentSig = undefined;
+            this.changedFunction = undefined;
+            this.previousSig = undefined;
+        }
     }
 
     async provideCodeActions(
@@ -168,7 +177,9 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
             this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
         ]);
 
-        setImmediate(() => this.updateTrackedFunction(symbol));
+        if (this.updateSignatureEnabled) {
+            setImmediate(() => this.updateTrackedFunction(symbol));
+        }
 
         return codeActions.flat();
     }

@@ -172,6 +172,12 @@
             "markdownDescription": "Controls whether the `Generate Getter/Setter` code actions are suggested (light-bulb menu). The code actions will still be available from the `Refactor...` menu.",
             "scope": "window"
           },
+          "C_mantic.codeActions.enableUpdateFunctionSignature": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Controls whether the `Update Function Declaration/Definition` code action is enabled. If disabled, this code action will not be suggested **or** available from the `Refactor...` menu.",
+            "scope": "window"
+          },
           "C_mantic.contextMenu.switchHeaderSource": {
             "type": "boolean",
             "default": true,
