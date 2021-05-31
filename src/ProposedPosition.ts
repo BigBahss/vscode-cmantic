@@ -21,11 +21,7 @@ export class ProposedPosition extends Position {
             super(0, 0);
         }
 
-        if (options) {
-            this.options = options;
-        } else {
-            this.options = { };
-        }
+        this.options = options ?? { };
     }
 
     formatTextToInsert(insertText: string, sourceDoc: SourceDocument): string {

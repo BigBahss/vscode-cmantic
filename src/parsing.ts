@@ -107,11 +107,11 @@ function replaceAttributes(text: string, keepEnclosingChars: boolean = true, rep
     return text.replace(/\[\[.*\]\]/g, replacer);
 }
 
-export function maskNonSourceText(text: string): string {
+export function maskNonSourceText(text: string, keepAttributeBrackets: boolean = true): string {
     text = maskComments(text, false);
     text = maskRawStringLiterals(text);
     text = maskQuotes(text);
-    return maskAttributes(text);
+    return maskAttributes(text, keepAttributeBrackets);
 }
 
 export function maskParentheses(text: string, keepEnclosingChars: boolean = true): string {
@@ -134,8 +134,18 @@ export function maskComparisonOperators(text: string): string {
     return text.replace(/[^\w\d_\s]=(?!=)/g, masker);
 }
 
-export function normalize(text: string): string {
+/**
+ * Removes all whitespace except for whitespace that exists between 2 adjacent word boundaries,
+ * and normalizes that whitespace to be single spaces.
+ */
+export function normalizeWhitespace(text: string): string {
     return text.replace(/\b\s+\B|\B\s+\b|\B\s+\B/g, '').replace(/\s+/g, ' ');
+}
+
+export function normalizeSourceText(sourceText: string): string {
+    sourceText = removeComments(sourceText);
+    sourceText = removeAttributes(sourceText);
+    return normalizeWhitespace(sourceText);
 }
 
 /**
@@ -199,10 +209,97 @@ export function stripDefaultValues(parameters: string): string {
         charPos += parameter.length + 1;
     }
 
-    return strippedParameters.substring(0, strippedParameters.length - 1);
+    return strippedParameters.slice(0, -1);
 }
 
-const re_primitiveTypes = /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
+export function getParameterTypes(parameters: string): string[] {
+    parameters = maskNonSourceText(parameters, false);
+    // Mask anything that might contain commas or equals-signs.
+    let maskedParameters = maskParentheses(parameters);
+    maskedParameters = maskAngleBrackets(maskedParameters);
+    maskedParameters = maskBraces(maskedParameters);
+    maskedParameters = maskBrackets(maskedParameters);
+    maskedParameters = maskComparisonOperators(maskedParameters);
+
+    const parameterTypes: string[] = [];
+    for (const match of maskedParameters.matchAll(/(?<=^|,)[^=,]+(?==|,|$)/g)) {
+        if (match.index !== undefined && !/^\s*$/.test(match[0])) {
+            const maskedParameter = match[0].trimEnd();
+            const parameter = parameters.slice(match.index, match.index + maskedParameter.length);
+
+            const nameMatch = maskedParameter.match(/(?<=.+)(\b[\w_][\w\d_]*)(\s*\[\s*\])*$/s);
+            if (nameMatch) {
+                const parameterType = parameter.slice(0, -nameMatch[0].length).trimStart();
+                if (parameterType.length !== 0 && nameMatch[1] !== 'const' && nameMatch[1] !== 'volatile'
+                        && !/^(const|volatile)(\s+(const|volatile))?\s*$/.test(parameterType)) {
+                    parameterTypes.push(parameterType + (nameMatch[2] ? parameter.slice(-nameMatch[2].length) : ''));
+
+                    continue;
+                }
+            } else {
+                const nestedDeclaratorIndex = maskedParameter.search(/\(\s*\)(\s*\(\s*\)|(\s*\[\s*\])+)$/);
+                if (nestedDeclaratorIndex !== -1) {
+                    const deepestRightParen = parameter.indexOf(')', nestedDeclaratorIndex);
+                    if (deepestRightParen !== -1) {
+                        const trimmedParameter = parameter.slice(0, deepestRightParen);
+                        const parameterType = trimmedParameter.replace(/\b[\w_][\w\d_]*(?=\s*$)/, match => {
+                            return (match !== 'const' && match !== 'volatile') ? '' : match;
+                        }) + parameter.slice(deepestRightParen);
+                        parameterTypes.push(parameterType.trimStart());
+
+                        continue;
+                    }
+                }
+            }
+
+            parameterTypes.push(parameter.trimStart());
+        }
+    }
+
+    return parameterTypes;
+}
+
+export function getLeadingReturnType(leadingText: string): string {
+    const maskedLeadingText = maskAngleBrackets(maskNonSourceText(leadingText));
+
+    const identifierMatches: RegExpMatchArray[] = [];
+    for (const match of maskedLeadingText.matchAll(/\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*/g)) {
+        identifierMatches.push(match);
+    }
+
+    let startOfType: number | undefined;
+    for (let i = identifierMatches.length - 1; i >= 0; --i) {
+        if ((startOfType === undefined
+                && identifierMatches[i][0] !== 'const' && identifierMatches[i][0] !== 'volatile')
+            || (startOfType !== undefined
+                && (identifierMatches[i][0] === 'const' || identifierMatches[i][0] === 'volatile'))) {
+            startOfType = identifierMatches[i].index;
+        }
+    }
+
+    return leadingText.slice(startOfType);
+}
+
+const re_trailingReturnTypeFragments =
+        /\b[\w_][\w\d_]*\b(\s*::\s*[\w_][\w\d_]*\b)*(\s*<\s*>)?(\s*\(\s*\)){0,2}|&{1,2}|\*{1,}/g;
+const re_constVolatileRefPtr = /^(const|volatile|&{1,2}|\*{1,})$/;
+
+export function getTrailingReturnType(trailingText: string): string {
+    const maskedTrailingText = maskAngleBrackets(maskParentheses(maskNonSourceText(trailingText)));
+
+    let endOfType: number | undefined;
+    for (const match of maskedTrailingText.matchAll(re_trailingReturnTypeFragments)) {
+        if ((endOfType === undefined && !re_constVolatileRefPtr.test(match[0]))
+                || (endOfType !== undefined && re_constVolatileRefPtr.test(match[0]))) {
+            endOfType = match.index !== undefined ? match.index + match[0].length : undefined;
+        }
+    }
+
+    return trailingText.slice(0, endOfType);
+}
+
+const re_primitiveTypes =
+        /\b(void|bool|char|wchar_t|char8_t|char16_t|char32_t|int|short|long|signed|unsigned|float|double)\b/;
 
 export function matchesPrimitiveType(text: string): boolean {
     return !(text.includes('<') && text.includes('>')) && re_primitiveTypes.test(text);

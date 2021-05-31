@@ -12,9 +12,9 @@ export const cmanticId = 'tdennis4496.cmantic';
 
 export const logger = new Logger('C-mantic');
 
-const disposables: vscode.Disposable[] = [logger];
 const codeActionProvider = new CodeActionProvider();
 const headerSourceCache = new HeaderSourceCache();
+const disposables: vscode.Disposable[] = [logger, codeActionProvider];
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     registerCommands(context);
@@ -112,13 +112,6 @@ async function onDidCreateFiles(event: vscode.FileCreateEvent): Promise<void> {
 }
 
 function onDidChangeConfiguration(event: vscode.ConfigurationChangeEvent): void {
-    if (event.affectsConfiguration(cfg.extensionKey)) {
-        codeActionProvider.addDefinitionEnabled = cfg.enableAddDefinition();
-        codeActionProvider.addDeclarationEnabled = cfg.enableAddDeclaration();
-        codeActionProvider.moveDefinitionEnabled = cfg.enableMoveDefinition();
-        codeActionProvider.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
-    }
-
     if (event.affectsConfiguration(cfg.cpptoolsKey)) {
         setActiveLanguageServer();
     }

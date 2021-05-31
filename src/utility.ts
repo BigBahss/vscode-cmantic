@@ -58,34 +58,44 @@ export function compareDirectoryPaths(directoryPath_a: string, directoryPath_b: 
     return a_segments.length !== b_segments.length ? coefficient + 1 : coefficient;
 }
 
-export function arraysAreEqual<T>(array_a: T[], array_b: T[]): boolean {
+export function arraysAreEqual<T>(
+    array_a: ReadonlyArray<T>,
+    array_b: ReadonlyArray<T>,
+    equalityFn: (a: T, b: T) => boolean = (a: T, b: T) => a === b
+): boolean {
     if (array_a.length !== array_b.length) {
         return false;
     }
+
     for (let i = 0; i < array_a.length; ++i) {
-        if (array_a[i] !== array_b[i]) {
+        if (!equalityFn(array_a[i], array_b[i])) {
             return false;
         }
     }
+
     return true;
 }
 
 /**
  * Returns true if the arrays are equal, or if either array is a sub-array of
  * the other, starting from the beginning of the arrays.
- * For example, [1, 2, 3] and [1, 2] intersect while [1, 2, 3] and [2, 3] do not.
+ * For example, `[1,2,3]` and `[1,2]` intersect while `[1,2,3]` and `[2,3]` do not.
  */
-export function arraysIntersect<T>(array_a: T[], array_b: T[]): boolean {
+export function arraysIntersect<T>(
+    array_a: ReadonlyArray<T>,
+    array_b: ReadonlyArray<T>,
+    equalityFn: (a: T, b: T) => boolean = (a: T, b: T) => a === b
+): boolean {
     const minLength = Math.min(array_a.length, array_b.length);
     for (let i = 0; i < minLength; ++i) {
-        if (array_a[i] !== array_b[i]) {
+        if (!equalityFn(array_a[i], array_b[i])) {
             return false;
         }
     }
     return true;
 }
 
-export function arraysShareAnyElement<T>(array_a: T[], array_b: T[]): boolean {
+export function arraysShareAnyElement<T>(array_a: ReadonlyArray<T>, array_b: ReadonlyArray<T>): boolean {
     for (const element of array_a) {
         if (array_b.includes(element)) {
             return true;

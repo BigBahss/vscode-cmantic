@@ -3,6 +3,7 @@ import {
     addDefinitionInSourceFile, addDefinitionInCurrentFile, addDefinitions, addDefinition
 } from './addDefinition';
 import { addDeclaration } from './addDeclaration';
+import { updateSignature } from './updateSignature';
 import { moveDefinitionToMatchingSourceFile, moveDefinitionIntoOrOutOfClass } from './moveDefinition';
 import {
     generateGetterSetter, generateGetter, generateSetter,
@@ -24,6 +25,7 @@ export type CmanticCommandId =
     | 'cmantic.addDefinitions'
     | 'cmantic.addDefinition'
     | 'cmantic.addDeclaration'
+    | 'cmantic.updateSignature'
     | 'cmantic.moveDefinitionToMatchingSourceFile'
     | 'cmantic.moveDefinitionIntoOrOutOfClass'
     | 'cmantic.generateGetterSetter'
@@ -55,6 +57,7 @@ export const commandHandlers: CommandHandlerMap = {
     'cmantic.addDefinitions': addDefinitions,
     'cmantic.addDefinition': addDefinition,
     'cmantic.addDeclaration': addDeclaration,
+    'cmantic.updateSignature': updateSignature,
     'cmantic.moveDefinitionToMatchingSourceFile': moveDefinitionToMatchingSourceFile,
     'cmantic.moveDefinitionIntoOrOutOfClass': moveDefinitionIntoOrOutOfClass,
     'cmantic.generateGetterSetter': generateGetterSetter,

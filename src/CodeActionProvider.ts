@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import * as cfg from './configuration';
+import * as parse from './parsing';
 import * as util from './utility';
 import SourceFile from './SourceFile';
 import SourceDocument from './SourceDocument';
 import CSymbol from './CSymbol';
+import FunctionSignature from './FunctionSignature';
 import { failure as addDefinitionFailure, title as addDefinitionTitle } from './commands/addDefinition';
 import { failure as addDeclarationFailure, title as addDeclarationTitle } from './commands/addDeclaration';
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './commands/moveDefinition';
@@ -78,7 +80,16 @@ export class SourceAction extends CodeAction {
     }
 }
 
-export class CodeActionProvider implements vscode.CodeActionProvider {
+class LinkedLocation extends vscode.Location {
+    readonly linkedLocation: vscode.Location;
+
+    constructor(symbol: CSymbol, linkedLocation: vscode.Location) {
+        super(symbol.uri, declarationRange(symbol));
+        this.linkedLocation = linkedLocation;
+    }
+}
+
+export class CodeActionProvider extends vscode.Disposable implements vscode.CodeActionProvider {
     static readonly metadata: vscode.CodeActionProviderMetadata = {
         providedCodeActionKinds: [
             vscode.CodeActionKind.QuickFix,
@@ -91,10 +102,63 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         ]
     };
 
-    addDefinitionEnabled: boolean = cfg.enableAddDefinition();
-    addDeclarationEnabled: boolean = cfg.enableAddDeclaration();
-    moveDefinitionEnabled: boolean = cfg.enableMoveDefinition();
-    generateGetterSetterEnabled: boolean = cfg.enableGenerateGetterSetter();
+    private addDefinitionEnabled!: boolean;
+    private addDeclarationEnabled!: boolean;
+    private moveDefinitionEnabled!: boolean;
+    private generateGetterSetterEnabled!: boolean;
+
+    private currentFunction?: LinkedLocation;
+    private currentSig?: FunctionSignature;
+    private changedFunction?: LinkedLocation;
+    private previousSig?: FunctionSignature;
+
+    private readonly disposables: vscode.Disposable[];
+
+    constructor() {
+        super(() => this.disposables.forEach(disposable => disposable.dispose()));
+        this.updateEnabledCodeActions();
+        this.disposables = [
+            vscode.workspace.onDidChangeConfiguration(event => {
+                if (event.affectsConfiguration(cfg.extensionKey)) {
+                    this.updateEnabledCodeActions();
+                }
+            }),
+            vscode.workspace.onDidChangeTextDocument(event => {
+                if (event.document.uri.fsPath === this.currentFunction?.uri.fsPath) {
+                    for (const change of event.contentChanges) {
+                        this.handleChangesToFunctionSignature(change);
+                    }
+                }
+            })
+        ];
+    }
+
+    updateEnabledCodeActions(): void {
+        this.addDefinitionEnabled = cfg.enableAddDefinition();
+        this.addDeclarationEnabled = cfg.enableAddDeclaration();
+        this.moveDefinitionEnabled = cfg.enableMoveDefinition();
+        this.generateGetterSetterEnabled = cfg.enableGenerateGetterSetter();
+    }
+
+    private handleChangesToFunctionSignature(change: vscode.TextDocumentContentChangeEvent): void {
+        if (!this.currentFunction) {
+            return;
+        }
+
+        if (change.range.contains(this.currentFunction.range)) {
+            this.currentFunction = undefined;
+            this.currentSig = undefined;
+            return;
+        }
+
+        if (change.range.intersection(this.currentFunction.range)) {
+            this.currentFunction.range = this.currentFunction.range.union(change.range);
+            this.changedFunction = this.currentFunction;
+            if (!this.previousSig?.range.intersection(this.changedFunction.range)) {
+                this.previousSig = this.currentSig;
+            }
+        }
+    }
 
     async provideCodeActions(
         document: vscode.TextDocument,
@@ -113,9 +177,43 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             return [];
         }
 
-        return context.only?.contains(vscode.CodeActionKind.Source)
-                ? this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
-                : this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri);
+        const codeActions = context.only?.contains(vscode.CodeActionKind.Source)
+                ? await this.getSourceActions(rangeOrSelection, context, sourceDoc, matchingUri)
+                : await this.getRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri);
+
+        setImmediate(() => this.updateTrackedFunction(symbol));
+
+        return codeActions;
+    }
+
+    resolveCodeAction(codeAction: CodeAction): CodeAction {
+        if (codeAction.command.command === 'cmantic.updateSignature') {
+            this.changedFunction = undefined;
+            this.previousSig = undefined;
+        }
+        return codeAction;
+    }
+
+    private async updateTrackedFunction(symbol?: CSymbol): Promise<void> {
+        if (symbol?.isFunctionDeclaration()) {
+            const definitionLocation = await symbol.findDefinition();
+            if (definitionLocation) {
+                this.currentFunction = new LinkedLocation(symbol, definitionLocation);
+            }
+        } else if (symbol?.isFunctionDefinition()) {
+            const declarationLocation = await symbol.findDeclaration();
+            if (declarationLocation) {
+                this.currentFunction = new LinkedLocation(symbol, declarationLocation);
+            }
+        } else {
+            return;
+        }
+
+        try {
+            this.currentSig = new FunctionSignature(symbol);
+        } catch (e) {
+            return;
+        }
     }
 
     private async getRefactorings(
@@ -130,15 +228,16 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         }
 
         const refactorActions = await Promise.all([
+            this.getUpdateSignatureRefactoring(rangeOrSelection, context, symbol, sourceDoc),
             this.getAddDefinitionRefactorings(context, symbol, sourceDoc, matchingUri),
-            this.getAddDeclarationRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
+            this.getAddDeclarationRefactoring(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getMoveDefinitionRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getGetterSetterRefactorings(rangeOrSelection, context, symbol, sourceDoc, matchingUri),
             this.getClassRefactorings(context, symbol, sourceDoc),
             this.getFileRefactorings(context, sourceDoc, matchingUri)
         ]);
 
-        return refactorActions.flat();
+        return refactorActions.flat().filter((action): action is RefactorAction => action !== undefined);
     }
 
     private shouldProvideAddDefinition(
@@ -188,14 +287,65 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             && !!context.only?.contains(vscode.CodeActionKind.Refactor);
     }
 
+    private async getUpdateSignatureRefactoring(
+        rangeOrSelection: vscode.Range | vscode.Selection,
+        context: vscode.CodeActionContext,
+        symbol: CSymbol,
+        sourceDoc: SourceDocument
+    ): Promise<RefactorAction | undefined> {
+        if (!this.changedFunction || !this.previousSig) {
+            return;
+        }
+
+        const range = declarationRange(symbol);
+        if (!range.intersection(this.changedFunction.range) || !range.intersection(rangeOrSelection)) {
+            return;
+        }
+        this.changedFunction.range = range;
+
+        let title: string;
+        let p_linkedLocation: Promise<vscode.Location | undefined>;
+        if (symbol.isFunctionDeclaration()) {
+            title = 'Update Function Definition';
+            p_linkedLocation = symbol.findDefinition();
+        } else if (symbol.isFunctionDefinition()) {
+            title = 'Update Function Declaration';
+            p_linkedLocation = symbol.findDeclaration();
+        } else {
+            return;
+        }
+
+        try {
+            this.currentSig = new FunctionSignature(symbol);
+        } catch (e) {
+            return;
+        }
+
+        if (this.currentSig.name !== this.previousSig.name
+                || (await p_linkedLocation && this.currentSig.isEqual(this.previousSig))) {
+            return;
+        }
+
+        const updateSignature = new RefactorAction(title, 'cmantic.updateSignature');
+        updateSignature.setArguments(symbol, this.previousSig, sourceDoc, this.changedFunction.linkedLocation);
+
+        if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
+            updateSignature.kind = vscode.CodeActionKind.QuickFix;
+            updateSignature.isPreferred = true;
+            updateSignature.diagnostics = [...context.diagnostics];
+        }
+
+        return updateSignature;
+    }
+
     private async getAddDefinitionRefactorings(
         context: vscode.CodeActionContext,
         declaration: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<RefactorAction[]> {
+    ): Promise<RefactorAction[] | undefined> {
         if (!this.shouldProvideAddDefinition(context, declaration)) {
-            return [];
+            return;
         }
 
         const p_existingDefinition = declaration.findDefinition();
@@ -244,15 +394,15 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         return [addDefinitionInMatchingSourceFile, addDefinitionInCurrentFile];
     }
 
-    private async getAddDeclarationRefactorings(
+    private async getAddDeclarationRefactoring(
         rangeOrSelection: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<RefactorAction[]> {
+    ): Promise<RefactorAction | undefined> {
         if (!this.shouldProvideAddDeclaration(rangeOrSelection, context, definition)) {
-            return [];
+            return;
         }
 
         const p_existingDeclaration = definition.findDeclaration();
@@ -298,7 +448,7 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
             }
         }
 
-        return [addDeclaration];
+        return addDeclaration;
     }
 
     private async getMoveDefinitionRefactorings(
@@ -307,10 +457,10 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         definition: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<RefactorAction[]> {
+    ): Promise<RefactorAction[] | undefined> {
         // FIXME: This function is an absolute mess.
         if (!this.shouldProvideMoveDefinition(rangeOrSelection, context, definition)) {
-            return [];
+            return;
         }
 
         const moveDefinitionToMatchingSourceFile = new RefactorAction(
@@ -363,7 +513,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                         }
                         if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
                             moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                            moveDefinitionIntoOrOutOfClass.isPreferred = true;
                             moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
                         }
                     } else {
@@ -385,7 +534,6 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
                     }
                     if (!context.only?.contains(vscode.CodeActionKind.Refactor)) {
                         moveDefinitionIntoOrOutOfClass.kind = vscode.CodeActionKind.QuickFix;
-                        moveDefinitionIntoOrOutOfClass.isPreferred = true;
                         moveDefinitionIntoOrOutOfClass.diagnostics = [...context.diagnostics];
                     }
                 } else {
@@ -428,9 +576,9 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         memberVariable: CSymbol,
         sourceDoc: SourceDocument,
         matchingUri?: vscode.Uri
-    ): Promise<RefactorAction[]> {
+    ): Promise<RefactorAction[] | undefined> {
         if (!this.shouldProvideGetterSetter(rangeOrSelection, context, memberVariable)) {
-            return [];
+            return;
         }
 
         const titleSnippet = ` for "${memberVariable.name}"`;
@@ -468,14 +616,14 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
         context: vscode.CodeActionContext,
         symbol: CSymbol,
         sourceDoc: SourceDocument
-    ): Promise<RefactorAction[]> {
+    ): Promise<RefactorAction[] | undefined> {
         if (!this.shouldProvideClassRefactorings(context, symbol)) {
-            return [];
+            return;
         }
 
         const classSymbol = symbol.isClassType() && !symbol.isAnonymous() ? symbol : symbol.firstNamedParent();
         if (!classSymbol) {
-            return [];
+            return;
         }
         const titleSnippet = ` for "${classSymbol.name}"`;
 
@@ -547,4 +695,28 @@ export class CodeActionProvider implements vscode.CodeActionProvider {
 
         return [addHeaderGuard, addInclude, createMatchingSourceFile];
     }
+}
+
+function declarationRange(symbol: CSymbol): vscode.Range {
+    const maskedText = parse.maskParentheses(symbol.parsableText);
+    const startOffset = symbol.startOffset();
+    const nameEndIndex = symbol.document.offsetAt(symbol.selectionRange.end) - startOffset;
+    const bodyStartIndex = maskedText.substring(nameEndIndex).search(/{|;$/);
+    if (bodyStartIndex === -1) {
+        return new vscode.Range(symbol.declarationStart(), symbol.range.end);
+    }
+
+    if (!symbol.isConstructor()) {
+        return new vscode.Range(
+                symbol.declarationStart(), symbol.document.positionAt(startOffset + nameEndIndex + bodyStartIndex));
+    }
+
+    // Get the start of the constructor's member initializer list, if one is present.
+    const initializerIndex = maskedText.substring(nameEndIndex, bodyStartIndex + nameEndIndex).search(/:(?!:)/);
+    if (initializerIndex === -1) {
+        return new vscode.Range(
+                symbol.declarationStart(), symbol.document.positionAt(startOffset + nameEndIndex + bodyStartIndex));
+    }
+    return new vscode.Range(
+            symbol.declarationStart(), symbol.document.positionAt(startOffset + nameEndIndex + initializerIndex));
 }
