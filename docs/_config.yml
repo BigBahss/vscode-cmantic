@@ -26,7 +26,18 @@ url: "https://bigbahss.github.io" # the base hostname & protocol for your site, 
 github_username:  BigBahss
 
 # Build settings
-theme: minima
+theme: just-the-docs
+
+color_scheme: dark
+
+defaults:
+  - scope:
+      path: "assets/images"
+    values:
+      image: true
+
+exclude:
+  - build.js
 
 # Exclude from processing.
 # The following items will not be processed, by default.

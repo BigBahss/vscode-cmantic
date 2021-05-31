@@ -32,7 +32,7 @@ If you find a bug or would like to request a new feature, please open an [Issue]
 
 ### **Add Definition**
 
-![Add Definition](./images/add_definition.gif)
+![Add Definition](./docs/assets/images/add_definition.gif)
 
 Selecting an undefined function declaration will suggest the following code-actions 💡.
 
@@ -68,7 +68,7 @@ The `Move Definition into/out-of class body` command will move a member function
 
 ### **Generate Getters and Setters**
 
-![Generate Accessors](./images/generate_accessors.gif)
+![Generate Accessors](./docs/assets/images/generate_accessors.gif)
 
 Selecting the name of a member variable will suggest the following code-actions 💡.
 
