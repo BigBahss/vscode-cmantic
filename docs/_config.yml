@@ -30,6 +30,9 @@ theme: just-the-docs
 remote_theme: pmarsceill/just-the-docs
 color_scheme: dark
 
+aux_links:
+  "C-mantic on GitHub": "https://github.com/BigBahss/vscode-cmantic"
+
 defaults:
   - scope:
       path: "assets/images"
