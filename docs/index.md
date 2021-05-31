@@ -24,7 +24,7 @@ C-mantic is an [extension](https://marketplace.visualstudio.com/items?itemName=t
 - [Create Matching Source File]({{ site.url }}/vscode-cmantic/features/create-matching-source-file/)
 - [Add Header Guard]({{ site.url }}/vscode-cmantic/features/add-header-guard/)
 - [Add Include]({{ site.url }}/vscode-cmantic/features/add-include/)
-- [Switch Header/Source in Workspace]({{ site.url }}/vscode-cmantic/features/switch-header-source-in-workspace/)
+- [Switch Header/Source in Workspace]({{ site.url }}/vscode-cmantic/features/switch-header-source/)
 
 ## **Requirements**
 
@@ -48,7 +48,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 
 ## **Planned Features**
 
-The list of planned features/ideas can be found [here](https://github.com/BigBahss/vscode-cmantic/blob/master/TODO.md). Feel free recommend ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. And of course, if you'd like to contribute, feel free to open a pull-request.
+The list of planned features/ideas can be found [here]({{ site.url }}/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Feel free recommend ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
 
 ## **License**
 
