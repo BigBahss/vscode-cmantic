@@ -3,7 +3,7 @@
   "displayName": "C-mantic",
   "description": "C/C++ refactorings: Generate Definitions, Getters, Setters, and much more.",
   "version": "0.8.1",
-  "icon": "images/cmantic.png",
+  "icon": "docs/assets/images/cmantic.png",
   "publisher": "tdennis4496",
   "author": {
     "name": "Tyler Dennis",
