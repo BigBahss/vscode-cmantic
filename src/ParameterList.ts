@@ -23,33 +23,35 @@ export interface ParameterList extends ReadonlyArray<Parameter> {
 }
 
 export function parseParameterList(document: vscode.TextDocument, range: vscode.Range): ParameterList {
-    const parameters = parse.maskNonSourceText(document.getText(range), false);
+    const rawParameters = document.getText(range);
+    const partiallyMaskedParameters = parse.maskNonSourceText(rawParameters, false);
     // Mask anything that might contain commas or equals-signs.
-    let maskedParameters = parse.maskParentheses(parameters);
-    maskedParameters = parse.maskAngleBrackets(maskedParameters);
-    maskedParameters = parse.maskBraces(maskedParameters);
-    maskedParameters = parse.maskBrackets(maskedParameters);
-    maskedParameters = parse.maskComparisonOperators(maskedParameters);
+    let fullyMaskedParameters = parse.maskParentheses(partiallyMaskedParameters);
+    fullyMaskedParameters = parse.maskAngleBrackets(fullyMaskedParameters);
+    fullyMaskedParameters = parse.maskBraces(fullyMaskedParameters);
+    fullyMaskedParameters = parse.maskBrackets(fullyMaskedParameters);
+    fullyMaskedParameters = parse.maskComparisonOperators(fullyMaskedParameters);
 
     const startOffset = document.offsetAt(range.start);
 
-    const variadicParamStartIndex = maskedParameters.search(/,?\s*\.\.\.\s*$/);
+    const variadicParamStartIndex = fullyMaskedParameters.search(/,?\s*\.\.\.\s*$/);
     if (variadicParamStartIndex !== -1) {
-        maskedParameters = maskedParameters.slice(0, variadicParamStartIndex);
+        fullyMaskedParameters = fullyMaskedParameters.slice(0, variadicParamStartIndex);
     }
 
     const parameterList = new _ParameterList(range);
-    for (const match of maskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)(?=,|$)/g)) {
+    for (const match of fullyMaskedParameters.matchAll(/(?<=^|,)(\s*)([^,]+)(?=,|$)/g)) {
         if (match.index !== undefined && !/^\s*$/.test(match[2])) {
             const index = match.index + match[1].length;
-            const maskedParameter = match[2].trimEnd();
-            const parameter = parameters.slice(index, index + maskedParameter.length);
-            parameterList.push(parseParameter(parameter, maskedParameter, startOffset + index, document));
+            const fullyMaskedParameter = match[2].trimEnd();
+            const partiallyMaskedParameter = partiallyMaskedParameters.slice(index, index + fullyMaskedParameter.length);
+            const rawParameter = rawParameters.slice(index, index + fullyMaskedParameter.length);
+            parameterList.push(parseParameter(rawParameter, partiallyMaskedParameter, fullyMaskedParameter, startOffset + index, document));
         }
     }
 
     if (variadicParamStartIndex !== -1) {
-        const index = maskedParameters.lastIndexOf('...');
+        const index = fullyMaskedParameters.lastIndexOf('...');
         const variadicStart = document.positionAt(startOffset + index);
         const variadicRange = new vscode.Range(variadicStart, variadicStart.translate(0, 3));
         parameterList.push(new _Parameter('...', '...', 0, '', '', variadicRange));
@@ -59,12 +61,22 @@ export function parseParameterList(document: vscode.TextDocument, range: vscode.
 }
 
 function parseParameter(
-    rawParameter: string, maskedParameter: string, startOffset: number, document: vscode.TextDocument
+    rawParameter: string,
+    partiallyMaskedParameter: string,
+    fullyMaskedParameter: string,
+    startOffset: number,
+    document: vscode.TextDocument
 ): Parameter {
-    const defaultValueMatch = maskedParameter.match(/(\s*=\s*)(.+)$/);
-    const defaultValue = defaultValueMatch ? defaultValueMatch[2] : '';
-    const parameter = rawParameter.slice(0, defaultValueMatch?.index);
-    maskedParameter = maskedParameter.slice(0, parameter.length);
+    const defaultValueMatch = fullyMaskedParameter.match(/(\s*=\s*)(.+)$/);
+    const index = defaultValueMatch?.index !== undefined
+            ? defaultValueMatch.index + defaultValueMatch[1].length
+            : undefined;
+    const defaultValue = index !== undefined
+            ? rawParameter.slice(index, index + defaultValueMatch![2].trimEnd().length)
+            : '';
+
+    const parameter = partiallyMaskedParameter.slice(0, defaultValueMatch?.index);
+    const maskedParameter = fullyMaskedParameter.slice(0, parameter.length);
 
     const start = document.positionAt(startOffset);
     const end = document.positionAt(rawParameter.length + startOffset);
