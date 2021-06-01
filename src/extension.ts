@@ -133,11 +133,9 @@ function pollExtensionsToSetLanguageServer(): void {
 const re_semver = /^\d+\.\d+\.\d+$/;
 const versionKey = 'version';
 const updateMessage =
-        'C-mantic v0.8.0: Added "Generate Relational Operators" and "Amend Header Guard" code-actions.';
-const readmeButton = 'Open README';
-const changelogButton = 'Open CHANGELOG';
-const readmeUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/README.md');
-const changelogUri = vscode.Uri.parse('https://github.com/BigBahss/vscode-cmantic/blob/master/CHANGELOG.md');
+        'C-mantic v0.9.0: Added "Update Function Signature" code-action and completion suggestions to "Add Include".';
+const documentationButton = 'View Documentation';
+const documentationUri = vscode.Uri.parse('https://bigbahss.github.io/vscode-cmantic/features/');
 
 async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
 	const currentVersion = vscode.extensions.getExtension(cmanticId)?.packageJSON?.version;
@@ -156,10 +154,8 @@ async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Pro
         }
     }
 
-    const selected = await vscode.window.showInformationMessage(updateMessage, readmeButton, changelogButton);
-    if (selected === readmeButton) {
-        vscode.env.openExternal(readmeUri);
-    } else if (selected === changelogButton) {
-        vscode.env.openExternal(changelogUri);
+    const selected = await vscode.window.showInformationMessage(updateMessage, documentationButton);
+    if (selected === documentationButton) {
+        vscode.env.openExternal(documentationUri);
     }
 }
