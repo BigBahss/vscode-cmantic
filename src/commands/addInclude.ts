@@ -22,6 +22,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
 
     let includePosition: vscode.Position | undefined;
     let includeText = '#include ';
+    let userAcceptedInput = false;
     const eol = sourceDoc.endOfLine;
     const editOptions = { undoStopBefore: false, undoStopAfter: false };
 
@@ -60,6 +61,7 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
     function onWillAccept(quickPick: vscode.QuickPick<IncludeItem>): boolean {
         if (re_validIncludeStatement.test(quickPick.value)) {
             includeText = quickPick.value;
+            userAcceptedInput = true;
             return true;
         }
 
@@ -73,10 +75,11 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
             }
         }
 
+        userAcceptedInput = true;
         return true;
     }
 
-    const p_userAcceptedInput = showSingleQuickPick<IncludeItem>([], {
+    const p_promptUser = showSingleQuickPick<IncludeItem>([], {
         title: 'Enter an include statement',
         value: includeText,
         ignoreFocusOut: true,
@@ -87,7 +90,8 @@ export async function addInclude(sourceDoc?: SourceDocument): Promise<boolean | 
     const currentPosition = getCurrentPositionFromEditor(editor);
     const newIncludePositions = sourceDoc.findPositionForNewInclude(currentPosition);
 
-    const userAcceptedInput = await p_userAcceptedInput;
+    await p_promptUser;
+
     if (includePosition) {
         const line = sourceDoc.lineAt(includePosition);
         if (userAcceptedInput) {
