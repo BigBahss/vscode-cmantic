@@ -11,7 +11,7 @@ If you find a bug in C-mantic or feel like something isn't working right, please
 
 ## Planned features and improvements
 
-Coming in `v0.9.0`: `Update Function Signature` refactoring which synchronizes changes between a function's declaration and definition. Completion suggestions are added to [Add Include]({{ site.url }}/vscode-cmantic/features/add-include/).
+Coming in `v0.9.0`: [Update Function Signature]({{ site.url }}/vscode-cmantic/features/update-function-signature/) which synchronizes changes between a function's declaration and definition. Completion suggestions are added to [Add Include]({{ site.url }}/vscode-cmantic/features/add-include/).
 
 ### Higher priority
 
