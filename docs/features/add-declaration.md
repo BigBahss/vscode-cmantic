@@ -6,7 +6,7 @@ nav_order: 1
 parent: Features
 ---
 
-### **Add Declaration**
+## **Add Declaration**
 
 Selecting the name of an undeclared function definition will suggest the following code-action 💡.
 

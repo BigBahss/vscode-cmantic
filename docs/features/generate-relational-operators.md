@@ -2,11 +2,11 @@
 layout: default
 title: Generate Relational Operators
 permalink: /features/generate-relational-operators/
-nav_order: 5
+nav_order: 6
 parent: Features
 ---
 
-### **Generate Relational Operators**
+## **Generate Relational Operators**
 
 With your cursor inside of a class/struct, `Generate Relational Operators` can be found in the `Refactor...` menu.
 

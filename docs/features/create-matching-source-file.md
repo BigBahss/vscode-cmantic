@@ -2,11 +2,11 @@
 layout: default
 title: Create Matching Source File
 permalink: /features/create-matching-source-file/
-nav_order: 7
+nav_order: 8
 parent: Features
 ---
 
-### **Create Matching Source File**
+## **Create Matching Source File**
 
 `Create Matching Source File` can be found in the `Source Actions...` menu.
 

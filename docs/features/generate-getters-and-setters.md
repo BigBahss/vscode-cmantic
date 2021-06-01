@@ -2,11 +2,11 @@
 layout: default
 title: Generate Getters and Setters
 permalink: /features/generate-getters-and-setters/
-nav_order: 3
+nav_order: 4
 parent: Features
 ---
 
-### **Generate Getters and Setters**
+## **Generate Getters and Setters**
 
 Selecting the name of a member variable will suggest the following code-actions 💡.
 

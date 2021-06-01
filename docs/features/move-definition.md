@@ -2,11 +2,11 @@
 layout: default
 title: Move Definition
 permalink: /features/move-definition/
-nav_order: 2
+nav_order: 3
 parent: Features
 ---
 
-### **Move Definition**
+## **Move Definition**
 
 Selecting the name of a function definition will suggest the following code-actions 💡.
 

@@ -2,11 +2,11 @@
 layout: default
 title: Generate Equality Operators
 permalink: /features/generate-equality-operators/
-nav_order: 4
+nav_order: 5
 parent: Features
 ---
 
-### **Generate Equality Operators**
+## **Generate Equality Operators**
 
 With your cursor inside of a class/struct, `Generate Equality Operators` can be found in the `Refactor...` menu.
 

@@ -2,11 +2,11 @@
 layout: default
 title: Add Header Guard
 permalink: /features/add-header-guard/
-nav_order: 8
+nav_order: 9
 parent: Features
 ---
 
-### **Add Header Guard**
+## **Add Header Guard**
 
 `Add Header Guard`/`Amend Header Guard` can be found in the `Source Actions...` menu.
 

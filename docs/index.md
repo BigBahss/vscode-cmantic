@@ -16,6 +16,7 @@ C-mantic is an [extension](https://marketplace.visualstudio.com/items?itemName=t
 
 - [Add Definition]({{ site.url }}/vscode-cmantic/features/add-definition/)
 - [Add Declaration]({{ site.url }}/vscode-cmantic/features/add-declaration/)
+- [Update Function Signature]({{ site.url }}/vscode-cmantic/features/update-function-signature/)
 - [Move Definition]({{ site.url }}/vscode-cmantic/features/move-definition/)
 - [Generate Getters and Setters]({{ site.url }}/vscode-cmantic/features/generate-getters-and-setters/)
 - [Generate Equality Operators]({{ site.url }}/vscode-cmantic/features/generate-equality-operators/)

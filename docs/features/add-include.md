@@ -2,11 +2,11 @@
 layout: default
 title: Add Include
 permalink: /features/add-include/
-nav_order: 9
+nav_order: 10
 parent: Features
 ---
 
-### **Add Include**
+## **Add Include**
 
 `Add Include` can be found in the `Source Actions...` menu.
 

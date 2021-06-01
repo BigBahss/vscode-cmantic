@@ -6,7 +6,7 @@ nav_order: 0
 parent: Features
 ---
 
-### **Add Definition**
+## **Add Definition**
 
 Selecting an undefined function declaration will suggest the following code-actions 💡.
 
@@ -20,6 +20,6 @@ The `Add Definition in this file` command generates an empty definition for a fu
 
 You may also generate many definitions at a time by selecting `Add Definitions...` in the `Refactor...` menu. This command will find all undefined functions in the file and prompt you to select which ones to add definitions for. After selecting functions you will be prompted to select which file to add the definitions to (either the same file, or the matching source file). If a matching source file doesn't already exist, you can select to create one (this invokes [Create Matching Source File]({{ site.url }}/vscode-cmantic/features/create-matching-source-file/)).
 
-### **Generate Constructor**
+## **Generate Constructor**
 
 `Generate Constructor` extends `Add Definition` by prompting you to select what you want to initialize in the constructor (delegating constructor, base class constructor(s), member variables) and will generate the boiler-plate for the initializer list.
