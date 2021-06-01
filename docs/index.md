@@ -10,7 +10,7 @@ nav_order: 0
   <b>C-mantic</b>
 </h1>
 
-C-mantic is an [extension](https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic) for [VS Code](https://code.visualstudio.com/) that provides code generation and refactorings C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
+C-mantic is an [extension](https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic) for [VS Code](https://code.visualstudio.com/) that provides code generation and refactorings for C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
 
 ## **Features at a glance**
 
@@ -49,7 +49,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 
 ## **Planned Features**
 
-The list of planned features/ideas can be found [here]({{ site.url }}/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Feel free recommend ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
+The list of planned features/ideas can be found [here]({{ site.url }}/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Feel free recommend ideas for new features/functionalities by opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
 
 ## **License**
 

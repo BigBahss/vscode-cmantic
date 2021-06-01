@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Issues/Feedback/Plans
-permalink: /issues-feedback
+permalink: /issues-feedback/
 nav_order: 3
 ---
 

@@ -4,127 +4,46 @@
   <b>C-mantic</b>
 </h1>
 
-C/C++ extension that provides code generation and refactorings. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
+C-mantic provides code generation and refactorings for C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
+
+Documentation: https://bigbahss.github.io/vscode-cmantic/
 
 ## **Features at a glance**
 
-- [Add Definition](#add-definition)
-- [Add Declaration](#add-declaration)
-- [Move Definition](#move-definition)
-- [Generate Getters and Setters](#generate-getters-and-setters)
-- [Generate Equality Operators](#generate-equality-operators)
-- [Generate Relational Operators](#generate-relational-operators)
-- [Generate Stream Output Operator](#generate-stream-output-operator)
-- [Create Matching Source File](#create-matching-source-file)
-- [Add Header Guard](#add-header-guard)
-- [Add Include](#add-include)
-- [Switch Header/Source in Workspace](#switch-headersource-in-workspace)
+- [Add Definition](https://bigbahss.github.io/vscode-cmantic/features/add-definition/)
+- [Add Declaration](https://bigbahss.github.io/vscode-cmantic/features/add-declaration/)
+- [Update Function Signature](https://bigbahss.github.io/vscode-cmantic/features/update-function-signature/)
+- [Move Definition](https://bigbahss.github.io/vscode-cmantic/features/move-definition/)
+- [Generate Getters and Setters](https://bigbahss.github.io/vscode-cmantic/features/generate-getters-and-setters/)
+- [Generate Equality Operators](https://bigbahss.github.io/vscode-cmantic/features/generate-equality-operators/)
+- [Generate Relational Operators](https://bigbahss.github.io/vscode-cmantic/features/generate-relational-operators/)
+- [Generate Stream Output Operator](https://bigbahss.github.io/vscode-cmantic/features/generate-stream-output-operator/)
+- [Create Matching Source File](https://bigbahss.github.io/vscode-cmantic/features/create-matching-source-file/)
+- [Add Header Guard](https://bigbahss.github.io/vscode-cmantic/features/add-header-guard/)
+- [Add Include](https://bigbahss.github.io/vscode-cmantic/features/add-include/)
+- [Switch Header/Source in Workspace](https://bigbahss.github.io/vscode-cmantic/features/switch-header-source/)
 
 ## **Requirements**
 
-Requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension. See [Language Server](#language-server) For more details.
+Requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension. See [Language Server](#language-server) below for more details.
 
 ## **Issues and Feature Requests**
 
 If you find a bug or would like to request a new feature, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. Also, consider leaving the extension a [rating](https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic#review-details).
 
-## **Features in-depth**
+## **Examples**
 
 ### **Add Definition**
 
-![Add Definition](./docs/assets/images/add_definition.gif)
+![Add Definition](https://bigbahss.github.io/vscode-cmantic/assets/images/add_definition.gif)
 
-Selecting an undefined function declaration will suggest the following code-actions 💡.
+### **Update Function Signature**
 
-The `Add Definition in matching source file` command generates an empty definition in a matching source file for a function declared in a header file.
-
-The `Add Definition in this file` command generates an empty definition for a function declaration in the current file.
-
-`Add Definition` will look for definitions of neighboring declarations in the target file and try to place new definitions in the same relative order. If a neighboring definition cannot be found then the new definition will be placed at the end of the file. Additionally, `Add Definition` will respect the formatting of your code and will intelligently adapt the whitespace alignment in the case of multi-lined declarations. The placement of the opening curly brace can be controlled with the setting `Curly Brace Format: Function` for C and C++, each. By default, the new definition will be revealed in the editor when added. This can be disabled with `Reveal New Definition` in the settings.
-
-You may also generate many definitions at a time by selecting `Add Definitions...` in the `Refactor...` menu. This command will find all undefined functions in the file and prompt you to select which ones to add definitions for. After selecting functions you will be prompted to select which file to add the definitions to (either the same file, or the matching source file). If a matching source file doesn't already exist, you can select to create one (this invokes [Create Matching Source File](#create-matching-source-file)).
-
-#### **Generate Constructor**
-
-`Generate Constructor` extends `Add Definition` by prompting you to select what you want to initialize in the constructor (delegating constructor, base class constructor(s), member variables) and will generate the boiler-plate for the initializer list.
-
-### **Add Declaration**
-
-Selecting the name of an undeclared function definition will suggest the following code-action 💡.
-
-The `Add Declaration` command generates a declaration for a function in its corresponding header file, or within its class definition in the case of a member function.
-
-If the function is a member function, then the `Add Declaration` code-action will be provided as a `Quick Fix` (blue light-bulb). You will also be prompted to pick an access specifier (`public`, `protected`, or `private`) for the member function, and if that access specifier doesn't already exist in the class, it will be added.
-
-### **Move Definition**
-
-Selecting the name of a function definition will suggest the following code-actions 💡.
-
-The `Move Definition to matching source file` command will move a function definition to a matching header/source file.
-
-The `Move Definition into/out-of class body` command will move a member function definition into/below a class body.
-
-`Move Definition` tries to find a good location for the function in the same way that `Add Definition` does. Also, when moving a definition from a header file that does not contain a declaration for that function, or when moving from a class body, a declaration will be left behind in its place. Moving definitions will also move leading comments. If you don't want leading comments to be moved when a declaration is being left behind, disable `Always Move Comments` in the settings.
+![Update Function Signature](https://bigbahss.github.io/vscode-cmantic/assets/images/update_signature.gif)
 
 ### **Generate Getters and Setters**
 
-![Generate Accessors](./docs/assets/images/generate_accessors.gif)
-
-Selecting the name of a member variable will suggest the following code-actions 💡.
-
-The `Generate Getter and Setter`, `Generate Getter`, and `Generate Setter` commands will generate accessor functions for a member variable. C-mantic will look for common private member naming schemes in order to generate appropriate function names: If a member variable name begins and/or ends with underscore(s), or if it begins with `m_` or `s_`, these characters will be removed to create the member function names. The `Case Style` setting controls whether names are generated in snake_case, camelCase, or PascalCase.
-
-Additionally, for non-primitive, non-pointer data types, setters will be generated with a const-reference (`const &`) parameter type. If you would like C-mantic to resolve `typedef`'s, `type-alias`'s, and `enum`'s, enable `Cpp: Resolve Types` in the settings (This is disabled by default as it may impact the performance of generating setters).
-
-The `Accessor: Getter Definition Location` and `Accessor: Setter Definition Location` settings control where the definitions of these member functions are placed (either inline, below class body, or in matching source file).
-
-### **Generate Equality Operators**
-
-With your cursor inside of a class/struct, `Generate Equality Operators` can be found in the `Refactor...` menu.
-
-The `Generate Equality Operators` command will prompt you to select base classes and member variables to compare in order to generate `operator==` (`operator!=` will be generated as the negation of `operator==`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, equality operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
-
-### **Generate Relational Operators**
-
-With your cursor inside of a class/struct, `Generate Relational Operators` can be found in the `Refactor...` menu.
-
-The `Generate Relational Operators` command will prompt you to select base classes and member variables to compare in order to generate `operator<` (`operator>`, `operator<=`, and `operator>=` are generated in terms of `operator<`). You will also be prompted for where to place the definitions of these functions (either 'Inline', 'Current File', or 'Source File'). By default, relational operators will be generated as member functions, but can also be generated as friend functions by enabling `Cpp: Friend Comparison Operators` in the settings.
-
-### **Generate Stream Output Operator**
-
-With your cursor inside of a class/struct, `Generate Stream Output Operator` can be found in the `Refactor...` menu.
-
-The `Generate Stream Output Operator` command generates a friend `operator<<` that outputs to a `std::ostream`. You will be prompted to select base classes and member variables to output. You will also be prompted for where to place the definition of this function (either 'Inline', 'Current File', or 'Source File').
-
-Additionally, if the file does not already include `ostream` or `iostream` directly, then `#include <ostream>` will be added to the file.
-
-### **Create Matching Source File**
-
-`Create Matching Source File` can be found in the `Source Actions...` menu.
-
-The `Create Matching Source File` command creates a new source file from a header by prompting you for a target directory and file extension. Target directories containing source files will be recommended based on their similarity the header file's directory. Additionally, C-mantic will automatically pick a file extension if all source files in the target directory have the same extension. An include statement for the header file will be inserted into the new source file.
-
-When creating a C++ source file from a header containing namespaces, these namespace blocks will be generated too. Check out the settings for various ways to customize this behavior, or to disable namespace generation.
-
-After the file is created, you will also be asked if you want to add definitions for functions declared in the header file.
-
-### **Add Header Guard**
-
-`Add Header Guard`/`Amend Header Guard` can be found in the `Source Actions...` menu.
-
-The `Add Header Guard` command adds a header guard to the current header file. Based on the `Header Guard: Style` setting, C-mantic will insert either a conditional `#define` block, `#pragma once`, or both. `#define` names are generated based on the setting `Header Guard: Define Format`.
-
-If the file already has a header guard that does not match your configured style, then the `Add Header Guard` command will "amend" the existing one to match your configuration. Additionally, if you select the header guard with your cursor, then `Amend Header Guard` will be suggested as a `Quick Fix`.
-
-### **Add Include**
-
-`Add Include` can be found in the `Source Actions...` menu.
-
-The `Add Include` command adds a new include statement to the top of the file from your current position. C-mantic will parse existing include statements to find the best position to add the new include. For example, if you're adding a system include (`#include <...>`), it will be appended it to the largest block of system include statements in the file. Same for project includes (`#include "..."`).
-
-### **Switch Header/Source in Workspace**
-
-The `Switch Header/Source in Workspace` command will open and switch to the header/source file that corresponds to the active file. C-mantic will only look for matching header/source files within the current workspace, which may offer better accuracy over other implementations. You can control whether or not this appears in the editor context menu with the setting `Context Menu: Switch Header Source`.
+![Generate Getters and Setters](https://bigbahss.github.io/vscode-cmantic/assets/images/generate_accessors.gif)
 
 ## **Language Server**
 
@@ -140,7 +59,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 
 ## **Planned Features**
 
-The list of planned features/ideas can be found [here](https://github.com/BigBahss/vscode-cmantic/blob/master/TODO.md). Feel free recommend ideas for new features/functionalities via opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. And of course, if you'd like to contribute, feel free to open a pull-request.
+The list of planned features/ideas can be found [here](https://bigbahss.github.io/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Feel free recommend ideas for new features/functionalities by opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
 
 ## **License**
 

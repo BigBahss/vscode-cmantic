@@ -4,6 +4,7 @@
 .test_data_dir
 docs
 !docs/assets/images/cmantic.png
+!docs/assets/images/cmantic-small.png
 out
 src
 test
