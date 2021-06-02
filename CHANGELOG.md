@@ -6,8 +6,9 @@ All notable changes to the `C-mantic` extension will be documented in this file.
 - Added `Update Function Signature` code-action. After changing a function signature, this code-action will be provided to update that function's declaration or definition.
 - Added a setting `Code Actions: Enable Update Function Signature`. When disabled, C-mantic will not spend any time tracking changes to function signatures.
 - Added completion suggestions to `Add Include`.
+- C-mantic now has full documentation at [https://bigbahss.github.io/vscode-cmantic/](https://bigbahss.github.io/vscode-cmantic/). Documentation can be opened directly from VS Code through the `Refactor...` and `Source Actions...` menus.
 
-### Changed
+### Fixed
 - Fixed another bug when determining if an existing header guard matches the configured settings.
 
 ## [0.8.1] - May 1, 2021

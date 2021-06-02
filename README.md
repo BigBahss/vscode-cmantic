@@ -6,7 +6,7 @@
 
 C-mantic provides code generation and refactorings for C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. Code-actions are also available from the command palette or by keyboard shortcut.
 
-Full Documentation: https://bigbahss.github.io/vscode-cmantic/
+Full Documentation: [https://bigbahss.github.io/vscode-cmantic/](https://bigbahss.github.io/vscode-cmantic/)
 
 ## **Features at a glance**
 
