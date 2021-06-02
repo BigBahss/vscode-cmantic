@@ -6,7 +6,7 @@ nav_order: 7
 parent: Features
 ---
 
-## **Generate Stream Output Operator**
+# Generate Stream Output Operator
 
 With your cursor inside of a class/struct, `Generate Stream Output Operator` can be found in the `Refactor...` menu.
 

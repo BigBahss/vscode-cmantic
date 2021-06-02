@@ -6,7 +6,7 @@ nav_order: 10
 parent: Features
 ---
 
-## **Add Include**
+# Add Include
 
 `Add Include` can be found in the `Source Actions...` menu.
 

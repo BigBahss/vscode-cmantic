@@ -4,9 +4,9 @@
   <b>C-mantic</b>
 </h1>
 
-C-mantic provides code generation and refactorings for C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. All code-actions are also available from the command palette or by keyboard shortcut.
+C-mantic provides code generation and refactorings for C/C++. Relevant code-actions are suggested via the light-bulb menu 💡, and can be accessed directly by selecting `Refactor...` or `Source Actions...` in the editor context menu. Code-actions are also available from the command palette or by keyboard shortcut.
 
-Documentation: https://bigbahss.github.io/vscode-cmantic/
+Full Documentation: https://bigbahss.github.io/vscode-cmantic/
 
 ## **Features at a glance**
 
@@ -27,7 +27,7 @@ Documentation: https://bigbahss.github.io/vscode-cmantic/
 
 Requires a C/C++ language server extension for full functionality, such as Microsoft's `C/C++` extension. See [Language Server](#language-server) below for more details.
 
-## **Issues and Feature Requests**
+## **Issues and Feedback**
 
 If you find a bug or would like to request a new feature, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. Also, consider leaving the extension a [rating](https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic#review-details).
 
@@ -47,9 +47,11 @@ If you find a bug or would like to request a new feature, please open an [Issue]
 
 ## **Language Server**
 
-If you find that features of C-mantic aren't working, ensure that your language server is working correctly. To do this, check out the Outline View, usually found in the Explorer side-bar. The Outline View should show all symbols for the current file. Also, make sure 'Go to Definition' and 'Go to Declaration' are working.
+C-mantic is designed to work with any C/C++ language server, and is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and state what language server you are using.
 
-C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and state what language server you are using.
+## **Troubleshooting**
+
+If you find that features of C-mantic aren't working, first make sure that your language server (IntelliSense) is working correctly. To do this, check out the Outline View, usually found in the `Explorer` side-bar. The Outline View should show all source code symbols for the current file. Also, make sure `Go to Definition` and `Go to Declaration` are working. If C-mantic still isn't working correctly, open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on GitHub and describe the problem along with any relevant information.
 
 ## **Tips**
 
@@ -59,7 +61,7 @@ C-mantic is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llv
 
 ## **Planned Features**
 
-The list of planned features/ideas can be found [here](https://bigbahss.github.io/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Feel free recommend ideas for new features/functionalities by opening an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
+The list of planned features can be found [here](https://bigbahss.github.io/vscode-cmantic/issues-feedback/#planned-features-and-improvements). Requests for new features/functionalities are welcome, just open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) on Github. If you'd like to contribute, feel free to open a pull-request.
 
 ## **License**
 

@@ -6,7 +6,7 @@ nav_order: 6
 parent: Features
 ---
 
-## **Generate Relational Operators**
+# Generate Relational Operators
 
 With your cursor inside of a class/struct, `Generate Relational Operators` can be found in the `Refactor...` menu.
 

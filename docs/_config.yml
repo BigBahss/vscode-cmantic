@@ -32,6 +32,7 @@ color_scheme: dark
 
 aux_links:
   "C-mantic on GitHub": "https://github.com/BigBahss/vscode-cmantic"
+  "Download": "https://marketplace.visualstudio.com/items?itemName=tdennis4496.cmantic"
 
 defaults:
   - scope:

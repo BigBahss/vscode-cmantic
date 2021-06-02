@@ -6,7 +6,7 @@ nav_order: 2
 parent: Features
 ---
 
-## **Update Function Signature (coming in v0.9.0)**
+# Update Function Signature (coming in v0.9.0)
 
 `Update Function Signature` makes it easier to refactor a function's interface by eliminating the need to edit the declaration and definition individually. Easily edit a function's parameters, return type, and specifiers/qualifiers, and C-mantic can apply those changes to the function's declaration/definition.
 

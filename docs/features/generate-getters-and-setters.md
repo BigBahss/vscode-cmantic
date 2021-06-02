@@ -6,7 +6,7 @@ nav_order: 4
 parent: Features
 ---
 
-## **Generate Getters and Setters**
+# Generate Getters and Setters
 
 Selecting the name of a member variable will suggest the following code-actions 💡.
 
