@@ -135,7 +135,7 @@ const versionKey = 'version';
 const updateMessage =
         'C-mantic v0.9.0: Added "Update Function Signature" code-action and completion suggestions to "Add Include".';
 const documentationButton = 'View Documentation';
-const documentationUri = vscode.Uri.parse('https://bigbahss.github.io/vscode-cmantic/features/');
+const documentationUri = vscode.Uri.parse('https://bigbahss.github.io/vscode-cmantic/changelog/v0.9.0/');
 
 async function showMessageOnFeatureUpdate(context: vscode.ExtensionContext): Promise<void> {
 	const currentVersion = vscode.extensions.getExtension(cmanticId)?.packageJSON?.version;
