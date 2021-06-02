@@ -17,5 +17,4 @@ webpack.config.js
 **/*.map
 **/*.ts
 TODO.md
-images/move_definition.gif
 **/.ccls-cache

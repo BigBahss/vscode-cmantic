@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to the `C-mantic` extension will be documented in this file.
 
-## [Unreleased]
+## [0.9.0] - June 2, 2021
 ### Added
 - Added `Update Function Signature` code-action. After changing a function signature, this code-action will be provided to update that function's declaration or definition.
 - Added a setting `Code Actions: Enable Update Function Signature`. When disabled, C-mantic will not spend any time tracking changes to function signatures.
