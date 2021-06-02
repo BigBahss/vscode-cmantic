@@ -19,7 +19,7 @@ Requires a C/C++ language server extension (IntelliSense) for full functionality
 
 ## Language Server
 
-C-mantic is designed to work with any C/C++ language server, and is primarily tested with `C/C++` (ms-vscode.cpptools) and `clangd` (llvm-vs-code-extensions.vscode-clangd), but will also work on `ccls` (ccls-project.ccls). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and state what language server you are using.
+C-mantic is designed to work with any C/C++ language server, and is primarily tested with [C/C++](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) (`ms-vscode.cpptools`) and [clangd](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) (`llvm-vs-code-extensions.vscode-clangd`), but will also work on [ccls](https://marketplace.visualstudio.com/items?itemName=ccls-project.ccls) (`ccls-project.ccls`). If you use a different language server, C-mantic may still work, but is untested. If you find a bug that you suspect might be related to your language server, please open an [Issue](https://github.com/BigBahss/vscode-cmantic/issues) and state what language server you are using.
 
 ## Troubleshooting
 
