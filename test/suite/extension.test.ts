@@ -106,11 +106,12 @@ suite('Extension Test Suite', function () {
 
         const refactorActions: CodeAction[] = await codeActionProvider.provideCodeActions(
                 sourceDoc, testClass.selectionRange, { diagnostics: [], only: vscode.CodeActionKind.Refactor });
-        assert.strictEqual(refactorActions.length, 4);
+        assert.strictEqual(refactorActions.length, 5);
         assert.strictEqual(refactorActions[0].title, `Generate Equality Operators for "${testClass.name}"`);
         assert.strictEqual(refactorActions[1].title, `Generate Relational Operators for "${testClass.name}"`);
         assert.strictEqual(refactorActions[2].title, `Generate Stream Output Operator for "${testClass.name}"`);
-        assert.strictEqual(refactorActions[3].title, 'Add Definitions...');
+        assert.strictEqual(refactorActions[3].title, 'Implement Functions...');
+        assert.strictEqual(refactorActions[4].title, 'Add Definitions...');
 
         assert(testClass.children.length > 0);
 
