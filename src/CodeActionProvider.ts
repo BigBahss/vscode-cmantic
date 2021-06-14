@@ -11,6 +11,7 @@ import { failure as addDeclarationFailure, title as addDeclarationTitle } from '
 import { failure as moveDefinitionFailure, title as moveDefinitionTitle } from './commands/moveDefinition';
 import { failure as getterSetterFailure, title as getterSetterTitle } from './commands/generateGetterSetter';
 import { title as operatorTitle } from './commands/generateOperators';
+import { title as virtualTitle } from './commands/generateVirtualFunctions';
 import { failure as createSourceFileFailure } from './commands/createSourceFile';
 import { failure as addHeaderGuardFailure, headerGuardMatchesConfiguredStyle } from './commands/addHeaderGuard';
 import { getMatchingHeaderSource } from './extension';
@@ -658,7 +659,16 @@ export class CodeActionProvider extends vscode.Disposable implements vscode.Code
         generateRelationalOperators.setArguments(classSymbol, sourceDoc);
         generateStreamOutputOperator.setArguments(classSymbol, sourceDoc);
 
-        return [generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator];
+        const refactorings = [generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator];
+
+        const baseClasses = classSymbol.baseClasses();
+        if (baseClasses.length > 0) {
+            const implementFunctions = new RefactorAction(virtualTitle, 'cmantic.implementFunctions');
+            implementFunctions.setArguments(classSymbol, sourceDoc, baseClasses);
+            refactorings.push(implementFunctions);
+        }
+
+        return refactorings;
     }
 
     private async getFileRefactorings(

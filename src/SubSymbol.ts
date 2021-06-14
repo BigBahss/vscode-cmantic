@@ -42,4 +42,12 @@ export default class SubSymbol {
     async findDeclaration(): Promise<vscode.Location | undefined> {
         return util.findDeclaration(this);
     }
+
+    async findDefinitions(): Promise<vscode.Location[]> {
+        return this.document.findDefinitions(this.selectionRange.start);
+    }
+
+    async findDeclarations(): Promise<vscode.Location[]> {
+        return this.document.findDeclarations(this.selectionRange.start);
+    }
 }

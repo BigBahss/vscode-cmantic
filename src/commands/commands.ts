@@ -12,6 +12,7 @@ import {
 import {
     generateEqualityOperators, generateRelationalOperators, generateStreamOutputOperator
 } from './generateOperators';
+import { implementFunctions } from './generateVirtualFunctions';
 import { createMatchingSourceFile } from './createSourceFile';
 import { addHeaderGuard } from './addHeaderGuard';
 import { addInclude } from './addInclude';
@@ -37,6 +38,7 @@ export type CmanticCommandId =
     | 'cmantic.generateEqualityOperators'
     | 'cmantic.generateRelationalOperators'
     | 'cmantic.generateStreamOutputOperator'
+    | 'cmantic.implementFunctions'
     | 'cmantic.createMatchingSourceFile'
     | 'cmantic.addHeaderGuard'
     | 'cmantic.addInclude'
@@ -69,6 +71,7 @@ export const commandHandlers: CommandHandlerMap = {
     'cmantic.generateEqualityOperators': generateEqualityOperators,
     'cmantic.generateRelationalOperators': generateRelationalOperators,
     'cmantic.generateStreamOutputOperator': generateStreamOutputOperator,
+    'cmantic.implementFunctions': implementFunctions,
     'cmantic.createMatchingSourceFile': createMatchingSourceFile,
     'cmantic.addHeaderGuard': addHeaderGuard,
     'cmantic.addInclude': addInclude,
