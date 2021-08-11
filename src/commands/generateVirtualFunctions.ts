@@ -23,32 +23,19 @@ export async function implementFunctions(
 }
 
 async function getPureVirtualFunctionsOfClassHierarchy(baseClasses: SubSymbol[]): Promise<CSymbol[]> {
-    const p_definitions: Promise<vscode.Location | undefined>[] = [];
-    baseClasses.forEach(baseClass => p_definitions.push(async function () {
-        const definitions = await baseClass.findDefinitions();
-        return definitions[0];
-    } ()));
-    const definitions = await Promise.all(p_definitions);
+    const definitions = await getDefinitionLocations(baseClasses);
 
-    const p_classSymbols: Promise<CSymbol | undefined>[] = [];
-    definitions.forEach(definition => {
-        if (definition) {
-            p_classSymbols.push(SourceDocument.getSymbol(definition));
-        }
-    });
-    const classSymbols = await Promise.all(p_classSymbols);
+    const classSymbols = await getDefinitionSymbols(definitions);
 
     const p_members: Promise<CSymbol[]>[] = [];
     classSymbols.forEach(classSymbol => {
-        if (classSymbol) {
-            p_members.push(getPureVirtualFunctionsOfClassHierarchy(classSymbol.baseClasses()));
-        }
+        p_members.push(getPureVirtualFunctionsOfClassHierarchy(classSymbol.baseClasses()));
     });
 
     const members = (await Promise.all(p_members)).flat();
 
     classSymbols.forEach(classSymbol => {
-        classSymbol?.children.forEach(child => {
+        classSymbol.children.forEach(child => {
             const childCSymbol = new CSymbol(child, classSymbol.document);
             if (childCSymbol.isPureVirtual()) {
                 members.push(childCSymbol);
@@ -68,4 +55,31 @@ async function getPureVirtualFunctionsOfClassHierarchy(baseClasses: SubSymbol[])
     });
 
     return members;
+}
+
+async function getDefinitionLocations(baseClasses: SubSymbol[]): Promise<vscode.Location[]> {
+    const p_definitions: Promise<vscode.Location | undefined>[] = [];
+    baseClasses.forEach(baseClass => p_definitions.push(async function () {
+        const definitions = await baseClass.findDefinitions();
+        return definitions[0];
+    } ()));
+    const definitions = await Promise.all(p_definitions);
+
+    return definitions.filter((definition): definition is vscode.Location => {
+        return definition !== undefined;
+    });
+}
+
+async function getDefinitionSymbols(definitions: vscode.Location[]): Promise<CSymbol[]> {
+    const p_classSymbols: Promise<CSymbol | undefined>[] = [];
+    definitions.forEach(definition => {
+        if (definition) {
+            p_classSymbols.push(SourceDocument.getSymbol(definition));
+        }
+    });
+    const classSymbols = await Promise.all(p_classSymbols);
+
+    return classSymbols.filter((classSymbol): classSymbol is CSymbol => {
+        return classSymbol !== undefined;
+    });
 }
