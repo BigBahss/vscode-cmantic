@@ -31,7 +31,6 @@ async function getPureVirtualFunctionsOfClassHierarchy(baseClasses: SubSymbol[])
     classSymbols.forEach(classSymbol => {
         p_members.push(getPureVirtualFunctionsOfClassHierarchy(classSymbol.baseClasses()));
     });
-
     const members = (await Promise.all(p_members)).flat();
 
     classSymbols.forEach(classSymbol => {
@@ -73,9 +72,7 @@ async function getDefinitionLocations(baseClasses: SubSymbol[]): Promise<vscode.
 async function getDefinitionSymbols(definitions: vscode.Location[]): Promise<CSymbol[]> {
     const p_classSymbols: Promise<CSymbol | undefined>[] = [];
     definitions.forEach(definition => {
-        if (definition) {
-            p_classSymbols.push(SourceDocument.getSymbol(definition));
-        }
+        p_classSymbols.push(SourceDocument.getSymbol(definition));
     });
     const classSymbols = await Promise.all(p_classSymbols);
 
