@@ -47,7 +47,7 @@ function formatTextToInsert(
     insertText: string, position: ProposedPosition, sourceDoc: SourceDocument
 ): string {
     if (position.options.indent) {
-        insertText = insertText.replace(/^/gm, util.indentation());
+        insertText = util.insertBeforeEachLine(insertText, util.indentation()); // insertText.replace(/^/gm, util.indentation());
     }
 
     // Indent text to match the relative position.
@@ -56,7 +56,7 @@ function formatTextToInsert(
             : sourceDoc.lineAt(position);
     const indentation = indentationLine.text.substring(0, indentationLine.firstNonWhitespaceCharacterIndex);
     if (!position.options.before) {
-        insertText = insertText.replace(/^/gm, indentation);
+        insertText = util.insertBeforeEachLine(insertText, indentation); // insertText.replace(/^/gm, indentation);
     } else {
         insertText = insertText.replace(/\n/gm, '\n' + indentation);
     }

@@ -149,6 +149,11 @@ export function indentation(options?: vscode.TextEditorOptions): string {
     return '\t';
 }
 
+export function insertBeforeEachLine(text: string, indentation: string): string {
+    text = text.replace(/\n/gm, '\n' + indentation);
+    return indentation + text;
+}
+
 export function lineCount(text: string): number {
     return (text.endsWith('\n')) ? text.split('\n').length - 1 : text.split('\n').length;
 }
