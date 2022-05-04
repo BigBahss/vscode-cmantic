@@ -193,7 +193,7 @@ function generateNamespaces(namespaces: CSymbol[], eol: string): string {
                 if (body) {
                     if (childNamespaces.length > 0
                             && childNamespaces[0].trueStart.character > namespace.trueStart.character) {
-                        namespaceText += body.replace(/^/gm, indentation);
+                        namespaceText += util.insertBeforeEachLine(body, indentation); // body.replace(/^/gm, indentation);
                     } else {
                         namespaceText += body;
                     }
@@ -204,7 +204,7 @@ function generateNamespaces(namespaces: CSymbol[], eol: string): string {
             }
         }
         return namespaceText;
-    } (namespaces).replace(/\s+$/gm, eol);
+    } (namespaces).replace(/[^\S\r\n]+\n/g, eol);
 }
 
 function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string {
