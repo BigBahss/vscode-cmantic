@@ -204,7 +204,7 @@ function generateNamespaces(namespaces: CSymbol[], eol: string): string {
             }
         }
         return namespaceText;
-    } (namespaces).replace(/\s+$/gm, eol);
+    } (namespaces).replace(/[^\S\r\n]+\n/g, eol);
 }
 
 function getNamespaceCurlySeparator(namespaces: CSymbol[], eol: string): string {
