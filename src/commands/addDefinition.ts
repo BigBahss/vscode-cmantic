@@ -331,13 +331,8 @@ function constructInitializerList(functionDeclaration: CSymbol, initializers: In
         const isConstReference = functionList.parameters[0].text.match( /^\s*const\s*(\w+)\s*\&/ );
         // return { 'const TYPE & ARG', 'TYPE' }  
         
-        logger.alertInformation( 'ntype:' + functionList.parameters[0].text );
-        logger.alertInformation( '' + (isConstReference ? isConstReference.length : 'empty') );
-
         if (isConstReference !== null && isConstReference.length > 0 ) {
             const typeName = isConstReference[1];
-
-            logger.alertInformation( 'type : ' + typeName );
 
             if ( typeName === functionDeclaration.name ){
                 initializerBody = cfg.bracedInitialization(initializers[0].uri) ? '{ ' + functionList.parameters[0].name + ' ' : '( ' + functionList.parameters[0].name + '';
