@@ -8,6 +8,8 @@ import { ProposedPosition } from '../ProposedPosition';
 import { showSingleQuickPick, showMultiQuickPick, MultiQuickPickOptions } from '../QuickPick';
 import { createMatchingSourceFile } from './createSourceFile';
 import { getMatchingHeaderSource, logger } from '../extension';
+import FunctionSignature from '../FunctionSignature';
+import { getParameterTypes } from '../parsing';
 
 
 export const title = {
@@ -298,7 +300,7 @@ async function constructFunctionSkeleton(
         return;
     }
 
-    const initializerList = constructInitializerList(initializers, eol);
+    const initializerList = constructInitializerList(functionDeclaration, initializers, eol);
 
     let functionSkeleton: string;
     if (curlyBraceFormat === cfg.CurlyBraceFormat.NewLine
@@ -314,17 +316,43 @@ async function constructFunctionSkeleton(
     return position.formatTextToInsert(functionSkeleton, targetDoc);
 }
 
-function constructInitializerList(initializers: Initializer[], eol: string): string {
+function constructInitializerList(functionDeclaration: CSymbol, initializers: Initializer[], eol: string): string {
     if (initializers.length === 0) {
         return '';
     }
 
+    let initializerBody = cfg.bracedInitialization(initializers[0].uri) ? '{},' : '(),';
+
+    const functionList = new FunctionSignature( functionDeclaration );
+    let copyCtr = false;
+
+    if ( functionList.parameters.length === 1 ) {
+
+        const isConstReference = functionList.parameters[0].text.match( /^\s*const\s*(\w+)\s*\&/ );
+        // return { 'const TYPE & ARG', 'TYPE' }  
+        
+        if (isConstReference !== null && isConstReference.length > 0 ) {
+            const typeName = isConstReference[1];
+
+            if ( typeName === functionDeclaration.name ){
+                initializerBody = cfg.bracedInitialization(initializers[0].uri) ? '{ ' + functionList.parameters[0].name + ' ' : '( ' + functionList.parameters[0].name + '';
+                copyCtr = true;
+            }
+        }
+    }
+
     const indentation = util.indentation();
-    const initializerBody = cfg.bracedInitialization(initializers[0].uri) ? '{},' : '(),';
 
     let initializerList = eol + indentation + ': ';
-    initializers.forEach(initializer => initializerList += initializer.name + initializerBody + eol + indentation + '  ');
+    if ( copyCtr ) {
+        const endOfInit = cfg.bracedInitialization(initializers[0].uri) ? '},' : '),';
 
+        initializers.forEach(initializer => initializerList += initializer.name + initializerBody + ( initializer instanceof SubSymbol ? '' : '.' + initializer.name ) + endOfInit + eol + indentation + '  ');
+    } else {
+        initializers.forEach(initializer => initializerList += initializer.name + initializerBody + eol + indentation + '  ');
+    }
+
+    // Remove last element.
     return initializerList.trimEnd().slice(0, -1);
 }
 
@@ -650,3 +678,4 @@ export async function promptUserToSelectFunctions(functionDeclarations: CSymbol[
 
     return selectedItems?.map(item => item.declaration);
 }
+
