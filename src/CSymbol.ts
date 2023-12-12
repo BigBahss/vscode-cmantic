@@ -829,12 +829,13 @@ export default class CSymbol extends SourceSymbol {
         let maskedDeclaration = parse.maskNonSourceText(declaration);
         maskedDeclaration = parse.maskParentheses(maskedDeclaration);
 
-        const nameEndIndex =
-                this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(declarationStart);
-        const paramStartIndex = maskedDeclaration.indexOf('(', nameEndIndex);
-        const paramEndIndex = maskedDeclaration.indexOf(')', nameEndIndex);
+        // const nameEndIndex =
+        //         this.document.offsetAt(this.selectionRange.end) - this.document.offsetAt(declarationStart);
+        const paramStartIndex = maskedDeclaration.indexOf('(');
+        const paramEndIndex = maskedDeclaration.lastIndexOf(')');
         if (paramStartIndex === -1 || paramEndIndex === -1) {
-            return '';
+            vscode.window.showErrorMessage("Failed to parse (parenthesis)")
+            return ''; //dumb early return
         }
         const parameters = parse.stripDefaultValues(declaration.substring(paramStartIndex + 1, paramEndIndex));
         const paramStart = this.document.positionAt(this.document.offsetAt(declarationStart) + paramStartIndex);
